@@ -852,8 +852,12 @@ function AsistenteIA() {
           system:SYS, messages:next.map(m=>({role:m.role,content:m.text})) })
       });
       const d = await res.json();
-      setMsgs(m=>[...m,{role:"assistant",text:d.content?.[0]?.text||"Sin respuesta."}]);
-    } catch { setMsgs(m=>[...m,{role:"assistant",text:"Error de conexión."}]); }
+      const reply = d?.content?.[0]?.text
+        || d?.content?.find?.(b=>b.type==="text")?.text
+        || (d?.error ? "Error API: "+d.error.message : null)
+        || "Sin respuesta.";
+      setMsgs(m=>[...m,{role:"assistant",text:reply}]);
+    } catch(e) { setMsgs(m=>[...m,{role:"assistant",text:"Error: "+e.message}]); }
     setLoading(false);
   }
 
