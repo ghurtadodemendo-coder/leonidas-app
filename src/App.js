@@ -183,6 +183,50 @@ function Row({ label, value, accent }) {
   );
 }
 
+
+// ── FORM PRIMITIVES (defined globally to prevent re-render/deselect bug) ─────
+function FInput({ label, value, onChange, type="text", placeholder="" }) {
+  return (
+    <div style={{ marginBottom:10 }}>
+      {label && <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
+        fontFamily:"'DM Mono',monospace", marginBottom:5 }}>{label}</div>}
+      <input type={type} value={value} onChange={onChange} placeholder={placeholder}
+        style={{ width:"100%", background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
+          borderRadius:7, padding:"10px 12px", color:T.ink, fontSize:14,
+          fontFamily:"inherit", outline:"none" }}/>
+    </div>
+  );
+}
+
+function FSelect({ label, value, onChange, options }) {
+  return (
+    <div style={{ marginBottom:10 }}>
+      {label && <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
+        fontFamily:"'DM Mono',monospace", marginBottom:5 }}>{label}</div>}
+      <select value={value} onChange={onChange}
+        style={{ width:"100%", background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
+          borderRadius:7, padding:"10px 12px", color:T.ink, fontSize:14,
+          fontFamily:"inherit", outline:"none" }}>
+        {options.map(o => <option key={o}>{o}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function FTextarea({ label, value, onChange, rows=2 }) {
+  return (
+    <div style={{ marginBottom:10 }}>
+      {label && <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
+        fontFamily:"'DM Mono',monospace", marginBottom:5 }}>{label}</div>}
+      <textarea value={value} onChange={onChange} rows={rows}
+        style={{ width:"100%", background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
+          borderRadius:7, padding:"10px 12px", color:T.ink, fontSize:14,
+          fontFamily:"inherit", outline:"none", resize:"none" }}/>
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function Btn({ children, onClick, variant="primary", sm }) {
   const base = { border:"none", borderRadius:7, cursor:"pointer",
     fontSize:sm?11:12.5, fontWeight:700, fontFamily:"inherit", letterSpacing:0.4,
@@ -532,17 +576,7 @@ function Bitacora() {
     finally { setSaving(false); }
   }
 
-  const inp = (field, placeholder, type="text") => (
-    <div style={{ marginBottom:10 }}>
-      <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
-        fontFamily:"'DM Mono',monospace", marginBottom:5 }}>{placeholder}</div>
-      <input type={type} value={form[field]}
-        onChange={e=>setForm(f=>({...f,[field]:e.target.value}))}
-        style={{ width:"100%", background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
-          borderRadius:7, padding:"10px 12px", color:T.ink, fontSize:14,
-          fontFamily:"inherit", outline:"none" }}/>
-    </div>
-  );
+  const upd = (field) => e => setForm(f=>({...f,[field]:e.target.value}));
 
   return (
     <div>
@@ -557,39 +591,21 @@ function Bitacora() {
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             <div>
-              {inp("fecha","Fecha","date")}
-              {inp("salida","Puerto salida")}
-              {inp("llegada","Puerto llegada *")}
-              {inp("millas","Millas","number")}
-              {inp("horas_motor_inicio","H. motor inicio","number")}
+              <FInput label="Fecha" type="date" value={form.fecha} onChange={upd("fecha")}/>
+              <FInput label="Puerto salida" value={form.salida} onChange={upd("salida")}/>
+              <FInput label="Puerto llegada *" value={form.llegada} onChange={upd("llegada")}/>
+              <FInput label="Millas" type="number" value={form.millas} onChange={upd("millas")}/>
+              <FInput label="H. motor inicio" type="number" value={form.horas_motor_inicio} onChange={upd("horas_motor_inicio")}/>
             </div>
             <div>
-              {inp("horas_motor_fin","H. motor fin","number")}
-              {inp("tripulantes","Tripulantes","number")}
-              {inp("combustible_cargado","Combustible (L)","number")}
-              {inp("condiciones","Condiciones")}
-              <div style={{ marginBottom:10 }}>
-                <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5,
-                  textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:5 }}>Patrón</div>
-                <select value={form.patron} onChange={e=>setForm(f=>({...f,patron:e.target.value}))}
-                  style={{ width:"100%", background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
-                    borderRadius:7, padding:"10px 12px", color:T.ink, fontSize:14,
-                    fontFamily:"inherit", outline:"none" }}>
-                  <option>Guille</option>
-                  <option>Varo</option>
-                </select>
-              </div>
+              <FInput label="H. motor fin" type="number" value={form.horas_motor_fin} onChange={upd("horas_motor_fin")}/>
+              <FInput label="Tripulantes" type="number" value={form.tripulantes} onChange={upd("tripulantes")}/>
+              <FInput label="Combustible (L)" type="number" value={form.combustible_cargado} onChange={upd("combustible_cargado")}/>
+              <FInput label="Condiciones" value={form.condiciones} onChange={upd("condiciones")}/>
+              <FSelect label="Patrón" value={form.patron} onChange={upd("patron")} options={["Guille","Varo"]}/>
             </div>
           </div>
-          <div style={{ marginBottom:12 }}>
-            <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
-              fontFamily:"'DM Mono',monospace", marginBottom:5 }}>Incidencias</div>
-            <textarea value={form.incidencias}
-              onChange={e=>setForm(f=>({...f,incidencias:e.target.value}))} rows={2}
-              style={{ width:"100%", background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
-                borderRadius:7, padding:"10px 12px", color:T.ink, fontSize:14,
-                fontFamily:"inherit", outline:"none", resize:"none" }}/>
-          </div>
+          <FTextarea label="Incidencias" value={form.incidencias} onChange={upd("incidencias")}/>
           <Btn onClick={guardar}>{saving?"Guardando...":"Guardar entrada"}</Btn>
         </Card>
       )}
@@ -641,6 +657,277 @@ function Bitacora() {
   );
 }
 
+function Mantenimiento() {
+  const [tab, setTab] = useState("tareas");
+  const [tareas, setTareas] = useState([]);
+  const [averias, setAverias] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [showAveriaForm, setShowAveriaForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState({ tipo:"", fecha_ultima:"", horas_ultima:"", notas:"", coste:"" });
+  const [averiaForm, setAveriaForm] = useState({ fecha:new Date().toISOString().split("T")[0], descripcion:"", patron:"Guille", notas:"", coste:"0" });
+
+  async function cargar() {
+    try {
+      setLoading(true);
+      const [t, a] = await Promise.all([
+        db("mantenimiento","GET",null,"?order=tipo.asc"),
+        db("averias","GET",null,"?order=fecha.desc"),
+      ]);
+      setTareas(t); setAverias(a);
+    } catch(e){} finally { setLoading(false); }
+  }
+  useEffect(()=>{ cargar(); },[]);
+
+  async function guardarAveria() {
+    if (!averiaForm.descripcion) return;
+    setSaving(true);
+    try {
+      await db("averias","POST",{ ...averiaForm, coste:parseFloat(averiaForm.coste)||0, estado:"pendiente" });
+      setShowAveriaForm(false); cargar();
+    } catch(e){ alert("Error: "+e.message); } finally { setSaving(false); }
+  }
+
+  async function actualizarTarea(id, datos) {
+    try {
+      await db(`mantenimiento?id=eq.${id}`,"PATCH",datos);
+      setEditId(null); cargar();
+    } catch(e){ alert("Error: "+e.message); }
+  }
+
+  const Inp = ({val,onChange,label,type="text",small}) => (
+    <div style={{marginBottom:8}}>
+      <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+        fontFamily:"'DM Mono',monospace",marginBottom:4}}>{label}</div>
+      <input type={type} value={val} onChange={onChange}
+        style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
+          padding:"8px 12px",color:T.ink,fontSize:13,fontFamily:"inherit",outline:"none"}}/>
+    </div>
+  );
+
+  return (
+    <div>
+      <Hdr eyebrow="Estado técnico" title="Mantenimiento"/>
+      <div style={{display:"flex",background:T.bg,borderRadius:7,padding:3,gap:3,marginBottom:18,border:`1px solid ${T.rimHi}`}}>
+        {[["tareas","Tareas periódicas"],["averias","Averías"]].map(([id,lbl])=>(
+          <button key={id} onClick={()=>setTab(id)} style={{
+            flex:1,padding:"8px",borderRadius:5,border:"none",cursor:"pointer",
+            background:tab===id?T.surface:"transparent",
+            color:tab===id?T.ink:T.inkDim,fontSize:11.5,fontWeight:tab===id?600:400,
+            fontFamily:"inherit",boxShadow:tab===id?"0 1px 3px rgba(0,0,0,0.15)":"none"}}>{lbl}</button>
+        ))}
+      </div>
+
+      {tab==="tareas" && (
+        loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+        : tareas.map(t=>{
+          const pct = t.horas_intervalo && t.horas_ultima
+            ? Math.min(100,((774-t.horas_ultima)/t.horas_intervalo)*100) : null;
+          const bc = t.estado==="danger"?T.danger:t.estado==="warn"?T.warn:T.ok;
+          const isEditing = editId === t.id;
+          return (
+            <Card key={t.id} style={{marginBottom:9}}>
+              {isEditing ? (
+                <div>
+                  <Inp val={form.fecha_ultima} onChange={e=>setForm(f=>({...f,fecha_ultima:e.target.value}))} label="Fecha última revisión" type="date"/>
+                  <Inp val={form.horas_ultima} onChange={e=>setForm(f=>({...f,horas_ultima:e.target.value}))} label="Horas motor en revisión" type="number"/>
+                  <Inp val={form.coste} onChange={e=>setForm(f=>({...f,coste:e.target.value}))} label="Coste (€)" type="number"/>
+                  <Inp val={form.notas} onChange={e=>setForm(f=>({...f,notas:e.target.value}))} label="Notas"/>
+                  <div style={{display:"flex",gap:8,marginTop:6}}>
+                    <Btn sm onClick={()=>actualizarTarea(t.id,{fecha_ultima:form.fecha_ultima,horas_ultima:parseFloat(form.horas_ultima)||null,coste:parseFloat(form.coste)||0,notas:form.notas,estado:"ok"})}>Guardar</Btn>
+                    <Btn sm variant="ghost" onClick={()=>setEditId(null)}>Cancelar</Btn>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:pct!==null?10:0}}>
+                    <div style={{flex:1}}>
+                      <div style={{color:T.ink,fontWeight:600,fontSize:13.5}}>{t.tipo}</div>
+                      <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>
+                        Últ: {t.fecha_ultima||"Pendiente"} · {t.notas||""}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <Signal estado={t.estado}/>
+                      <button onClick={()=>{setEditId(t.id);setForm({fecha_ultima:t.fecha_ultima||"",horas_ultima:t.horas_ultima||"",notas:t.notas||"",coste:t.coste||""});}}
+                        style={{background:"none",border:`1px solid ${T.rimHi}`,borderRadius:5,
+                          padding:"3px 8px",color:T.inkDim,fontSize:10,cursor:"pointer"}}>✏️</button>
+                    </div>
+                  </div>
+                  {pct!==null&&(
+                    <div>
+                      <div style={{background:T.bg,borderRadius:2,height:2.5,overflow:"hidden"}}>
+                        <div style={{height:"100%",width:`${pct}%`,background:bc,borderRadius:2}}/>
+                      </div>
+                      <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+                        <span style={{color:T.inkDim,fontSize:9.5,fontFamily:"'DM Mono',monospace"}}>{Math.round(pct)}% del intervalo</span>
+                        <span style={{color:T.inkDim,fontSize:9.5,fontFamily:"'DM Mono',monospace"}}>{t.horas_intervalo}h intervalo</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          );
+        })
+      )}
+
+      {tab==="averias" && (
+        <div>
+          <div style={{marginBottom:14}}>
+            <Btn onClick={()=>setShowAveriaForm(!showAveriaForm)}>{showAveriaForm?"Cancelar":"+ Registrar avería"}</Btn>
+          </div>
+          {showAveriaForm && (
+            <Card style={{marginBottom:14}} pad="16px">
+              <div style={{fontSize:11,color:T.danger,fontWeight:700,marginBottom:12,
+                textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nueva avería</div>
+              <Inp val={averiaForm.fecha} onChange={e=>setAveriaForm(f=>({...f,fecha:e.target.value}))} label="Fecha" type="date"/>
+              <Inp val={averiaForm.descripcion} onChange={e=>setAveriaForm(f=>({...f,descripcion:e.target.value}))} label="Descripción *"/>
+              <Inp val={averiaForm.notas} onChange={e=>setAveriaForm(f=>({...f,notas:e.target.value}))} label="Notas / diagnóstico"/>
+              <Inp val={averiaForm.coste} onChange={e=>setAveriaForm(f=>({...f,coste:e.target.value}))} label="Coste (€)" type="number"/>
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                  fontFamily:"'DM Mono',monospace",marginBottom:4}}>Patrón que reporta</div>
+                <select value={averiaForm.patron} onChange={e=>setAveriaForm(f=>({...f,patron:e.target.value}))}
+                  style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
+                    padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
+                  <option>Guille</option><option>Varo</option>
+                </select>
+              </div>
+              <Btn onClick={guardarAveria}>{saving?"Guardando...":"Registrar avería"}</Btn>
+            </Card>
+          )}
+          {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+          : averias.length===0 ? <Card><div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>Sin averías registradas.</div></Card>
+          : averias.map(a=>(
+            <Card key={a.id} style={{marginBottom:9}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div style={{flex:1,paddingRight:12}}>
+                  <div style={{color:T.ink,fontWeight:600,fontSize:13.5}}>{a.descripcion}</div>
+                  <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{a.fecha} · {a.patron}</div>
+                  {a.notas&&<div style={{color:T.inkMid,fontSize:12,marginTop:6}}>{a.notas}</div>}
+                  {a.coste>0&&<div style={{color:T.brassLt,fontSize:13,fontWeight:600,marginTop:6,fontFamily:"'DM Mono',monospace"}}>{a.coste}€</div>}
+                </div>
+                <Signal estado={a.estado||"warn"}/>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+function Combustible() {
+  const [repostajes, setRepostajes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ fecha:new Date().toISOString().split("T")[0], litros:"", precio_litro:"", puerto:"Caleta de Vélez", patron:"Guille", horas_motor:"" });
+
+  const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
+
+  async function cargar() {
+    try { setLoading(true); const d = await db("combustible","GET",null,"?order=fecha.desc"); setRepostajes(d); }
+    catch(e){} finally { setLoading(false); }
+  }
+  useEffect(()=>{ cargar(); },[]);
+
+  async function guardar() {
+    if (!form.litros) return;
+    setSaving(true);
+    try {
+      const litros = parseFloat(form.litros);
+      const precio = parseFloat(form.precio_litro)||0;
+      const payload = { fecha:form.fecha, litros, precio_litro:precio,
+        importe:parseFloat((litros*precio).toFixed(2)), puerto:form.puerto,
+        patron:form.patron, horas_motor:parseFloat(form.horas_motor)||null };
+      if (editItem) {
+        await db(`combustible?id=eq.${editItem}`,"PATCH",payload);
+        setEditItem(null);
+      } else {
+        await db("combustible","POST",payload);
+      }
+      setShowForm(false);
+      setForm({ fecha:new Date().toISOString().split("T")[0], litros:"", precio_litro:"", puerto:"Caleta de Vélez", patron:"Guille", horas_motor:"" });
+      cargar();
+    } catch(e){ alert("Error: "+e.message); } finally { setSaving(false); }
+  }
+
+  async function eliminar(id) {
+    if (!window.confirm("¿Eliminar este repostaje?")) return;
+    try { await db(`combustible?id=eq.${id}`,"DELETE"); cargar(); } catch(e){ alert("Error: "+e.message); }
+  }
+
+  function editar(r) {
+    setForm({ fecha:r.fecha, litros:r.litros+"", precio_litro:r.precio_litro+"", puerto:r.puerto||"", patron:r.patron||"Guille", horas_motor:r.horas_motor||"" });
+    setEditItem(r.id);
+    setShowForm(true);
+  }
+
+  const totalL = repostajes.reduce((a,c)=>a+(c.litros||0),0);
+  const totalE = repostajes.reduce((a,c)=>a+(c.importe||0),0);
+
+  return (
+    <div>
+      <Hdr eyebrow="Repostajes y consumo" title="Combustible"
+        action={<Btn sm onClick={()=>{ setShowForm(!showForm); setEditItem(null); setForm({ fecha:new Date().toISOString().split("T")[0], litros:"", precio_litro:"", puerto:"Caleta de Vélez", patron:"Guille", horas_motor:"" }); }}>{showForm&&!editItem?"Cancelar":"+ Repostaje"}</Btn>}/>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:16}}>
+        <Card pad="13px 15px">
+          <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:5}}>Total litros</div>
+          <div style={{fontSize:24,color:T.ink,fontWeight:600,fontFamily:"'Cormorant Garamond',serif"}}>{totalL.toFixed(0)} L</div>
+        </Card>
+        <Card pad="13px 15px">
+          <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:5}}>Gasto total</div>
+          <div style={{fontSize:24,color:T.brassLt,fontWeight:600,fontFamily:"'Cormorant Garamond',serif"}}>{totalE.toFixed(0)} €</div>
+        </Card>
+      </div>
+
+      {showForm && (
+        <Card style={{marginBottom:14}} pad="16px">
+          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>{editItem?"Editar repostaje":"Nuevo repostaje"}</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <div>
+              <FInput label="Fecha" type="date" value={form.fecha} onChange={upd("fecha")}/>
+              <FInput label="Litros *" type="number" value={form.litros} onChange={upd("litros")}/>
+              <FInput label="€ / Litro" type="number" value={form.precio_litro} onChange={upd("precio_litro")}/>
+            </div>
+            <div>
+              <FInput label="Puerto" value={form.puerto} onChange={upd("puerto")}/>
+              <FInput label="Horas motor" type="number" value={form.horas_motor} onChange={upd("horas_motor")}/>
+              <FSelect label="Patrón" value={form.patron} onChange={upd("patron")} options={["Guille","Varo"]}/>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <Btn onClick={guardar}>{saving?"Guardando...":editItem?"Actualizar":"Guardar"}</Btn>
+            {showForm&&<Btn variant="ghost" onClick={()=>{setShowForm(false);setEditItem(null);}}>Cancelar</Btn>}
+          </div>
+        </Card>
+      )}
+
+      {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+      : repostajes.length===0 ? <Card><div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>Sin repostajes registrados.</div></Card>
+      : repostajes.map(r=>(
+        <Card key={r.id} style={{marginBottom:9}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{flex:1}}>
+              <div style={{color:T.ink,fontWeight:600,fontSize:16,fontFamily:"'Cormorant Garamond',serif"}}>{r.puerto||"—"}</div>
+              <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{r.fecha} · {r.patron} · {r.litros}L · {r.precio_litro}€/L</div>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{fontSize:18,fontWeight:600,color:T.brassLt,fontFamily:"'Cormorant Garamond',serif"}}>{(r.importe||0).toFixed(2)}€</div>
+              <button onClick={()=>editar(r)} style={{background:"none",border:`1px solid ${T.rimHi}`,borderRadius:5,padding:"3px 7px",color:T.inkDim,fontSize:11,cursor:"pointer"}}>✏️</button>
+              <button onClick={()=>eliminar(r.id)} style={{background:"none",border:`1px solid ${T.danger}40`,borderRadius:5,padding:"3px 7px",color:T.danger,fontSize:11,cursor:"pointer"}}>✕</button>
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
 function Mantenimiento() {
   const [tab, setTab] = useState("tareas");
   const [tareas, setTareas] = useState([]);
@@ -966,8 +1253,11 @@ function Puertos() {
   const [puertos, setPuertos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editItem, setEditItem] = useState(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ nombre:"", tipo:"Visitado", precio:"", telefono:"", valoracion:"4", notas:"", amarre:"" });
+
+  const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
 
   async function cargar() {
     try { setLoading(true); const d = await db("puertos","GET",null,"?order=tipo.asc,nombre.asc"); setPuertos(d); }
@@ -979,78 +1269,73 @@ function Puertos() {
     if (!form.nombre) return;
     setSaving(true);
     try {
-      await db("puertos","POST",{ ...form, precio:parseFloat(form.precio)||0, valoracion:parseFloat(form.valoracion)||4 });
+      const payload = { ...form, precio:parseFloat(form.precio)||0, valoracion:parseFloat(form.valoracion)||4 };
+      if (editItem) { await db(`puertos?id=eq.${editItem}`,"PATCH",payload); setEditItem(null); }
+      else { await db("puertos","POST",payload); }
       setShowForm(false);
       setForm({ nombre:"", tipo:"Visitado", precio:"", telefono:"", valoracion:"4", notas:"", amarre:"" });
       cargar();
     } catch(e){ alert("Error: "+e.message); } finally { setSaving(false); }
   }
 
-  const Inp = ({field,label,type="text"}) => (
-    <div style={{marginBottom:9}}>
-      <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-        fontFamily:"'DM Mono',monospace",marginBottom:4}}>{label}</div>
-      <input type={type} value={form[field]} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))}
-        style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
-          padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}/>
-    </div>
-  );
+  async function eliminar(id) {
+    if (!window.confirm("¿Eliminar este puerto?")) return;
+    try { await db(`puertos?id=eq.${id}`,"DELETE"); cargar(); } catch(e){}
+  }
+
+  function editar(p) {
+    setForm({ nombre:p.nombre||"", tipo:p.tipo||"Visitado", precio:p.precio||"", telefono:p.telefono||"", valoracion:p.valoracion||"4", notas:p.notas||"", amarre:p.amarre||"" });
+    setEditItem(p.id); setShowForm(true);
+  }
 
   return (
     <div>
       <Hdr eyebrow="Historial de escalas" title="Puertos y Amarres"
-        action={<Btn sm onClick={()=>setShowForm(!showForm)}>{showForm?"Cancelar":"+ Añadir"}</Btn>}/>
+        action={<Btn sm onClick={()=>{ setShowForm(!showForm); setEditItem(null); }}>{showForm&&!editItem?"Cancelar":"+ Añadir"}</Btn>}/>
 
       {showForm && (
         <Card style={{marginBottom:14}} pad="16px">
-          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
-            textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nuevo puerto</div>
-          <Inp field="nombre" label="Nombre del puerto *"/>
+          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>{editItem?"Editar puerto":"Nuevo puerto"}</div>
+          <FInput label="Nombre *" value={form.nombre} onChange={upd("nombre")}/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             <div>
-              <Inp field="precio" label="Precio/noche (€)" type="number"/>
-              <Inp field="telefono" label="Teléfono"/>
-              <Inp field="amarre" label="Nº amarre"/>
+              <FInput label="Precio/noche (€)" type="number" value={form.precio} onChange={upd("precio")}/>
+              <FInput label="Teléfono" value={form.telefono} onChange={upd("telefono")}/>
+              <FInput label="Nº amarre" value={form.amarre} onChange={upd("amarre")}/>
             </div>
             <div>
-              <Inp field="valoracion" label="Valoración (1-5)" type="number"/>
-              <div style={{marginBottom:9}}>
-                <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-                  fontFamily:"'DM Mono',monospace",marginBottom:4}}>Tipo</div>
-                <select value={form.tipo} onChange={e=>setForm(f=>({...f,tipo:e.target.value}))}
-                  style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
-                    padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
-                  <option>Visitado</option><option>Base</option><option>Favorito</option>
-                </select>
-              </div>
+              <FInput label="Valoración (1-5)" type="number" value={form.valoracion} onChange={upd("valoracion")}/>
+              <FSelect label="Tipo" value={form.tipo} onChange={upd("tipo")} options={["Visitado","Base","Favorito"]}/>
             </div>
           </div>
-          <Inp field="notas" label="Notas"/>
-          <Btn onClick={guardar}>{saving?"Guardando...":"Guardar puerto"}</Btn>
+          <FTextarea label="Notas" value={form.notas} onChange={upd("notas")}/>
+          <div style={{display:"flex",gap:8}}>
+            <Btn onClick={guardar}>{saving?"Guardando...":editItem?"Actualizar":"Guardar"}</Btn>
+            <Btn variant="ghost" onClick={()=>{setShowForm(false);setEditItem(null);}}>Cancelar</Btn>
+          </div>
         </Card>
       )}
 
       {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
       : puertos.map(p=>(
         <Card key={p.id} style={{marginBottom:11}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-            <div>
-              <div style={{fontSize:9.5,color:p.tipo==="Base"?T.brass:T.info,letterSpacing:1.5,
-                fontFamily:"'DM Mono',monospace",marginBottom:4}}>{p.tipo?.toUpperCase()}</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:9.5,color:p.tipo==="Base"?T.brass:T.info,letterSpacing:1.5,fontFamily:"'DM Mono',monospace",marginBottom:4}}>{p.tipo?.toUpperCase()}</div>
               <div style={{color:T.ink,fontWeight:600,fontSize:17,fontFamily:"'Cormorant Garamond',serif"}}>{p.nombre}</div>
               <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{p.telefono||"—"}</div>
             </div>
             <div style={{textAlign:"right"}}>
-              <div style={{color:T.brassLt,fontSize:17,fontWeight:600,fontFamily:"'Cormorant Garamond',serif"}}>
-                {p.precio||0}€<span style={{fontSize:10,color:T.inkDim}}>{p.tipo==="Base"?"/mes":"/noche"}</span>
-              </div>
-              <div style={{color:T.inkDim,fontSize:10,marginTop:4,fontFamily:"'DM Mono',monospace"}}>★ {p.valoracion||"—"}</div>
+              <div style={{color:T.brassLt,fontSize:17,fontWeight:600,fontFamily:"'Cormorant Garamond',serif"}}>{p.precio||0}€<span style={{fontSize:10,color:T.inkDim}}>{p.tipo==="Base"?"/mes":"/noche"}</span></div>
+              <div style={{color:T.inkDim,fontSize:10,marginTop:2,fontFamily:"'DM Mono',monospace"}}>★ {p.valoracion||"—"}</div>
             </div>
           </div>
-          {p.amarre&&<div style={{display:"inline-flex",background:T.brassDim,border:`1px solid ${T.brass}35`,
-            borderRadius:4,padding:"2px 8px",color:T.brassLt,fontSize:9.5,fontFamily:"'DM Mono',monospace",
-            marginBottom:8}}>Amarre {p.amarre}</div>}
-          {p.notas&&<div style={{color:T.inkDim,fontSize:12,lineHeight:1.4}}>{p.notas}</div>}
+          {p.amarre&&<div style={{display:"inline-flex",background:T.brassDim,border:`1px solid ${T.brass}35`,borderRadius:4,padding:"2px 8px",color:T.brassLt,fontSize:9.5,fontFamily:"'DM Mono',monospace",marginBottom:7}}>Amarre {p.amarre}</div>}
+          {p.notas&&<div style={{color:T.inkDim,fontSize:12,lineHeight:1.4,marginBottom:8}}>{p.notas}</div>}
+          <div style={{display:"flex",gap:7}}>
+            <button onClick={()=>editar(p)} style={{background:"none",border:`1px solid ${T.rimHi}`,borderRadius:5,padding:"4px 10px",color:T.inkDim,fontSize:11,cursor:"pointer"}}>✏️ Editar</button>
+            <button onClick={()=>eliminar(p.id)} style={{background:"none",border:`1px solid ${T.danger}40`,borderRadius:5,padding:"4px 10px",color:T.danger,fontSize:11,cursor:"pointer"}}>✕ Eliminar</button>
+          </div>
         </Card>
       ))}
     </div>
@@ -1059,24 +1344,50 @@ function Puertos() {
 function Inventario() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState({});
+  const [showForm, setShowForm] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ categoria:"Motor", articulo:"", cantidad:"1", minimo:"1", notas:"" });
+
+  const CATS = ["Electricidad","Fontanería","Herramientas","Jarcia y cubierta","Limpieza","Motor","Navegación","Seguridad"];
+  const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
 
   async function cargar() {
-    try {
-      setLoading(true);
-      const data = await db("inventario","GET",null,"?order=categoria.asc,articulo.asc");
-      setItems(data);
-    } catch(e){} finally { setLoading(false); }
+    try { setLoading(true); const d = await db("inventario","GET",null,"?order=categoria.asc,articulo.asc"); setItems(d); }
+    catch(e){} finally { setLoading(false); }
   }
   useEffect(()=>{ cargar(); },[]);
 
-  async function actualizar(id, qty) {
-    setSaving(s=>({...s,[id]:true}));
+  async function cambiarQty(id, qty) {
+    const newQty = Math.max(0,qty);
     try {
-      const newQty = Math.max(0, qty);
-      await db(`inventario?id=eq.${id}`,"PATCH",{ cantidad:newQty, estado: newQty===0?"danger":"ok" });
-      setItems(prev => prev.map(i => i.id===id ? {...i, cantidad:newQty, estado:newQty===0?"danger":"ok"} : i));
-    } catch(e){} finally { setSaving(s=>({...s,[id]:false})); }
+      await db(`inventario?id=eq.${id}`,"PATCH",{ cantidad:newQty, estado:newQty===0?"danger":"ok" });
+      setItems(prev=>prev.map(i=>i.id===id?{...i,cantidad:newQty,estado:newQty===0?"danger":"ok"}:i));
+    } catch(e){}
+  }
+
+  async function guardar() {
+    if (!form.articulo) return;
+    setSaving(true);
+    try {
+      const qty = parseInt(form.cantidad)||0;
+      const payload = { ...form, cantidad:qty, minimo:parseInt(form.minimo)||1, estado:qty===0?"danger":"ok" };
+      if (editItem) { await db(`inventario?id=eq.${editItem}`,"PATCH",payload); setEditItem(null); }
+      else { await db("inventario","POST",payload); }
+      setShowForm(false);
+      setForm({ categoria:"Motor", articulo:"", cantidad:"1", minimo:"1", notas:"" });
+      cargar();
+    } catch(e){ alert("Error: "+e.message); } finally { setSaving(false); }
+  }
+
+  async function eliminar(id) {
+    if (!window.confirm("¿Eliminar este artículo?")) return;
+    try { await db(`inventario?id=eq.${id}`,"DELETE"); cargar(); } catch(e){}
+  }
+
+  function editar(item) {
+    setForm({ categoria:item.categoria||"Motor", articulo:item.articulo||"", cantidad:item.cantidad||"0", minimo:item.minimo||"1", notas:item.notas||"" });
+    setEditItem(item.id); setShowForm(true);
   }
 
   const cats = [...new Set(items.map(i=>i.categoria))].sort();
@@ -1084,38 +1395,50 @@ function Inventario() {
 
   return (
     <div>
-      <Hdr eyebrow="Repuestos a bordo" title="Inventario"/>
-      {issues>0 && (
-        <div style={{background:T.warn+"10",border:`1px solid ${T.warn}28`,borderRadius:8,padding:"11px 15px",marginBottom:16}}>
-          <div style={{color:T.warn,fontSize:12,fontWeight:600}}>{issues} artículos con stock bajo o agotado</div>
-        </div>
+      <Hdr eyebrow="Repuestos a bordo" title="Inventario"
+        action={<Btn sm onClick={()=>{ setShowForm(!showForm); setEditItem(null); }}>{showForm&&!editItem?"Cancelar":"+ Añadir"}</Btn>}/>
+
+      {issues>0 && <div style={{background:T.warn+"10",border:`1px solid ${T.warn}28`,borderRadius:8,padding:"11px 15px",marginBottom:14}}>
+        <div style={{color:T.warn,fontSize:12,fontWeight:600}}>{issues} artículos con stock bajo o agotado</div>
+      </div>}
+
+      {showForm && (
+        <Card style={{marginBottom:14}} pad="16px">
+          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>{editItem?"Editar artículo":"Nuevo artículo"}</div>
+          <FSelect label="Categoría" value={form.categoria} onChange={upd("categoria")} options={CATS}/>
+          <FInput label="Artículo *" value={form.articulo} onChange={upd("articulo")}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <FInput label="Cantidad" type="number" value={form.cantidad} onChange={upd("cantidad")}/>
+            <FInput label="Mínimo" type="number" value={form.minimo} onChange={upd("minimo")}/>
+          </div>
+          <FInput label="Notas" value={form.notas} onChange={upd("notas")}/>
+          <div style={{display:"flex",gap:8}}>
+            <Btn onClick={guardar}>{saving?"Guardando...":editItem?"Actualizar":"Guardar"}</Btn>
+            <Btn variant="ghost" onClick={()=>{setShowForm(false);setEditItem(null);}}>Cancelar</Btn>
+          </div>
+        </Card>
       )}
+
       {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
       : cats.map(cat=>(
-        <div key={cat} style={{marginBottom:20}}>
-          <div style={{fontSize:9.5,color:T.brass,letterSpacing:2,textTransform:"uppercase",
-            fontFamily:"'DM Mono',monospace",marginBottom:9}}>{cat}</div>
+        <div key={cat} style={{marginBottom:18}}>
+          <div style={{fontSize:9.5,color:T.brass,letterSpacing:2,textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:9}}>{cat}</div>
           {items.filter(i=>i.categoria===cat).map(item=>(
             <Card key={item.id} style={{marginBottom:6}} pad="11px 15px">
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{flex:1,minWidth:0}}>
+                <div style={{flex:1,minWidth:0,marginRight:8}}>
                   <div style={{color:T.ink,fontSize:13,fontWeight:500}}>{item.articulo}</div>
-                  <div style={{color:T.inkDim,fontSize:9.5,marginTop:2,fontFamily:"'DM Mono',monospace"}}>
-                    Mín: {item.minimo} ud.
-                  </div>
+                  <div style={{color:T.inkDim,fontSize:9.5,marginTop:2,fontFamily:"'DM Mono',monospace"}}>Mín: {item.minimo} ud.</div>
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                  <button onClick={()=>actualizar(item.id, item.cantidad-1)}
-                    style={{width:28,height:28,borderRadius:6,border:`1px solid ${T.rimHi}`,
-                      background:T.surfaceUp,color:T.ink,fontSize:16,cursor:"pointer",
-                      display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>−</button>
+                <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                  <button onClick={()=>cambiarQty(item.id,item.cantidad-1)}
+                    style={{width:26,height:26,borderRadius:5,border:`1px solid ${T.rimHi}`,background:T.surfaceUp,color:T.ink,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
                   <span style={{color:item.cantidad===0?T.danger:item.cantidad<=item.minimo?T.warn:T.ok,
-                    fontSize:18,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",
-                    minWidth:24,textAlign:"center"}}>{item.cantidad}</span>
-                  <button onClick={()=>actualizar(item.id, item.cantidad+1)}
-                    style={{width:28,height:28,borderRadius:6,border:`1px solid ${T.rimHi}`,
-                      background:T.surfaceUp,color:T.ink,fontSize:16,cursor:"pointer",
-                      display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>+</button>
+                    fontSize:17,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",minWidth:22,textAlign:"center"}}>{item.cantidad}</span>
+                  <button onClick={()=>cambiarQty(item.id,item.cantidad+1)}
+                    style={{width:26,height:26,borderRadius:5,border:`1px solid ${T.rimHi}`,background:T.surfaceUp,color:T.ink,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                  <button onClick={()=>editar(item)} style={{background:"none",border:`1px solid ${T.rimHi}`,borderRadius:5,padding:"3px 6px",color:T.inkDim,fontSize:10,cursor:"pointer",marginLeft:3}}>✏️</button>
+                  <button onClick={()=>eliminar(item.id)} style={{background:"none",border:`1px solid ${T.danger}40`,borderRadius:5,padding:"3px 6px",color:T.danger,fontSize:10,cursor:"pointer"}}>✕</button>
                 </div>
               </div>
             </Card>
@@ -1126,36 +1449,123 @@ function Inventario() {
   );
 }
 function Documentos() {
-  const docs = [
-    { n:"Matrícula embarcación",        t:"Oficial",     f:"01 Jun 2018", v:null           },
-    { n:"Seguro Allianz Náutica",       t:"Seguro",      f:"30 Jun 2024", v:"30 Jun 2025"  },
-    { n:"ITV náutica",                  t:"Inspección",  f:"15 Mar 2024", v:"15 Mar 2026"  },
-    { n:"Despacho navegación",          t:"Oficial",     f:"10 Ene 2025", v:"31 Dic 2025"  },
-    { n:"Titulación PER · Carlos Ruiz", t:"Titulación",  f:"20 May 2015", v:null           },
-    { n:"Titulación PER · Javier Moreno",t:"Titulación", f:"14 Sep 2018", v:null           },
-    { n:"Titulación PNB · Miguel Torres",t:"Titulación", f:"03 Jul 2021", v:null           },
-  ];
+  const [docs, setDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [form, setForm] = useState({ nombre:"", tipo:"Oficial", fecha_emision:"", fecha_vencimiento:"", notas:"" });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const fileRef = useRef(null);
+
+  const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
+
+  async function cargar() {
+    try { setLoading(true); const d = await db("documentos","GET",null,"?order=tipo.asc,nombre.asc"); setDocs(d); }
+    catch(e){} finally { setLoading(false); }
+  }
+  useEffect(()=>{ cargar(); },[]);
+
+  async function subir() {
+    if (!form.nombre) return;
+    setUploading(true);
+    try {
+      let url_archivo = null;
+      if (selectedFile) {
+        // Upload to Supabase Storage
+        const ext = selectedFile.name.split('.').pop();
+        const filename = `${Date.now()}-${form.nombre.replace(/\s+/g,'-')}.${ext}`;
+        const uploadRes = await fetch(`${SUPA_URL}/storage/v1/object/documentos/${filename}`, {
+          method:"POST",
+          headers: { "apikey":SUPA_KEY, "Authorization":`Bearer ${SUPA_KEY}`, "Content-Type":selectedFile.type, "x-upsert":"true" },
+          body: selectedFile
+        });
+        if (uploadRes.ok) {
+          url_archivo = `${SUPA_URL}/storage/v1/object/public/documentos/${filename}`;
+        }
+      }
+      await db("documentos","POST",{ ...form, url_archivo,
+        fecha_emision:form.fecha_emision||null, fecha_vencimiento:form.fecha_vencimiento||null });
+      setShowForm(false);
+      setSelectedFile(null);
+      setForm({ nombre:"", tipo:"Oficial", fecha_emision:"", fecha_vencimiento:"", notas:"" });
+      cargar();
+    } catch(e){ alert("Error: "+e.message); } finally { setUploading(false); }
+  }
+
+  async function eliminar(id) {
+    if (!window.confirm("¿Eliminar este documento?")) return;
+    try { await db(`documentos?id=eq.${id}`,"DELETE"); cargar(); } catch(e){}
+  }
+
+  const TIPOS = ["Oficial","Seguro","Inspección","Titulación","Mantenimiento","Otro"];
+
   return (
     <div>
-      <Hdr eyebrow="Certificados" title="Documentos" action={<Btn sm>+ Subir</Btn>}/>
-      {docs.map((d,i)=>(
-        <Card key={i} style={{ marginBottom:7 }} pad="12px 16px">
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <div style={{ flex:1 }}>
-              <div style={{ color:T.ink, fontWeight:500, fontSize:13 }}>{d.n}</div>
-              <div style={{ color:T.inkDim, fontSize:9.5, marginTop:3,
-                fontFamily:"'DM Mono',monospace" }}>
-                {d.t} · {d.f}{d.v?` · Vence: ${d.v}`:""}
+      <Hdr eyebrow="Certificados y archivos" title="Documentos"
+        action={<Btn sm onClick={()=>setShowForm(!showForm)}>{showForm?"Cancelar":"+ Subir"}</Btn>}/>
+
+      {showForm && (
+        <Card style={{marginBottom:14}} pad="16px">
+          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nuevo documento</div>
+          <FInput label="Nombre *" value={form.nombre} onChange={upd("nombre")}/>
+          <FSelect label="Tipo" value={form.tipo} onChange={upd("tipo")} options={TIPOS}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <FInput label="Fecha emisión" type="date" value={form.fecha_emision} onChange={upd("fecha_emision")}/>
+            <FInput label="Fecha vencimiento" type="date" value={form.fecha_vencimiento} onChange={upd("fecha_vencimiento")}/>
+          </div>
+          <FTextarea label="Notas" value={form.notas} onChange={upd("notas")}/>
+
+          {/* File picker */}
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:6}}>Archivo (PDF, imagen)</div>
+            <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              onChange={e=>setSelectedFile(e.target.files[0]||null)}
+              style={{display:"none"}}/>
+            <button onClick={()=>fileRef.current?.click()} style={{
+              width:"100%",background:T.surfaceUp,border:`1px dashed ${T.rimHi}`,
+              borderRadius:7,padding:"12px",color:selectedFile?T.brass:T.inkDim,
+              fontSize:13,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+              {selectedFile ? `📎 ${selectedFile.name}` : "Toca para seleccionar archivo"}
+            </button>
+          </div>
+
+          <div style={{display:"flex",gap:8}}>
+            <Btn onClick={subir}>{uploading?"Subiendo...":"Guardar documento"}</Btn>
+            <Btn variant="ghost" onClick={()=>{setShowForm(false);setSelectedFile(null);}}>Cancelar</Btn>
+          </div>
+        </Card>
+      )}
+
+      {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+      : docs.length===0 ? (
+        <Card>
+          <div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>
+            Sin documentos. Pulsa "+ Subir" para añadir.
+          </div>
+        </Card>
+      ) : docs.map((d,i)=>(
+        <Card key={d.id} style={{marginBottom:7}} pad="12px 16px">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{flex:1}}>
+              <div style={{color:T.ink,fontWeight:500,fontSize:13}}>{d.nombre}</div>
+              <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,fontFamily:"'DM Mono',monospace"}}>
+                {d.tipo}{d.fecha_emision?` · ${d.fecha_emision}`:""}{d.fecha_vencimiento?` · Vence: ${d.fecha_vencimiento}`:""}
               </div>
             </div>
-            <Btn variant="ghost" sm>Ver</Btn>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              {d.url_archivo && (
+                <a href={d.url_archivo} target="_blank" rel="noopener noreferrer"
+                  style={{background:T.brassDim,border:`1px solid ${T.brass}35`,borderRadius:5,
+                    padding:"4px 10px",color:T.brass,fontSize:11,textDecoration:"none",fontWeight:600}}>Ver</a>
+              )}
+              <button onClick={()=>eliminar(d.id)} style={{background:"none",border:`1px solid ${T.danger}40`,borderRadius:5,padding:"4px 8px",color:T.danger,fontSize:11,cursor:"pointer"}}>✕</button>
+            </div>
           </div>
         </Card>
       ))}
     </div>
   );
 }
-
 function Patrones() {
   const [patrones, setPatrones] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1181,7 +1591,7 @@ function Patrones() {
         const p = b.patron;
         if (!statsMap[p]) statsMap[p] = { salidas:0, millas:0 };
         statsMap[p].salidas++;
-        statsMap[p].millas += b.millas||0;
+        statsMap[p].millas += parseFloat(b.millas)||0;
       });
       setPatrones(statsMap);
     } catch(e){} finally { setLoading(false); }
@@ -1219,7 +1629,8 @@ function Patrones() {
       )}
 
       {todos.map(p=>{
-        const stats = patrones[p.nombre.split(" ")[0]] || { salidas:p.salidas||0, millas:p.millas||0 };
+        const firstName = p.nombre.split(" ")[0];
+        const stats = patrones[firstName] || patrones[p.nombre] || { salidas:p.salidas||0, millas:p.millas||0 };
         return (
           <Card key={p.id} style={{marginBottom:11}}>
             <div style={{display:"flex",alignItems:"center",gap:13,marginBottom:13}}>
