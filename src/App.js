@@ -277,6 +277,29 @@ function DashboardWeather({ setScreen }) {
 }
 
 function Dashboard({ setScreen }) {
+  const [stats, setStats] = useState({ horas:774, millas:0, ultimoRepo:"Sin datos", alertas:0 });
+  const [ultimaBitacora, setUltimaBitacora] = useState(null);
+
+  useEffect(()=>{
+    async function cargarStats() {
+      try {
+        const [bits, repos] = await Promise.all([
+          db("bitacora","GET",null,"?order=fecha.desc&limit=1"),
+          db("combustible","GET",null,"?order=fecha.desc&limit=1"),
+        ]);
+        const millasTotales = await db("bitacora","GET",null,"?select=millas");
+        const totalMillas = millasTotales.reduce((a,c)=>a+(c.millas||0),0);
+        if (bits.length) setUltimaBitacora(bits[0]);
+        setStats(s=>({
+          ...s,
+          millas: totalMillas.toFixed(0),
+          ultimoRepo: repos.length ? `${repos[0].litros}L · ${repos[0].fecha}` : "Sin datos",
+        }));
+      } catch(e){}
+    }
+    cargarStats();
+  },[]);
+
   const alerts = [
     { msg:"Seguro de responsabilidad civil",        sub:"Verificar vigencia y añadir datos",   c:T.warn },
     { msg:"ITV · Cert. Navegabilidad 04/12/2025",  sub:"Verificar próxima fecha de revisión", c:T.info },
@@ -302,10 +325,10 @@ function Dashboard({ setScreen }) {
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:9, marginBottom:18 }}>
         {[
-          { l:"Horas motor",      v:"774 h",      a:T.brassLt },
-          { l:"Millas totales",   v:"— mn",       a:T.inkDim  },
-          { l:"Último repostaje", v:"Sin datos",  a:T.inkDim  },
-          { l:"Alertas activas",  v:"4",          a:T.warn    },
+          { l:"Horas motor",      v:stats.horas+" h",         a:T.brassLt },
+          { l:"Millas totales",   v:stats.millas+" mn",        a:stats.millas>0?T.ink:T.inkDim },
+          { l:"Último repostaje", v:stats.ultimoRepo,          a:stats.ultimoRepo!=="Sin datos"?T.ink:T.inkDim },
+          { l:"Alertas activas",  v:"4",                       a:T.warn    },
         ].map((k,i) => (
           <Card key={i} pad="13px 15px">
             <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5,
@@ -337,9 +360,21 @@ function Dashboard({ setScreen }) {
       <Card style={{ marginBottom:14 }}>
         <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:2, textTransform:"uppercase",
           fontFamily:"'DM Mono',monospace", marginBottom:10 }}>Última entrada · Bitácora</div>
-        <div style={{ color:T.inkDim, fontSize:13, fontStyle:"italic" }}>
-          Aún no hay entradas registradas. Añade la primera salida.
-        </div>
+        {ultimaBitacora ? (
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+            <div>
+              <div style={{ color:T.ink, fontWeight:600, fontSize:17,
+                fontFamily:"'Cormorant Garamond',serif" }}>{ultimaBitacora.salida} → {ultimaBitacora.llegada}</div>
+              <div style={{ color:T.inkDim, fontSize:10, marginTop:3,
+                fontFamily:"'DM Mono',monospace" }}>{ultimaBitacora.fecha} · {ultimaBitacora.patron} · {ultimaBitacora.millas} mn</div>
+            </div>
+            <Signal estado={ultimaBitacora.incidencias==="Sin novedad"?"ok":"warn"}/>
+          </div>
+        ) : (
+          <div style={{ color:T.inkDim, fontSize:13, fontStyle:"italic" }}>
+            Aún no hay entradas. Pulsa "+ Nueva" en Bitácora.
+          </div>
+        )}
       </Card>
 
       <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:2, textTransform:"uppercase",
@@ -423,18 +458,130 @@ function Ficha() {
 }
 
 function Bitacora() {
+  const [entradas, setEntradas] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    fecha: new Date().toISOString().split("T")[0],
+    patron: "Guille",
+    salida: "Caleta de Vélez",
+    llegada: "",
+    millas: "",
+    horas_motor_inicio: "",
+    horas_motor_fin: "",
+    tripulantes: "2",
+    combustible_cargado: "0",
+    condiciones: "",
+    incidencias: "Sin novedad",
+  });
+
+  async function cargar() {
+    try {
+      setLoading(true);
+      const data = await db("bitacora", "GET", null, "?order=fecha.desc");
+      setEntradas(data);
+    } catch(e) { console.error(e); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { cargar(); }, []);
+
+  async function guardar() {
+    if (!form.llegada) return;
+    setSaving(true);
+    try {
+      await db("bitacora", "POST", {
+        fecha: form.fecha,
+        patron: form.patron,
+        salida: form.salida,
+        llegada: form.llegada,
+        millas: parseFloat(form.millas) || 0,
+        horas_motor_inicio: parseFloat(form.horas_motor_inicio) || null,
+        horas_motor_fin: parseFloat(form.horas_motor_fin) || null,
+        tripulantes: parseInt(form.tripulantes) || 1,
+        combustible_cargado: parseFloat(form.combustible_cargado) || 0,
+        condiciones: form.condiciones,
+        incidencias: form.incidencias || "Sin novedad",
+      });
+      setShowForm(false);
+      cargar();
+    } catch(e) { alert("Error al guardar: " + e.message); }
+    finally { setSaving(false); }
+  }
+
+  const inp = (field, placeholder, type="text") => (
+    <div style={{ marginBottom:10 }}>
+      <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
+        fontFamily:"'DM Mono',monospace", marginBottom:5 }}>{placeholder}</div>
+      <input type={type} value={form[field]}
+        onChange={e=>setForm(f=>({...f,[field]:e.target.value}))}
+        style={{ width:"100%", background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
+          borderRadius:7, padding:"10px 12px", color:T.ink, fontSize:14,
+          fontFamily:"inherit", outline:"none" }}/>
+    </div>
+  );
+
   return (
     <div>
       <Hdr eyebrow="Registro de navegación" title="Bitácora"
-        action={<Btn sm>+ Nueva</Btn>}/>
-      {BITACORA.length === 0 ? (
+        action={<Btn sm onClick={()=>setShowForm(!showForm)}>{showForm?"Cancelar":"+ Nueva"}</Btn>}/>
+
+      {showForm && (
+        <Card style={{ marginBottom:16 }} pad="16px">
+          <div style={{ fontSize:11, color:T.brass, fontWeight:700, marginBottom:14,
+            textTransform:"uppercase", letterSpacing:1, fontFamily:"'DM Mono',monospace" }}>
+            Nueva entrada
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+            <div>
+              {inp("fecha","Fecha","date")}
+              {inp("salida","Puerto salida")}
+              {inp("llegada","Puerto llegada *")}
+              {inp("millas","Millas","number")}
+              {inp("horas_motor_inicio","H. motor inicio","number")}
+            </div>
+            <div>
+              {inp("horas_motor_fin","H. motor fin","number")}
+              {inp("tripulantes","Tripulantes","number")}
+              {inp("combustible_cargado","Combustible (L)","number")}
+              {inp("condiciones","Condiciones")}
+              <div style={{ marginBottom:10 }}>
+                <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5,
+                  textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:5 }}>Patrón</div>
+                <select value={form.patron} onChange={e=>setForm(f=>({...f,patron:e.target.value}))}
+                  style={{ width:"100%", background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
+                    borderRadius:7, padding:"10px 12px", color:T.ink, fontSize:14,
+                    fontFamily:"inherit", outline:"none" }}>
+                  <option>Guille</option>
+                  <option>Varo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div style={{ marginBottom:12 }}>
+            <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
+              fontFamily:"'DM Mono',monospace", marginBottom:5 }}>Incidencias</div>
+            <textarea value={form.incidencias}
+              onChange={e=>setForm(f=>({...f,incidencias:e.target.value}))} rows={2}
+              style={{ width:"100%", background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
+                borderRadius:7, padding:"10px 12px", color:T.ink, fontSize:14,
+                fontFamily:"inherit", outline:"none", resize:"none" }}/>
+          </div>
+          <Btn onClick={guardar}>{saving?"Guardando...":"Guardar entrada"}</Btn>
+        </Card>
+      )}
+
+      {loading ? (
+        <Card><div style={{ color:T.inkDim, fontSize:13, textAlign:"center", padding:"20px 0" }}>Cargando...</div></Card>
+      ) : entradas.length === 0 ? (
         <Card>
           <div style={{ color:T.inkDim, fontSize:13, fontStyle:"italic", textAlign:"center", padding:"12px 0" }}>
             Aún no hay entradas. Pulsa "+ Nueva" para registrar la primera salida.
           </div>
         </Card>
-      ) : BITACORA.map(e=>(
+      ) : entradas.map(e=>(
         <Card key={e.id} style={{ marginBottom:9, cursor:"pointer" }}>
           <div onClick={()=>setOpen(open===e.id?null:e.id)}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
@@ -444,20 +591,23 @@ function Bitacora() {
                 <div style={{ color:T.ink, fontWeight:600, fontSize:17,
                   fontFamily:"'Cormorant Garamond',serif" }}>{e.salida} → {e.llegada}</div>
                 <div style={{ color:T.inkDim, fontSize:10, marginTop:3,
-                  fontFamily:"'DM Mono',monospace" }}>{e.millas} mn · {e.hFin-e.hIni}h motor</div>
+                  fontFamily:"'DM Mono',monospace" }}>{e.millas} mn</div>
               </div>
               <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}>
-                <Signal estado={e.inc==="Sin novedad"?"ok":"warn"}/>
-                <span style={{ color:T.inkDim, fontSize:16, lineHeight:1 }}>{open===e.id?"−":"+"}</span>
+                <Signal estado={e.incidencias==="Sin novedad"?"ok":"warn"}/>
+                <span style={{ color:T.inkDim, fontSize:16 }}>{open===e.id?"−":"+"}</span>
               </div>
             </div>
           </div>
           {open===e.id&&(
             <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${T.line}` }}>
-              {[["Condiciones",e.cond],["Tripulantes",e.trip],
-                ["Combustible cargado",e.comb+" L"],
-                ["H. motor ini / fin",`${e.hIni} h → ${e.hFin} h`],
-                ["Incidencias",e.inc]
+              {[
+                ["Condiciones", e.condiciones||"—"],
+                ["Tripulantes", e.tripulantes],
+                ["Combustible cargado", (e.combustible_cargado||0)+" L"],
+                ["H. motor inicio", (e.horas_motor_inicio||"—")+" h"],
+                ["H. motor fin", (e.horas_motor_fin||"—")+" h"],
+                ["Incidencias", e.incidencias||"Sin novedad"],
               ].map(([k,v])=>(
                 <div key={k}><Divider/><Row label={k} value={v}
                   accent={k==="Incidencias"&&v!=="Sin novedad"?T.warn:undefined}/></div>
@@ -472,121 +622,263 @@ function Bitacora() {
 
 function Mantenimiento() {
   const [tab, setTab] = useState("tareas");
+  const [tareas, setTareas] = useState([]);
+  const [averias, setAverias] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [showAveriaForm, setShowAveriaForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState({ tipo:"", fecha_ultima:"", horas_ultima:"", notas:"", coste:"" });
+  const [averiaForm, setAveriaForm] = useState({ fecha:new Date().toISOString().split("T")[0], descripcion:"", patron:"Guille", notas:"", coste:"0" });
+
+  async function cargar() {
+    try {
+      setLoading(true);
+      const [t, a] = await Promise.all([
+        db("mantenimiento","GET",null,"?order=tipo.asc"),
+        db("averias","GET",null,"?order=fecha.desc"),
+      ]);
+      setTareas(t); setAverias(a);
+    } catch(e){} finally { setLoading(false); }
+  }
+  useEffect(()=>{ cargar(); },[]);
+
+  async function guardarAveria() {
+    if (!averiaForm.descripcion) return;
+    setSaving(true);
+    try {
+      await db("averias","POST",{ ...averiaForm, coste:parseFloat(averiaForm.coste)||0, estado:"pendiente" });
+      setShowAveriaForm(false); cargar();
+    } catch(e){ alert("Error: "+e.message); } finally { setSaving(false); }
+  }
+
+  async function actualizarTarea(id, datos) {
+    try {
+      await db(`mantenimiento?id=eq.${id}`,"PATCH",datos);
+      setEditId(null); cargar();
+    } catch(e){ alert("Error: "+e.message); }
+  }
+
+  const Inp = ({val,onChange,label,type="text",small}) => (
+    <div style={{marginBottom:8}}>
+      <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+        fontFamily:"'DM Mono',monospace",marginBottom:4}}>{label}</div>
+      <input type={type} value={val} onChange={onChange}
+        style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
+          padding:"8px 12px",color:T.ink,fontSize:13,fontFamily:"inherit",outline:"none"}}/>
+    </div>
+  );
+
   return (
     <div>
       <Hdr eyebrow="Estado técnico" title="Mantenimiento"/>
-      <div style={{ display:"flex", background:T.bg, borderRadius:7, padding:3,
-        gap:3, marginBottom:18, border:`1px solid ${T.rimHi}` }}>
+      <div style={{display:"flex",background:T.bg,borderRadius:7,padding:3,gap:3,marginBottom:18,border:`1px solid ${T.rimHi}`}}>
         {[["tareas","Tareas periódicas"],["averias","Averías"]].map(([id,lbl])=>(
           <button key={id} onClick={()=>setTab(id)} style={{
-            flex:1, padding:"8px", borderRadius:5, border:"none", cursor:"pointer",
+            flex:1,padding:"8px",borderRadius:5,border:"none",cursor:"pointer",
             background:tab===id?T.surface:"transparent",
-            color:tab===id?T.ink:T.inkDim, fontSize:11.5, fontWeight:tab===id?600:400,
-            fontFamily:"inherit", letterSpacing:0.3,
-            boxShadow:tab===id?"0 1px 3px rgba(0,0,0,0.4)":"none" }}>
-            {lbl}
-          </button>
+            color:tab===id?T.ink:T.inkDim,fontSize:11.5,fontWeight:tab===id?600:400,
+            fontFamily:"inherit",boxShadow:tab===id?"0 1px 3px rgba(0,0,0,0.15)":"none"}}>{lbl}</button>
         ))}
       </div>
-      {tab==="tareas" && MANTENIMIENTO.map(t=>{
-        const pct = t.hInt ? Math.min(100,((t.hAct-t.hUlt)/t.hInt)*100) : null;
-        const bc = t.estado==="danger"?T.danger:t.estado==="warn"?T.warn:T.ok;
-        return (
-          <Card key={t.id} style={{ marginBottom:9 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:pct!==null?10:0 }}>
-              <div>
-                <div style={{ color:T.ink, fontWeight:600, fontSize:13.5 }}>{t.tipo}</div>
-                <div style={{ color:T.inkDim, fontSize:10, marginTop:3,
-                  fontFamily:"'DM Mono',monospace" }}>Últ: {t.fUlt} · Próx: {t.fProx}</div>
+
+      {tab==="tareas" && (
+        loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+        : tareas.map(t=>{
+          const pct = t.horas_intervalo && t.horas_ultima
+            ? Math.min(100,((774-t.horas_ultima)/t.horas_intervalo)*100) : null;
+          const bc = t.estado==="danger"?T.danger:t.estado==="warn"?T.warn:T.ok;
+          const isEditing = editId === t.id;
+          return (
+            <Card key={t.id} style={{marginBottom:9}}>
+              {isEditing ? (
+                <div>
+                  <Inp val={form.fecha_ultima} onChange={e=>setForm(f=>({...f,fecha_ultima:e.target.value}))} label="Fecha última revisión" type="date"/>
+                  <Inp val={form.horas_ultima} onChange={e=>setForm(f=>({...f,horas_ultima:e.target.value}))} label="Horas motor en revisión" type="number"/>
+                  <Inp val={form.coste} onChange={e=>setForm(f=>({...f,coste:e.target.value}))} label="Coste (€)" type="number"/>
+                  <Inp val={form.notas} onChange={e=>setForm(f=>({...f,notas:e.target.value}))} label="Notas"/>
+                  <div style={{display:"flex",gap:8,marginTop:6}}>
+                    <Btn sm onClick={()=>actualizarTarea(t.id,{fecha_ultima:form.fecha_ultima,horas_ultima:parseFloat(form.horas_ultima)||null,coste:parseFloat(form.coste)||0,notas:form.notas,estado:"ok"})}>Guardar</Btn>
+                    <Btn sm variant="ghost" onClick={()=>setEditId(null)}>Cancelar</Btn>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:pct!==null?10:0}}>
+                    <div style={{flex:1}}>
+                      <div style={{color:T.ink,fontWeight:600,fontSize:13.5}}>{t.tipo}</div>
+                      <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>
+                        Últ: {t.fecha_ultima||"Pendiente"} · {t.notas||""}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <Signal estado={t.estado}/>
+                      <button onClick={()=>{setEditId(t.id);setForm({fecha_ultima:t.fecha_ultima||"",horas_ultima:t.horas_ultima||"",notas:t.notas||"",coste:t.coste||""});}}
+                        style={{background:"none",border:`1px solid ${T.rimHi}`,borderRadius:5,
+                          padding:"3px 8px",color:T.inkDim,fontSize:10,cursor:"pointer"}}>✏️</button>
+                    </div>
+                  </div>
+                  {pct!==null&&(
+                    <div>
+                      <div style={{background:T.bg,borderRadius:2,height:2.5,overflow:"hidden"}}>
+                        <div style={{height:"100%",width:`${pct}%`,background:bc,borderRadius:2}}/>
+                      </div>
+                      <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+                        <span style={{color:T.inkDim,fontSize:9.5,fontFamily:"'DM Mono',monospace"}}>{Math.round(pct)}% del intervalo</span>
+                        <span style={{color:T.inkDim,fontSize:9.5,fontFamily:"'DM Mono',monospace"}}>{t.horas_intervalo}h intervalo</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          );
+        })
+      )}
+
+      {tab==="averias" && (
+        <div>
+          <div style={{marginBottom:14}}>
+            <Btn onClick={()=>setShowAveriaForm(!showAveriaForm)}>{showAveriaForm?"Cancelar":"+ Registrar avería"}</Btn>
+          </div>
+          {showAveriaForm && (
+            <Card style={{marginBottom:14}} pad="16px">
+              <div style={{fontSize:11,color:T.danger,fontWeight:700,marginBottom:12,
+                textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nueva avería</div>
+              <Inp val={averiaForm.fecha} onChange={e=>setAveriaForm(f=>({...f,fecha:e.target.value}))} label="Fecha" type="date"/>
+              <Inp val={averiaForm.descripcion} onChange={e=>setAveriaForm(f=>({...f,descripcion:e.target.value}))} label="Descripción *"/>
+              <Inp val={averiaForm.notas} onChange={e=>setAveriaForm(f=>({...f,notas:e.target.value}))} label="Notas / diagnóstico"/>
+              <Inp val={averiaForm.coste} onChange={e=>setAveriaForm(f=>({...f,coste:e.target.value}))} label="Coste (€)" type="number"/>
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                  fontFamily:"'DM Mono',monospace",marginBottom:4}}>Patrón que reporta</div>
+                <select value={averiaForm.patron} onChange={e=>setAveriaForm(f=>({...f,patron:e.target.value}))}
+                  style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
+                    padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
+                  <option>Guille</option><option>Varo</option>
+                </select>
               </div>
-              <Signal estado={t.estado}/>
-            </div>
-            {pct!==null&&(
-              <div>
-                <div style={{ background:T.bg, borderRadius:2, height:2.5, overflow:"hidden" }}>
-                  <div style={{ height:"100%", width:`${pct}%`, background:bc, borderRadius:2,
-                    boxShadow:`0 0 6px ${bc}50` }}/>
+              <Btn onClick={guardarAveria}>{saving?"Guardando...":"Registrar avería"}</Btn>
+            </Card>
+          )}
+          {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+          : averias.length===0 ? <Card><div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>Sin averías registradas.</div></Card>
+          : averias.map(a=>(
+            <Card key={a.id} style={{marginBottom:9}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div style={{flex:1,paddingRight:12}}>
+                  <div style={{color:T.ink,fontWeight:600,fontSize:13.5}}>{a.descripcion}</div>
+                  <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{a.fecha} · {a.patron}</div>
+                  {a.notas&&<div style={{color:T.inkMid,fontSize:12,marginTop:6}}>{a.notas}</div>}
+                  {a.coste>0&&<div style={{color:T.brassLt,fontSize:13,fontWeight:600,marginTop:6,fontFamily:"'DM Mono',monospace"}}>{a.coste}€</div>}
                 </div>
-                <div style={{ display:"flex", justifyContent:"space-between", marginTop:5 }}>
-                  <span style={{ color:T.inkDim, fontSize:9.5, fontFamily:"'DM Mono',monospace" }}>
-                    {t.hAct-t.hUlt}h usadas</span>
-                  <span style={{ color:T.inkDim, fontSize:9.5, fontFamily:"'DM Mono',monospace" }}>
-                    {t.hInt}h intervalo</span>
-                </div>
-              </div>
-            )}
-          </Card>
-        );
-      })}
-      {tab==="averias"&&(
-        <>
-          <div style={{ marginBottom:14 }}><Btn>+ Registrar avería</Btn></div>
-          {AVERIAS.map(a=>(
-            <Card key={a.id} style={{ marginBottom:9 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                <div style={{ flex:1, paddingRight:12 }}>
-                  <div style={{ color:T.ink, fontWeight:600, fontSize:13.5 }}>{a.desc}</div>
-                  <div style={{ color:T.inkDim, fontSize:10, marginTop:3,
-                    fontFamily:"'DM Mono',monospace" }}>{a.fecha} · {a.patron}</div>
-                  <div style={{ color:T.inkMid, fontSize:12, marginTop:7, lineHeight:1.4 }}>{a.notas}</div>
-                  {a.coste>0&&<div style={{ color:T.brassLt, fontSize:13, fontWeight:600,
-                    marginTop:6, fontFamily:"'DM Mono',monospace" }}>{a.coste} €</div>}
-                </div>
-                <Signal estado={a.estado}/>
+                <Signal estado={a.estado||"warn"}/>
               </div>
             </Card>
           ))}
-        </>
+        </div>
       )}
     </div>
   );
 }
-
 function Combustible() {
-  const litros = COMBUSTIBLE.reduce((a,c)=>a+c.litros,0);
-  const gasto = COMBUSTIBLE.reduce((a,c)=>a+c.importe,0);
+  const [repostajes, setRepostajes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    fecha: new Date().toISOString().split("T")[0],
+    litros:"", precio_litro:"", puerto:"Caleta de Vélez",
+    patron:"Guille", horas_motor:"",
+  });
+
+  async function cargar() {
+    try { setLoading(true); const data = await db("combustible","GET",null,"?order=fecha.desc"); setRepostajes(data); }
+    catch(e){} finally { setLoading(false); }
+  }
+  useEffect(()=>{ cargar(); },[]);
+
+  async function guardar() {
+    if (!form.litros) return;
+    setSaving(true);
+    try {
+      const litros = parseFloat(form.litros);
+      const precio = parseFloat(form.precio_litro)||0;
+      await db("combustible","POST",{ fecha:form.fecha, litros, precio_litro:precio,
+        importe:parseFloat((litros*precio).toFixed(2)), puerto:form.puerto,
+        patron:form.patron, horas_motor:parseFloat(form.horas_motor)||null });
+      setShowForm(false); cargar();
+    } catch(e){ alert("Error: "+e.message); } finally { setSaving(false); }
+  }
+
+  const totalL = repostajes.reduce((a,c)=>a+(c.litros||0),0);
+  const totalE = repostajes.reduce((a,c)=>a+(c.importe||0),0);
+
+  const Inp = ({field,label,type="text"}) => (
+    <div style={{marginBottom:9}}>
+      <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+        fontFamily:"'DM Mono',monospace",marginBottom:4}}>{label}</div>
+      <input type={type} value={form[field]} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))}
+        style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
+          padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}/>
+    </div>
+  );
+
   return (
     <div>
       <Hdr eyebrow="Repostajes y consumo" title="Combustible"
-        action={<Btn sm>+ Repostaje</Btn>}/>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:9, marginBottom:18 }}>
+        action={<Btn sm onClick={()=>setShowForm(!showForm)}>{showForm?"Cancelar":"+ Repostaje"}</Btn>}/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:16}}>
         <Card pad="13px 15px">
-          <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5,
-            textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:5 }}>Total litros</div>
-          <div style={{ fontSize:24, color:T.ink, fontWeight:600,
-            fontFamily:"'Cormorant Garamond',serif" }}>{litros} L</div>
+          <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+            fontFamily:"'DM Mono',monospace",marginBottom:5}}>Total litros</div>
+          <div style={{fontSize:24,color:T.ink,fontWeight:600,fontFamily:"'Cormorant Garamond',serif"}}>{totalL.toFixed(0)} L</div>
         </Card>
         <Card pad="13px 15px">
-          <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5,
-            textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:5 }}>Gasto total</div>
-          <div style={{ fontSize:24, color:T.brassLt, fontWeight:600,
-            fontFamily:"'Cormorant Garamond',serif" }}>{gasto.toFixed(0)} €</div>
+          <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+            fontFamily:"'DM Mono',monospace",marginBottom:5}}>Gasto total</div>
+          <div style={{fontSize:24,color:T.brassLt,fontWeight:600,fontFamily:"'Cormorant Garamond',serif"}}>{totalE.toFixed(0)} €</div>
         </Card>
       </div>
-      {COMBUSTIBLE.length === 0 ? (
-        <Card>
-          <div style={{ color:T.inkDim, fontSize:13, fontStyle:"italic", textAlign:"center", padding:"12px 0" }}>
-            Sin repostajes registrados. Pulsa "+ Repostaje" para comenzar.
-          </div>
-        </Card>
-      ) : COMBUSTIBLE.map(r=>(
-        <Card key={r.id} style={{ marginBottom:9 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+      {showForm && (
+        <Card style={{marginBottom:14}} pad="16px">
+          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
+            textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nuevo repostaje</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <div><Inp field="fecha" label="Fecha" type="date"/><Inp field="litros" label="Litros *" type="number"/><Inp field="precio_litro" label="€ / Litro" type="number"/></div>
             <div>
-              <div style={{ color:T.ink, fontWeight:600, fontSize:16,
-                fontFamily:"'Cormorant Garamond',serif" }}>{r.puerto}</div>
-              <div style={{ color:T.inkDim, fontSize:10, marginTop:3,
-                fontFamily:"'DM Mono',monospace" }}>{r.fecha} · {r.patron} · {r.litros} L · {r.precio} €/L</div>
+              <Inp field="puerto" label="Puerto"/><Inp field="horas_motor" label="Horas motor" type="number"/>
+              <div style={{marginBottom:9}}>
+                <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                  fontFamily:"'DM Mono',monospace",marginBottom:4}}>Patrón</div>
+                <select value={form.patron} onChange={e=>setForm(f=>({...f,patron:e.target.value}))}
+                  style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
+                    padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
+                  <option>Guille</option><option>Varo</option>
+                </select>
+              </div>
             </div>
-            <div style={{ fontSize:18, fontWeight:600, color:T.brassLt,
-              fontFamily:"'Cormorant Garamond',serif" }}>{r.importe.toFixed(2)} €</div>
+          </div>
+          <Btn onClick={guardar}>{saving?"Guardando...":"Guardar repostaje"}</Btn>
+        </Card>
+      )}
+      {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+      : repostajes.length===0 ? <Card><div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>Sin repostajes. Pulsa "+ Repostaje".</div></Card>
+      : repostajes.map(r=>(
+        <Card key={r.id} style={{marginBottom:9}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{color:T.ink,fontWeight:600,fontSize:16,fontFamily:"'Cormorant Garamond',serif"}}>{r.puerto||"—"}</div>
+              <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{r.fecha} · {r.patron} · {r.litros}L · {r.precio_litro}€/L</div>
+            </div>
+            <div style={{fontSize:18,fontWeight:600,color:T.brassLt,fontFamily:"'Cormorant Garamond',serif"}}>{(r.importe||0).toFixed(2)}€</div>
           </div>
         </Card>
       ))}
     </div>
   );
 }
-
 function Seguridad() {
   return (
     <div>
