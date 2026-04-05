@@ -341,6 +341,135 @@ function DashboardWeather({ setScreen }) {
 }
 
 
+function Dashboard({ setScreen }) {
+  const [stats, setStats] = useState({ horas:774, millas:0, ultimoRepo:"Sin datos" });
+  const [ultimaBitacora, setUltimaBitacora] = useState(null);
+
+  useEffect(()=>{
+    async function cargarStats() {
+      try {
+        const [bits, repos, allBits] = await Promise.all([
+          db("bitacora","GET",null,"?order=fecha.desc&limit=1"),
+          db("combustible","GET",null,"?order=fecha.desc&limit=1"),
+          db("bitacora","GET",null,"?select=millas"),
+        ]);
+        const totalMillas = allBits.reduce((a,c)=>a+(parseFloat(c.millas)||0),0);
+        if (bits.length) setUltimaBitacora(bits[0]);
+        setStats(s=>({
+          ...s,
+          millas: totalMillas.toFixed(0),
+          ultimoRepo: repos.length ? `${repos[0].litros}L · ${repos[0].fecha}` : "Sin datos",
+        }));
+      } catch(e){}
+    }
+    cargarStats();
+  },[]);
+
+  const alerts = [
+    { msg:"Seguro de responsabilidad civil",       sub:"Verificar vigencia y añadir datos",    c:T.warn, to:"documentos" },
+    { msg:"ITV · Cert. Navegabilidad 04/12/2025", sub:"Verificar próxima fecha de revisión",  c:T.info, to:"documentos" },
+    { msg:"Historial de mantenimiento vacío",     sub:"Añadir fechas de últimas revisiones",  c:T.info, to:"mantenimiento" },
+    { msg:"Aceite motores · revisar a 800h",      sub:"Actual 774h · intervalo 250h MAN",     c:T.info, to:"mantenimiento" },
+  ];
+
+  return (
+    <div>
+      <div style={{ marginBottom:28, paddingTop:4 }}>
+        <div style={{ fontSize:9.5, color:T.brass, letterSpacing:3, textTransform:"uppercase",
+          fontFamily:"'DM Mono',monospace", marginBottom:6 }}>Embarcación activa</div>
+        <h1 style={{ margin:"0 0 5px", fontFamily:"'Cormorant Garamond',serif",
+          fontSize:40, fontWeight:600, color:T.ink, lineHeight:1, letterSpacing:-0.5 }}>
+          Leonidas
+        </h1>
+        <div style={{ color:T.inkDim, fontSize:11, fontFamily:"'DM Mono',monospace", letterSpacing:0.3 }}>
+          Sunseeker Portofino 53 · 7ª PM-1-231-25 · Caleta de Vélez
+        </div>
+      </div>
+
+      <DashboardWeather setScreen={setScreen}/>
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:9, marginBottom:18 }}>
+        {[
+          { l:"Horas motor",      v:stats.horas+" h",        a:T.brassLt },
+          { l:"Millas totales",   v:stats.millas+" mn",      a:stats.millas>0?T.ink:T.inkDim },
+          { l:"Último repostaje", v:stats.ultimoRepo,        a:stats.ultimoRepo!=="Sin datos"?T.ink:T.inkDim },
+          { l:"Alertas activas",  v:alerts.length+"",        a:T.warn },
+        ].map((k,i) => (
+          <Card key={i} pad="13px 15px">
+            <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5,
+              textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:5 }}>{k.l}</div>
+            <div style={{ fontSize:22, fontWeight:600, color:k.a,
+              fontFamily:"'Cormorant Garamond',serif", lineHeight:1 }}>{k.v}</div>
+          </Card>
+        ))}
+      </div>
+
+      <Card style={{ marginBottom:14 }}>
+        <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:2, textTransform:"uppercase",
+          fontFamily:"'DM Mono',monospace", marginBottom:12 }}>Alertas</div>
+        {alerts.map((a,i) => (
+          <div key={i} onClick={a.to?()=>setScreen(a.to):undefined}
+            style={{ cursor:a.to?"pointer":"default" }}>
+            {i>0 && <Divider/>}
+            <div style={{ display:"flex", alignItems:"center", gap:12, padding:"9px 0" }}>
+              <div style={{ width:2.5, height:34, borderRadius:2, background:a.c, flexShrink:0 }}/>
+              <div style={{flex:1}}>
+                <div style={{ color:T.ink, fontSize:12.5, fontWeight:500 }}>{a.msg}</div>
+                <div style={{ color:T.inkDim, fontSize:10, marginTop:2,
+                  fontFamily:"'DM Mono',monospace" }}>{a.sub}</div>
+              </div>
+              {a.to && <span style={{color:T.inkDim,fontSize:16}}>›</span>}
+            </div>
+          </div>
+        ))}
+      </Card>
+
+      <Card style={{ marginBottom:14 }}>
+        <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:2, textTransform:"uppercase",
+          fontFamily:"'DM Mono',monospace", marginBottom:10 }}>Última entrada · Bitácora</div>
+        {ultimaBitacora ? (
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+            <div>
+              <div style={{ color:T.ink, fontWeight:600, fontSize:17,
+                fontFamily:"'Cormorant Garamond',serif" }}>{ultimaBitacora.salida} → {ultimaBitacora.llegada}</div>
+              <div style={{ color:T.inkDim, fontSize:10, marginTop:3,
+                fontFamily:"'DM Mono',monospace" }}>{ultimaBitacora.fecha} · {ultimaBitacora.patron} · {ultimaBitacora.millas} mn</div>
+            </div>
+            <Signal estado={ultimaBitacora.incidencias==="Sin novedad"?"ok":"warn"}/>
+          </div>
+        ) : (
+          <div style={{ color:T.inkDim, fontSize:13, fontStyle:"italic" }}>
+            Aún no hay entradas. Pulsa "+ Nueva" en Bitácora.
+          </div>
+        )}
+      </Card>
+
+      <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:2, textTransform:"uppercase",
+        fontFamily:"'DM Mono',monospace", marginBottom:11 }}>Acceso rápido</div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:9 }}>
+        {[
+          { label:"Nueva entrada
+bitácora",  id:"bitacora",      d:NAV[2].svg },
+          { label:"Registrar
+mantenimiento", id:"mantenimiento", d:NAV[3].svg },
+          { label:"Anotar repostaje",         id:"combustible",   d:NAV[4].svg },
+          { label:"Asistente IA",             id:"ia",            d:NAV[10].svg },
+        ].map(a => (
+          <button key={a.id} onClick={()=>setScreen(a.id)} style={{
+            background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
+            borderRadius:10, padding:"15px 13px", cursor:"pointer",
+            display:"flex", flexDirection:"column", alignItems:"flex-start", gap:10,
+            textAlign:"left" }}>
+            <Icon d={a.d} color={T.brass} size={19}/>
+            <span style={{ color:T.inkMid, fontSize:12, lineHeight:1.4,
+              whiteSpace:"pre-line", fontFamily:"inherit" }}>{a.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Ficha() {
   const specs = [
     ["Nombre",          BOAT.nombre],
