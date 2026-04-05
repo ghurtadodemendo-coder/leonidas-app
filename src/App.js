@@ -1,5 +1,25 @@
 import { useState, useEffect, useRef } from "react";
 
+// ── SUPABASE ──────────────────────────────────────────────────────────────────
+const SUPA_URL = "https://wfgcffmgzqvxmtybdvse.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmZ2NmZm1nenF2eG10eWJkdnNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyOTU2ODksImV4cCI6MjA5MDg3MTY4OX0.WHjwEhIlNRg7fiKo_atNhPp17sugrE_ipok8uYs_EbY";
+
+async function db(table, method="GET", body=null, query="") {
+  const url = `${SUPA_URL}/rest/v1/${table}${query}`;
+  const headers = {
+    "Content-Type": "application/json",
+    "apikey": SUPA_KEY,
+    "Authorization": `Bearer ${SUPA_KEY}`,
+  };
+  if (method === "POST") headers["Prefer"] = "return=representation";
+  if (method === "PATCH") headers["Prefer"] = "return=representation";
+  const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });
+  if (!res.ok) { const e = await res.text(); throw new Error(e); }
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ─── DESIGN SYSTEM ────────────────────────────────────────────────────────────
 // Aesthetic: Luxury nautical instruments. Deep slate surfaces, warm brass
 // accents, editorial typography (Cormorant + DM Mono), razor-thin lines.
@@ -301,10 +321,10 @@ function Dashboard({ setScreen }) {
   },[]);
 
   const alerts = [
-    { msg:"Seguro de responsabilidad civil",        sub:"Verificar vigencia y añadir datos",   c:T.warn },
-    { msg:"ITV · Cert. Navegabilidad 04/12/2025",  sub:"Verificar próxima fecha de revisión", c:T.info },
-    { msg:"Historial de mantenimiento vacío",      sub:"Añadir fechas de últimas revisiones", c:T.info },
-    { msg:"Aceite motores · revisar a 800h",       sub:"Actual 774h · intervalo 250h MAN",    c:T.info },
+    { msg:"Seguro de responsabilidad civil",       sub:"Verificar vigencia y añadir datos",    c:T.warn, to:"documentos" },
+    { msg:"ITV · Cert. Navegabilidad 04/12/2025", sub:"Verificar próxima fecha de revisión",  c:T.info, to:"documentos" },
+    { msg:"Historial de mantenimiento vacío",     sub:"Añadir fechas de últimas revisiones",  c:T.info, to:"mantenimiento" },
+    { msg:"Aceite motores · revisar a 800h",      sub:"Actual 774h · intervalo 250h MAN",     c:T.info, to:"mantenimiento" },
   ];
   return (
     <div>
@@ -343,15 +363,16 @@ function Dashboard({ setScreen }) {
         <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:2, textTransform:"uppercase",
           fontFamily:"'DM Mono',monospace", marginBottom:12 }}>Alertas</div>
         {alerts.map((a,i) => (
-          <div key={i}>
+          <div key={i} onClick={a.to?()=>setScreen(a.to):undefined} style={{cursor:a.to?"pointer":"default"}}>
             {i>0 && <Divider/>}
             <div style={{ display:"flex", alignItems:"center", gap:12, padding:"9px 0" }}>
               <div style={{ width:2.5, height:34, borderRadius:2, background:a.c, flexShrink:0 }}/>
-              <div>
+              <div style={{flex:1}}>
                 <div style={{ color:T.ink, fontSize:12.5, fontWeight:500 }}>{a.msg}</div>
                 <div style={{ color:T.inkDim, fontSize:10, marginTop:2,
                   fontFamily:"'DM Mono',monospace" }}>{a.sub}</div>
               </div>
+              {a.to && <span style={{color:T.inkDim,fontSize:16}}>›</span>}
             </div>
           </div>
         ))}
@@ -880,43 +901,60 @@ function Combustible() {
   );
 }
 function Seguridad() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  async function cargar() {
+    try {
+      setLoading(true);
+      const data = await db("seguridad","GET",null,"?order=estado.desc,equipo.asc");
+      setItems(data);
+    } catch(e){} finally { setLoading(false); }
+  }
+  useEffect(()=>{ cargar(); },[]);
+
+  const vencidos = items.filter(i=>i.estado==="danger").length;
+  const proximos = items.filter(i=>i.estado==="warn").length;
+
   return (
     <div>
       <Hdr eyebrow="Equipos y emergencias" title="Seguridad"/>
-      <div style={{ background:T.danger+"10", border:`1px solid ${T.danger}28`,
-        borderRadius:8, padding:"11px 15px", marginBottom:16 }}>
-        <div style={{ color:T.danger, fontSize:12, fontWeight:600 }}>
-          2 equipos requieren atención antes de la próxima salida
+      {(vencidos>0||proximos>0) && (
+        <div style={{background:T.danger+"10",border:`1px solid ${T.danger}28`,borderRadius:8,padding:"11px 15px",marginBottom:16}}>
+          <div style={{color:T.danger,fontSize:12,fontWeight:600}}>
+            {vencidos>0 && `${vencidos} equipo${vencidos>1?"s":""} vencido${vencidos>1?"s":""}. `}
+            {proximos>0 && `${proximos} equipo${proximos>1?"s":""} vence pronto.`}
+          </div>
         </div>
-      </div>
-      {SEGURIDAD.map(e=>(
-        <Card key={e.id} style={{ marginBottom:7 }} pad="12px 16px">
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <div>
-              <div style={{ color:T.ink, fontWeight:500, fontSize:13 }}>{e.eq}</div>
-              <div style={{ color:T.inkDim, fontSize:9.5, marginTop:3,
-                fontFamily:"'DM Mono',monospace" }}>
-                {e.ub}{e.cad?` · Vence ${e.cad}`:" · Sin caducidad"}</div>
+      )}
+      {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+      : items.map(e=>(
+        <Card key={e.id} style={{marginBottom:7}} pad="12px 16px">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{flex:1}}>
+              <div style={{color:T.ink,fontWeight:500,fontSize:13}}>{e.equipo}</div>
+              <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,fontFamily:"'DM Mono',monospace"}}>
+                {e.ubicacion}{e.caducidad?` · Vence ${e.caducidad}`:" · Sin caducidad"}
+              </div>
             </div>
-            <Signal estado={e.estado}/>
+            <Signal estado={e.estado||"ok"}/>
           </div>
         </Card>
       ))}
-      <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:2, textTransform:"uppercase",
-        fontFamily:"'DM Mono',monospace", margin:"22px 0 11px" }}>Contactos de emergencia</div>
+
+      <div style={{fontSize:9.5,color:T.inkDim,letterSpacing:2,textTransform:"uppercase",
+        fontFamily:"'DM Mono',monospace",margin:"22px 0 11px"}}>Contactos de emergencia</div>
       <Card pad="0 18px">
         {[
           ["Salvamento Marítimo","900 202 202",T.danger],
-          ["Puerto Base Marbella","+34 952 772 000",T.info],
-          ["Mecánico de confianza","+34 666 111 222",T.ok],
+          ["Capitanía Marítima Málaga","+34 952 121 234",T.info],
+          ["Puerto Caleta de Vélez","+34 952 551 418",T.info],
           ["Seguro náutico","+34 900 300 400",T.inkMid],
         ].map(([k,v,c],i)=>(
           <div key={k}>{i>0&&<Divider/>}
-            <div style={{ display:"flex", justifyContent:"space-between",
-              alignItems:"center", padding:"11px 0" }}>
-              <span style={{ color:T.inkMid, fontSize:12.5 }}>{k}</span>
-              <span style={{ color:c, fontSize:12, fontWeight:600,
-                fontFamily:"'DM Mono',monospace" }}>{v}</span>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 0"}}>
+              <span style={{color:T.inkMid,fontSize:12.5}}>{k}</span>
+              <span style={{color:c,fontSize:12,fontWeight:600,fontFamily:"'DM Mono',monospace"}}>{v}</span>
             </div>
           </div>
         ))}
@@ -924,76 +962,160 @@ function Seguridad() {
     </div>
   );
 }
-
 function Puertos() {
+  const [puertos, setPuertos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ nombre:"", tipo:"Visitado", precio:"", telefono:"", valoracion:"4", notas:"", amarre:"" });
+
+  async function cargar() {
+    try { setLoading(true); const d = await db("puertos","GET",null,"?order=tipo.asc,nombre.asc"); setPuertos(d); }
+    catch(e){} finally { setLoading(false); }
+  }
+  useEffect(()=>{ cargar(); },[]);
+
+  async function guardar() {
+    if (!form.nombre) return;
+    setSaving(true);
+    try {
+      await db("puertos","POST",{ ...form, precio:parseFloat(form.precio)||0, valoracion:parseFloat(form.valoracion)||4 });
+      setShowForm(false);
+      setForm({ nombre:"", tipo:"Visitado", precio:"", telefono:"", valoracion:"4", notas:"", amarre:"" });
+      cargar();
+    } catch(e){ alert("Error: "+e.message); } finally { setSaving(false); }
+  }
+
+  const Inp = ({field,label,type="text"}) => (
+    <div style={{marginBottom:9}}>
+      <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+        fontFamily:"'DM Mono',monospace",marginBottom:4}}>{label}</div>
+      <input type={type} value={form[field]} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))}
+        style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
+          padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}/>
+    </div>
+  );
+
   return (
     <div>
       <Hdr eyebrow="Historial de escalas" title="Puertos y Amarres"
-        action={<Btn sm>+ Añadir</Btn>}/>
-      {PUERTOS.map(p=>(
-        <Card key={p.id} style={{ marginBottom:11 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+        action={<Btn sm onClick={()=>setShowForm(!showForm)}>{showForm?"Cancelar":"+ Añadir"}</Btn>}/>
+
+      {showForm && (
+        <Card style={{marginBottom:14}} pad="16px">
+          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
+            textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nuevo puerto</div>
+          <Inp field="nombre" label="Nombre del puerto *"/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             <div>
-              <div style={{ fontSize:9.5, color:p.tipo==="Base"?T.brass:T.info,
-                letterSpacing:1.5, fontFamily:"'DM Mono',monospace", marginBottom:4 }}>{p.tipo.toUpperCase()}</div>
-              <div style={{ color:T.ink, fontWeight:600, fontSize:17,
-                fontFamily:"'Cormorant Garamond',serif" }}>{p.nombre}</div>
-              <div style={{ color:T.inkDim, fontSize:10, marginTop:3,
-                fontFamily:"'DM Mono',monospace" }}>{p.tel}</div>
+              <Inp field="precio" label="Precio/noche (€)" type="number"/>
+              <Inp field="telefono" label="Teléfono"/>
+              <Inp field="amarre" label="Nº amarre"/>
             </div>
-            <div style={{ textAlign:"right" }}>
-              <div style={{ color:T.brassLt, fontSize:17, fontWeight:600,
-                fontFamily:"'Cormorant Garamond',serif" }}>
-                {p.precio} €<span style={{ fontSize:10, color:T.inkDim }}>{p.tipo==="Base"?"/mes":"/noche"}</span>
+            <div>
+              <Inp field="valoracion" label="Valoración (1-5)" type="number"/>
+              <div style={{marginBottom:9}}>
+                <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                  fontFamily:"'DM Mono',monospace",marginBottom:4}}>Tipo</div>
+                <select value={form.tipo} onChange={e=>setForm(f=>({...f,tipo:e.target.value}))}
+                  style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
+                    padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
+                  <option>Visitado</option><option>Base</option><option>Favorito</option>
+                </select>
               </div>
-              <div style={{ color:T.inkDim, fontSize:10, marginTop:4,
-                fontFamily:"'DM Mono',monospace" }}>★ {p.val}</div>
             </div>
           </div>
-          {p.amarre&&(
-            <div style={{ display:"inline-flex", background:T.brassDim,
-              border:`1px solid ${T.brass}35`, borderRadius:4,
-              padding:"2px 8px", color:T.brassLt, fontSize:9.5,
-              fontFamily:"'DM Mono',monospace", marginBottom:8 }}>Amarre {p.amarre}</div>
-          )}
-          <div style={{ color:T.inkDim, fontSize:12, lineHeight:1.4 }}>{p.notas}</div>
+          <Inp field="notas" label="Notas"/>
+          <Btn onClick={guardar}>{saving?"Guardando...":"Guardar puerto"}</Btn>
+        </Card>
+      )}
+
+      {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+      : puertos.map(p=>(
+        <Card key={p.id} style={{marginBottom:11}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+            <div>
+              <div style={{fontSize:9.5,color:p.tipo==="Base"?T.brass:T.info,letterSpacing:1.5,
+                fontFamily:"'DM Mono',monospace",marginBottom:4}}>{p.tipo?.toUpperCase()}</div>
+              <div style={{color:T.ink,fontWeight:600,fontSize:17,fontFamily:"'Cormorant Garamond',serif"}}>{p.nombre}</div>
+              <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{p.telefono||"—"}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{color:T.brassLt,fontSize:17,fontWeight:600,fontFamily:"'Cormorant Garamond',serif"}}>
+                {p.precio||0}€<span style={{fontSize:10,color:T.inkDim}}>{p.tipo==="Base"?"/mes":"/noche"}</span>
+              </div>
+              <div style={{color:T.inkDim,fontSize:10,marginTop:4,fontFamily:"'DM Mono',monospace"}}>★ {p.valoracion||"—"}</div>
+            </div>
+          </div>
+          {p.amarre&&<div style={{display:"inline-flex",background:T.brassDim,border:`1px solid ${T.brass}35`,
+            borderRadius:4,padding:"2px 8px",color:T.brassLt,fontSize:9.5,fontFamily:"'DM Mono',monospace",
+            marginBottom:8}}>Amarre {p.amarre}</div>}
+          {p.notas&&<div style={{color:T.inkDim,fontSize:12,lineHeight:1.4}}>{p.notas}</div>}
         </Card>
       ))}
     </div>
   );
 }
-
 function Inventario() {
-  const cats = [...new Set(INVENTARIO.map(i=>i.cat))];
-  const issues = INVENTARIO.filter(i=>i.estado!=="ok").length;
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState({});
+
+  async function cargar() {
+    try {
+      setLoading(true);
+      const data = await db("inventario","GET",null,"?order=categoria.asc,articulo.asc");
+      setItems(data);
+    } catch(e){} finally { setLoading(false); }
+  }
+  useEffect(()=>{ cargar(); },[]);
+
+  async function actualizar(id, qty) {
+    setSaving(s=>({...s,[id]:true}));
+    try {
+      const newQty = Math.max(0, qty);
+      await db(`inventario?id=eq.${id}`,"PATCH",{ cantidad:newQty, estado: newQty===0?"danger":"ok" });
+      setItems(prev => prev.map(i => i.id===id ? {...i, cantidad:newQty, estado:newQty===0?"danger":"ok"} : i));
+    } catch(e){} finally { setSaving(s=>({...s,[id]:false})); }
+  }
+
+  const cats = [...new Set(items.map(i=>i.categoria))].sort();
+  const issues = items.filter(i=>i.estado!=="ok").length;
+
   return (
     <div>
       <Hdr eyebrow="Repuestos a bordo" title="Inventario"/>
-      {issues>0&&(
-        <div style={{ background:T.warn+"10", border:`1px solid ${T.warn}28`,
-          borderRadius:8, padding:"11px 15px", marginBottom:16 }}>
-          <div style={{ color:T.warn, fontSize:12, fontWeight:600 }}>
-            {issues} artículos con stock bajo o crítico
-          </div>
+      {issues>0 && (
+        <div style={{background:T.warn+"10",border:`1px solid ${T.warn}28`,borderRadius:8,padding:"11px 15px",marginBottom:16}}>
+          <div style={{color:T.warn,fontSize:12,fontWeight:600}}>{issues} artículos con stock bajo o agotado</div>
         </div>
       )}
-      {cats.map(cat=>(
-        <div key={cat} style={{ marginBottom:18 }}>
-          <div style={{ fontSize:9.5, color:T.brass, letterSpacing:2,
-            textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:9 }}>{cat}</div>
-          {INVENTARIO.filter(i=>i.cat===cat).map(item=>(
-            <Card key={item.id} style={{ marginBottom:6 }} pad="11px 15px">
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <div>
-                  <div style={{ color:T.ink, fontSize:13 }}>{item.art}</div>
-                  <div style={{ color:T.inkDim, fontSize:9.5, marginTop:2,
-                    fontFamily:"'DM Mono',monospace" }}>Mínimo: {item.min} ud.</div>
+      {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+      : cats.map(cat=>(
+        <div key={cat} style={{marginBottom:20}}>
+          <div style={{fontSize:9.5,color:T.brass,letterSpacing:2,textTransform:"uppercase",
+            fontFamily:"'DM Mono',monospace",marginBottom:9}}>{cat}</div>
+          {items.filter(i=>i.categoria===cat).map(item=>(
+            <Card key={item.id} style={{marginBottom:6}} pad="11px 15px">
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{color:T.ink,fontSize:13,fontWeight:500}}>{item.articulo}</div>
+                  <div style={{color:T.inkDim,fontSize:9.5,marginTop:2,fontFamily:"'DM Mono',monospace"}}>
+                    Mín: {item.minimo} ud.
+                  </div>
                 </div>
-                <div style={{ display:"flex", alignItems:"center", gap:11 }}>
-                  <span style={{ color:item.qty===0?T.danger:item.qty<=item.min?T.warn:T.ok,
-                    fontSize:22, fontWeight:700,
-                    fontFamily:"'Cormorant Garamond',serif" }}>{item.qty}</span>
-                  <Signal estado={item.estado}/>
+                <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                  <button onClick={()=>actualizar(item.id, item.cantidad-1)}
+                    style={{width:28,height:28,borderRadius:6,border:`1px solid ${T.rimHi}`,
+                      background:T.surfaceUp,color:T.ink,fontSize:16,cursor:"pointer",
+                      display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>−</button>
+                  <span style={{color:item.cantidad===0?T.danger:item.cantidad<=item.minimo?T.warn:T.ok,
+                    fontSize:18,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",
+                    minWidth:24,textAlign:"center"}}>{item.cantidad}</span>
+                  <button onClick={()=>actualizar(item.id, item.cantidad+1)}
+                    style={{width:28,height:28,borderRadius:6,border:`1px solid ${T.rimHi}`,
+                      background:T.surfaceUp,color:T.ink,fontSize:16,cursor:"pointer",
+                      display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>+</button>
                 </div>
               </div>
             </Card>
@@ -1003,7 +1125,6 @@ function Inventario() {
     </div>
   );
 }
-
 function Documentos() {
   const docs = [
     { n:"Matrícula embarcación",        t:"Oficial",     f:"01 Jun 2018", v:null           },
@@ -1036,66 +1157,96 @@ function Documentos() {
 }
 
 function Patrones() {
+  const [patrones, setPatrones] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ nombre:"", rol:"Patrón", tit:"PER", tel:"" });
+
+  // Hardcoded for now — will come from DB later
+  const PATRONES_INIT = [
+    { id:1, nombre:"Salvador Álvarez Escobar", rol:"Patrón", tit:"Patrón de Yate", tel:"—", av:"VA", salidas:0, millas:0, hue:T.info },
+    { id:2, nombre:"Guillermo J. Hurtado de Mendoza", rol:"Patrón", tit:"PER", tel:"—", av:"GU", salidas:0, millas:0, hue:T.brass },
+  ];
+  const [extraPatrones, setExtraPatrones] = useState([]);
+
+  const todos = [...PATRONES_INIT, ...extraPatrones];
+
+  async function cargarStats() {
+    try {
+      setLoading(true);
+      const bits = await db("bitacora","GET",null,"?select=patron,millas");
+      const statsMap = {};
+      bits.forEach(b => {
+        const p = b.patron;
+        if (!statsMap[p]) statsMap[p] = { salidas:0, millas:0 };
+        statsMap[p].salidas++;
+        statsMap[p].millas += b.millas||0;
+      });
+      setPatrones(statsMap);
+    } catch(e){} finally { setLoading(false); }
+  }
+  useEffect(()=>{ cargarStats(); },[]);
+
   return (
     <div>
-      <Hdr eyebrow="Equipo de navegación" title="Patrones"/>
-      {PATRONES.map(p=>(
-        <Card key={p.id} style={{ marginBottom:11 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:13, marginBottom:13 }}>
-            <div style={{ width:44, height:44, borderRadius:9,
-              background:p.hue+"18", border:`1px solid ${p.hue}38`,
-              display:"flex", alignItems:"center", justifyContent:"center",
-              fontSize:13, fontWeight:700, color:p.hue, flexShrink:0,
-              fontFamily:"'DM Mono',monospace" }}>{p.av}</div>
-            <div>
-              <div style={{ color:T.ink, fontWeight:600, fontSize:17,
-                fontFamily:"'Cormorant Garamond',serif" }}>{p.nombre}</div>
-              <div style={{ color:T.inkDim, fontSize:9.5, marginTop:3,
-                fontFamily:"'DM Mono',monospace" }}>{p.rol} · {p.tit} · {p.tel}</div>
-            </div>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:7 }}>
-            {[["Salidas",p.salidas],["Millas",p.millas+" mn"]].map(([lbl,val])=>(
-              <div key={lbl} style={{ background:T.bg, borderRadius:7, padding:"9px 11px" }}>
-                <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5,
-                  textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:4 }}>{lbl}</div>
-                <div style={{ fontSize:20, fontWeight:600, color:p.hue,
-                  fontFamily:"'Cormorant Garamond',serif" }}>{val}</div>
+      <Hdr eyebrow="Equipo de navegación" title="Patrones"
+        action={<Btn sm onClick={()=>setShowForm(!showForm)}>{showForm?"Cancelar":"+ Añadir"}</Btn>}/>
+
+      {showForm && (
+        <Card style={{marginBottom:14}} pad="16px">
+          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
+            textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nuevo patrón</div>
+          {["nombre","rol","tit","tel"].map(field=>(
+            <div key={field} style={{marginBottom:9}}>
+              <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                fontFamily:"'DM Mono',monospace",marginBottom:4}}>
+                {field==="nombre"?"Nombre completo":field==="rol"?"Rol":field==="tit"?"Titulación":"Teléfono"}
               </div>
-            ))}
-          </div>
-        </Card>
-      ))}
-      <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:2, textTransform:"uppercase",
-        fontFamily:"'DM Mono',monospace", margin:"22px 0 11px" }}>Actividad reciente</div>
-      {PATRONES.length === 0 || true ? (
-        <Card pad="14px 16px">
-          <div style={{ color:T.inkDim, fontSize:13, fontStyle:"italic", textAlign:"center" }}>
-            Sin actividad registrada aún.
-          </div>
-        </Card>
-      ) : [{p:PATRONES[0],msg:"",t:""}].map((a,i)=>(
-        <Card key={i} style={{ marginBottom:7 }} pad="11px 15px">
-          <div style={{ display:"flex", alignItems:"center", gap:11 }}>
-            <div style={{ width:30, height:30, borderRadius:6,
-              background:a.p.hue+"18", border:`1px solid ${a.p.hue}38`,
-              display:"flex", alignItems:"center", justifyContent:"center",
-              fontSize:10, fontWeight:700, color:a.p.hue, flexShrink:0,
-              fontFamily:"'DM Mono',monospace" }}>{a.p.av}</div>
-            <div>
-              <div style={{ color:T.inkMid, fontSize:12.5 }}>
-                <span style={{ color:T.ink, fontWeight:600 }}>{a.p.nombre.split(" ")[0]}</span> · {a.msg}
-              </div>
-              <div style={{ color:T.inkDim, fontSize:9.5, marginTop:2,
-                fontFamily:"'DM Mono',monospace" }}>{a.t}</div>
+              <input value={form[field]} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))}
+                style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
+                  padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}/>
             </div>
-          </div>
+          ))}
+          <Btn onClick={()=>{
+            if (!form.nombre) return;
+            const initials = form.nombre.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+            setExtraPatrones(p=>[...p,{id:Date.now(),...form,av:initials,salidas:0,millas:0,hue:T.ok}]);
+            setShowForm(false);
+            setForm({ nombre:"", rol:"Patrón", tit:"PER", tel:"" });
+          }}>Añadir patrón</Btn>
         </Card>
-      ))}
+      )}
+
+      {todos.map(p=>{
+        const stats = patrones[p.nombre.split(" ")[0]] || { salidas:p.salidas||0, millas:p.millas||0 };
+        return (
+          <Card key={p.id} style={{marginBottom:11}}>
+            <div style={{display:"flex",alignItems:"center",gap:13,marginBottom:13}}>
+              <div style={{width:44,height:44,borderRadius:9,background:p.hue+"18",
+                border:`1px solid ${p.hue}38`,display:"flex",alignItems:"center",
+                justifyContent:"center",fontSize:13,fontWeight:700,color:p.hue,
+                flexShrink:0,fontFamily:"'DM Mono',monospace"}}>{p.av}</div>
+              <div>
+                <div style={{color:T.ink,fontWeight:600,fontSize:17,fontFamily:"'Cormorant Garamond',serif"}}>{p.nombre}</div>
+                <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{p.rol} · {p.tit} · {p.tel}</div>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
+              {[["Salidas",stats.salidas],["Millas",stats.millas.toFixed(0)+" mn"]].map(([lbl,val])=>(
+                <div key={lbl} style={{background:T.bg,borderRadius:7,padding:"9px 11px"}}>
+                  <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                    fontFamily:"'DM Mono',monospace",marginBottom:4}}>{lbl}</div>
+                  <div style={{fontSize:20,fontWeight:600,color:p.hue,fontFamily:"'Cormorant Garamond',serif"}}>{val}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        );
+      })}
     </div>
   );
 }
-
 // ── ASISTENTE IA ──────────────────────────────────────────────────────────────
 const SYS = `Eres el asistente náutico de a bordo del "Leonidas", un Sunseeker Portofino 53 del año 2007. Matrícula: 7ª PM-1-231-25. Base habitual: Puerto de Caleta de Vélez (Málaga). Reformado en electrónica y confort.
 
@@ -1231,9 +1382,9 @@ function AsistenteIA() {
 const CALETA = { lat: 36.7333, lon: -4.0833 };
 
 function semaforo(windKn, waveM) {
-  if (windKn > 25 || waveM > 1.5) return { level:"danger", label:"No recomendable salir", icon:"🔴", desc:`Viento ${windKn}kn · Ola ${waveM.toFixed(1)}m — Condiciones adversas` };
-  if (windKn > 15 || waveM > 0.8) return { level:"warn",   label:"Navegar con precaución", icon:"🟡", desc:`Viento ${windKn}kn · Ola ${waveM.toFixed(1)}m — Condiciones moderadas` };
-  return                                  { level:"ok",     label:"Día perfecto para salir", icon:"🟢", desc:`Viento ${windKn}kn · Ola ${waveM.toFixed(1)}m — Condiciones excelentes` };
+  if (windKn > 20 || waveM > 1.2) return { level:"danger", label:"No recomendable salir",    icon:"🔴", desc:`Viento ${windKn}kn · Ola ${waveM.toFixed(1)}m — Condiciones adversas` };
+  if (windKn > 8  || waveM > 0.5) return { level:"warn",   label:"Navegar con precaución",   icon:"🟡", desc:`Viento ${windKn}kn · Ola ${waveM.toFixed(1)}m — Condiciones moderadas` };
+  return                                  { level:"ok",     label:"Día perfecto para salir",   icon:"🟢", desc:`Viento ${windKn}kn · Ola ${waveM.toFixed(1)}m — Condiciones excelentes` };
 }
 
 function degToCompass(deg) {
