@@ -448,12 +448,10 @@ function Dashboard({ setScreen }) {
         fontFamily:"'DM Mono',monospace", marginBottom:11 }}>Acceso rápido</div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:9 }}>
         {[
-          { label:"Nueva entrada
-bitácora",  id:"bitacora",      d:NAV[2].svg },
-          { label:"Registrar
-mantenimiento", id:"mantenimiento", d:NAV[3].svg },
-          { label:"Anotar repostaje",         id:"combustible",   d:NAV[4].svg },
-          { label:"Asistente IA",             id:"ia",            d:NAV[10].svg },
+          { label:"Bitácora",       id:"bitacora",      d:NAV[2].svg },
+          { label:"Mantenimiento",  id:"mantenimiento", d:NAV[3].svg },
+          { label:"Repostaje",      id:"combustible",   d:NAV[4].svg },
+          { label:"Asistente IA",   id:"ia",            d:NAV[10].svg },
         ].map(a => (
           <button key={a.id} onClick={()=>setScreen(a.id)} style={{
             background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
@@ -462,7 +460,7 @@ mantenimiento", id:"mantenimiento", d:NAV[3].svg },
             textAlign:"left" }}>
             <Icon d={a.d} color={T.brass} size={19}/>
             <span style={{ color:T.inkMid, fontSize:12, lineHeight:1.4,
-              whiteSpace:"pre-line", fontFamily:"inherit" }}>{a.label}</span>
+              fontFamily:"inherit" }}>{a.label}</span>
           </button>
         ))}
       </div>
