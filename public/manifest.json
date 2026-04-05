@@ -1,0 +1,28 @@
+{
+  "short_name": "ShipLog",
+  "name": "ShipLog · Leonidas",
+  "description": "Gestión náutica del Leonidas",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#F4F1EC",
+  "background_color": "#F4F1EC",
+  "categories": [
+    "navigation",
+    "utilities"
+  ]
+}
