@@ -2516,403 +2516,443 @@ function cadenaSugerida(prof, viento="normal") {
 }
 
 function Fondeo() {
-  const [tab, setTab] = useState("activo");
-  const [fondeos, setFondeos] = useState(FONDEOS_INIT);
+  const [tab, setTab] = useState("fondear");
 
-  // Garreo state
-  const [fondeado, setFondeado]   = useState(false);
-  const [anclaPos, setAnclaPos]   = useState(null);
-  const [posActual, setPosActual] = useState(null);
-  const [radio, setRadio]         = useState(50);
-  const [profundidad, setProfundidad] = useState("");
-  const [viento, setViento]       = useState("normal");
-  const [garreando, setGarreando] = useState(false);
-  const [distancia, setDistancia] = useState(null);
-  const [watchId, setWatchId]     = useState(null);
-  const [gpsError, setGpsError]   = useState(null);
-  const [pulseAnim, setPulseAnim] = useState(false);
+  // ── GPS STATE ──
+  const [pos, setPos]           = useState(null);
+  const [gpsError, setGpsError] = useState(null);
+  const [watching, setWatching] = useState(false);
+  const watchRef                = useRef(null);
 
-  // Start anchor watch
-  function fondear() {
-    if (!navigator.geolocation) { setGpsError("GPS no disponible en este dispositivo"); return; }
-    navigator.geolocation.getCurrentPosition(pos => {
-      const ancla = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-      setAnclaPos(ancla);
-      setFondeado(true);
-      setGarreando(false);
-      setDistancia(0);
-      // Start watching position
-      const id = navigator.geolocation.watchPosition(cur => {
-        const curPos = { lat: cur.coords.latitude, lon: cur.coords.longitude };
-        setPosActual(curPos);
-        const d = distanciaMetros(ancla.lat, ancla.lon, curPos.lat, curPos.lon);
-        setDistancia(Math.round(d));
-        const garreo = d > radio;
-        setGarreando(garreo);
-        if (garreo) setPulseAnim(p => !p); // trigger visual pulse
-      }, err => setGpsError("Error GPS: " + err.message), { enableHighAccuracy:true, maximumAge:5000 });
-      setWatchId(id);
-    }, err => setGpsError("No se pudo obtener posición: " + err.message), { enableHighAccuracy:true });
-  }
+  // ── ANCHOR STATE ──
+  const [ancla, setAncla]         = useState(null); // {lat, lon}
+  const [alarmaActiva, setAlarma] = useState(false);
+  const [alarmaDisparada, setAlarmaDisparada] = useState(false);
+  const [cadena, setCadena]       = useState(30);   // metros filados
+  const [sonando, setSonando]     = useState(false);
+  const audioRef                  = useRef(null);
 
-  function levarAncla() {
-    if (watchId) navigator.geolocation.clearWatch(watchId);
-    // Save to history
-    if (anclaPos) {
-      const prof = parseFloat(profundidad) || 0;
-      setFondeos(prev => [{
-        id: Date.now(), nombre:"Fondeo " + new Date().toLocaleDateString("es-ES"),
-        lat: anclaPos.lat, lon: anclaPos.lon,
-        prof, cadena: cadenaSugerida(prof, viento),
-        fecha: new Date().toLocaleDateString("es-ES"),
-        valoracion: null, notas:"",
-      }, ...prev]);
+  // ── FONDEOS GUARDADOS ──
+  const [fondeos, setFondeos]     = useState([]);
+  const [loadingF, setLoadingF]   = useState(true);
+  const [showForm, setShowForm]   = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [formFondeo, setFormFondeo] = useState({
+    nombre:"", profundidad:"", viento:"", direccion_viento:"N",
+    resguardado_de:"", valoracion:"4", notas:""
+  });
+  const updF = f => e => setFormFondeo(v=>({...v,[f]:e.target.value}));
+
+  // ── GPS WATCH ──
+  useEffect(()=>{
+    if (!navigator.geolocation) { setGpsError("GPS no disponible"); return; }
+    setWatching(true);
+    watchRef.current = navigator.geolocation.watchPosition(
+      p => { setPos({ lat:p.coords.latitude, lon:p.coords.longitude, acc:p.coords.accuracy }); setGpsError(null); },
+      e => setGpsError("Sin señal GPS"),
+      { enableHighAccuracy:true, maximumAge:3000, timeout:10000 }
+    );
+    return () => { if (watchRef.current) navigator.geolocation.clearWatch(watchRef.current); };
+  },[]);
+
+  // ── GARREO CHECK ──
+  useEffect(()=>{
+    if (!ancla || !pos || !alarmaActiva) return;
+    const dist = distanciaMetros(ancla.lat, ancla.lon, pos.lat, pos.lon);
+    const limite = cadena + 16; // cadena filada + eslora Leonidas
+    if (dist > limite && !alarmaDisparada) {
+      setAlarmaDisparada(true);
+      setSonando(true);
+      // Vibración del dispositivo
+      if (navigator.vibrate) navigator.vibrate([500,200,500,200,500]);
+    } else if (dist <= limite && alarmaDisparada) {
+      setAlarmaDisparada(false);
+      setSonando(false);
     }
-    setFondeado(false); setAnclaPos(null); setPosActual(null);
-    setGarreando(false); setDistancia(null); setWatchId(null);
+  },[pos, ancla, alarmaActiva, cadena, alarmaDisparada]);
+
+  // ── SONIDO ──
+  useEffect(()=>{
+    if (sonando) {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      let stopped = false;
+      const beep = () => {
+        if (stopped) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        osc.type = "square";
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        osc.start(); osc.stop(ctx.currentTime + 0.3);
+        setTimeout(()=>{ if(!stopped) beep(); }, 800);
+      };
+      beep();
+      audioRef.current = { stop:()=>{ stopped=true; ctx.close(); } };
+    } else {
+      if (audioRef.current) { audioRef.current.stop(); audioRef.current=null; }
+    }
+    return ()=>{ if(audioRef.current) { audioRef.current.stop(); audioRef.current=null; } };
+  },[sonando]);
+
+  // ── DISTANCIA Y RUMBO ──
+  const distAncla = ancla && pos ? distanciaMetros(ancla.lat, ancla.lon, pos.lat, pos.lon) : null;
+
+  function rumboAncla(ancla, pos) {
+    if (!ancla || !pos) return null;
+    const dLon = (ancla.lon - pos.lon) * Math.PI/180;
+    const lat1 = pos.lat * Math.PI/180;
+    const lat2 = ancla.lat * Math.PI/180;
+    const y = Math.sin(dLon) * Math.cos(lat2);
+    const x = Math.cos(lat1)*Math.sin(lat2) - Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon);
+    const brng = (Math.atan2(y,x)*180/Math.PI + 360) % 360;
+    return Math.round(brng);
+  }
+  const rumbo = rumboAncla(ancla, pos);
+
+  function echarAncla() {
+    if (!pos) return;
+    setAncla({ lat:pos.lat, lon:pos.lon });
+    setAlarma(true);
+    setAlarmaDisparada(false);
+    setSonando(false);
   }
 
-  const prof = parseFloat(profundidad) || 0;
-  const cadenaRec = prof > 0 ? cadenaSugerida(prof, viento) : null;
-  const pct = distancia !== null ? Math.min(100, (distancia / radio) * 100) : 0;
-  const barCol = pct > 90 ? T.danger : pct > 70 ? T.warn : T.ok;
+  function levantarAncla() {
+    setAncla(null);
+    setAlarma(false);
+    setAlarmaDisparada(false);
+    setSonando(false);
+  }
+
+  // ── CARGAR FONDEOS ──
+  async function cargarFondeos() {
+    try {
+      setLoadingF(true);
+      const d = await db("fondeos","GET",null,"?order=fecha.desc");
+      setFondeos(d);
+    } catch(e){} finally { setLoadingF(false); }
+  }
+  useEffect(()=>{ cargarFondeos(); },[]);
+
+  async function guardarFondeo() {
+    if (!pos) return;
+    setSaving(true);
+    try {
+      await db("fondeos","POST",{
+        nombre: formFondeo.nombre||`Fondeo ${new Date().toLocaleDateString("es")}`,
+        fecha: new Date().toISOString().split("T")[0],
+        lat: pos.lat, lon: pos.lon,
+        profundidad: parseFloat(formFondeo.profundidad)||null,
+        viento: formFondeo.viento||null,
+        direccion_viento: formFondeo.direccion_viento||null,
+        resguardado_de: formFondeo.resguardado_de||null,
+        valoracion: parseInt(formFondeo.valoracion)||4,
+        notas: formFondeo.notas||null,
+        patron: "Guille",
+      });
+      setShowForm(false);
+      setFormFondeo({ nombre:"", profundidad:"", viento:"", direccion_viento:"N", resguardado_de:"", valoracion:"4", notas:"" });
+      cargarFondeos();
+    } catch(e){ alert("Error: "+e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function eliminarFondeo(id) {
+    if (!window.confirm("Eliminar este fondeo?")) return;
+    try { await db(`fondeos?id=eq.${id}`,"DELETE"); cargarFondeos(); }
+    catch(e){}
+  }
+
+  const DIRS = ["N","NE","E","SE","S","SO","O","NO"];
+  const estrellas = n => "★".repeat(n) + "☆".repeat(5-n);
 
   return (
     <div>
-      <Hdr eyebrow="Fondeo y garreo" title="Fondeo"/>
+      <Hdr eyebrow="Anclaje y fondeos" title="Fondeo"/>
 
       {/* Tabs */}
-      <div style={{ display:"flex", background:T.bg, borderRadius:7, padding:3,
-        gap:3, marginBottom:18, border:`1px solid ${T.rimHi}` }}>
-        {[["activo","⚓ Activo"],["historico","Histórico"]].map(([id,lbl])=>(
+      <div style={{display:"flex",background:T.bg,borderRadius:7,padding:3,
+        gap:3,marginBottom:18,border:`1px solid ${T.rimHi}`}}>
+        {[["fondear","Fondear"],["historico","Mis fondeos"]].map(([id,lbl])=>(
           <button key={id} onClick={()=>setTab(id)} style={{
-            flex:1, padding:"9px", borderRadius:5, border:"none", cursor:"pointer",
+            flex:1,padding:"9px",borderRadius:5,border:"none",cursor:"pointer",
             background:tab===id?T.surface:"transparent",
-            color:tab===id?T.ink:T.inkDim, fontSize:12, fontWeight:tab===id?600:400,
-            fontFamily:"inherit", boxShadow:tab===id?"0 1px 3px rgba(0,0,0,0.4)":"none" }}>
+            color:tab===id?T.ink:T.inkDim,fontSize:12,fontWeight:tab===id?600:400,
+            fontFamily:"inherit",boxShadow:tab===id?"0 1px 3px rgba(0,0,0,0.15)":"none"}}>
             {lbl}
           </button>
         ))}
       </div>
 
-      {tab === "activo" && (
+      {/* ══ PESTAÑA FONDEAR ══ */}
+      {tab==="fondear" && (
         <div>
-          {/* Garreo alarm banner */}
-          {garreando && (
-            <div style={{ background:T.danger+"22", border:`2px solid ${T.danger}`,
-              borderRadius:12, padding:"16px 18px", marginBottom:16,
-              animation:"garreo-pulse 0.8s infinite alternate" }}>
-              <div style={{ color:T.danger, fontSize:18, fontWeight:700,
-                fontFamily:"'Cormorant Garamond',serif" }}>⚠ ALARMA DE GARREO</div>
-              <div style={{ color:T.danger, fontSize:13, marginTop:4,
-                fontFamily:"'DM Mono',monospace" }}>
-                Desplazamiento: {distancia}m · Radio: {radio}m
+          {/* GPS status */}
+          {gpsError ? (
+            <Card style={{marginBottom:14}}>
+              <div style={{color:T.warn,fontSize:13,textAlign:"center"}}>
+                {gpsError} -- activa el GPS del dispositivo
               </div>
+            </Card>
+          ) : !pos ? (
+            <Card style={{marginBottom:14}}>
+              <div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"8px 0"}}>
+                Obteniendo posicion GPS...
+              </div>
+            </Card>
+          ) : null}
+
+          {/* ALARMA DISPARADA */}
+          {alarmaDisparada && (
+            <div style={{background:T.danger,borderRadius:12,padding:"16px 20px",
+              marginBottom:16,animation:"garreo-pulse 1s infinite",
+              display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{color:"#fff",fontWeight:700,fontSize:16}}>GARREANDO</div>
+                <div style={{color:"rgba(255,255,255,0.8)",fontSize:11,marginTop:3,
+                  fontFamily:"'DM Mono',monospace"}}>
+                  Distancia: {distAncla?.toFixed(0)}m -- Limite: {cadena+16}m
+                </div>
+              </div>
+              <button onClick={()=>setSonando(false)} style={{background:"rgba(255,255,255,0.2)",
+                border:"none",borderRadius:8,padding:"8px 12px",color:"#fff",
+                fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                Silenciar
+              </button>
             </div>
           )}
 
-          {/* Status circle */}
-          {fondeado && (
-            <Card style={{ marginBottom:16, textAlign:"center" }} pad="24px 20px">
-              <div style={{ position:"relative", width:140, height:140, margin:"0 auto 16px" }}>
-                {/* Outer ring */}
-                <svg width="140" height="140" style={{ position:"absolute", top:0, left:0 }}>
-                  <circle cx="70" cy="70" r="60" fill="none" stroke={T.rim} strokeWidth="6"/>
-                  <circle cx="70" cy="70" r="60" fill="none"
-                    stroke={barCol} strokeWidth="6"
-                    strokeDasharray={`${2*Math.PI*60}`}
-                    strokeDashoffset={`${2*Math.PI*60*(1-pct/100)}`}
-                    strokeLinecap="round"
-                    transform="rotate(-90 70 70)"
-                    style={{ transition:"stroke-dashoffset 0.5s, stroke 0.3s" }}/>
-                </svg>
-                {/* Center */}
-                <div style={{ position:"absolute", top:"50%", left:"50%",
-                  transform:"translate(-50%,-50%)", textAlign:"center" }}>
-                  <div style={{ fontSize:28, fontWeight:700, color:barCol,
-                    fontFamily:"'Cormorant Garamond',serif", lineHeight:1 }}>
-                    {distancia ?? 0}m
+          {/* ESTADO FONDEO */}
+          {ancla ? (
+            <Card style={{marginBottom:16,border:`2px solid ${alarmaDisparada?T.danger:T.ok}`}} pad="20px">
+              <div style={{textAlign:"center",marginBottom:16}}>
+                <div style={{fontSize:9.5,color:T.ok,letterSpacing:2,textTransform:"uppercase",
+                  fontFamily:"'DM Mono',monospace",marginBottom:6}}>Ancla echada</div>
+
+                {/* Flecha hacia el ancla */}
+                <div style={{display:"flex",justifyContent:"center",marginBottom:12}}>
+                  <div style={{
+                    width:64,height:64,borderRadius:"50%",
+                    background: alarmaDisparada?T.danger+"15":T.ok+"15",
+                    border:`2px solid ${alarmaDisparada?T.danger:T.ok}`,
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                    fontSize:28,
+                    transform: rumbo!==null ? `rotate(${rumbo}deg)` : "none",
+                    transition:"transform 0.5s"
+                  }}>
+                    ⚓
                   </div>
-                  <div style={{ fontSize:9.5, color:T.inkDim,
-                    fontFamily:"'DM Mono',monospace", marginTop:3 }}>de {radio}m</div>
+                </div>
+
+                <div style={{fontSize:36,fontWeight:600,color:alarmaDisparada?T.danger:T.ok,
+                  fontFamily:"'Cormorant Garamond',serif",lineHeight:1}}>
+                  {distAncla !== null ? `${distAncla.toFixed(0)} m` : "--"}
+                </div>
+                <div style={{color:T.inkDim,fontSize:10,marginTop:4,
+                  fontFamily:"'DM Mono',monospace"}}>
+                  al ancla {rumbo!==null?`· rumbo ${rumbo}°`:""}
                 </div>
               </div>
-              <div style={{ color:garreando?T.danger:T.ok, fontSize:13, fontWeight:600 }}>
-                {garreando ? "Garreando -- ¡comprueba el ancla!" : "Ancla firme"}
-              </div>
-              {anclaPos && (
-                <div style={{ color:T.inkDim, fontSize:10, marginTop:6,
-                  fontFamily:"'DM Mono',monospace" }}>
-                  {anclaPos.lat.toFixed(5)}° N · {Math.abs(anclaPos.lon).toFixed(5)}° W
+
+              {/* Barra de seguridad */}
+              {distAncla !== null && (
+                <div style={{marginBottom:16}}>
+                  <div style={{background:T.surfaceUp,borderRadius:4,height:6,overflow:"hidden"}}>
+                    <div style={{
+                      height:"100%",
+                      width:`${Math.min(100,(distAncla/(cadena+16))*100)}%`,
+                      background: distAncla>cadena+16?T.danger:distAncla>cadena*0.8?T.warn:T.ok,
+                      borderRadius:4,transition:"width 0.5s"
+                    }}/>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+                    <span style={{fontSize:9.5,color:T.inkDim,fontFamily:"'DM Mono',monospace"}}>0m</span>
+                    <span style={{fontSize:9.5,color:T.inkDim,fontFamily:"'DM Mono',monospace"}}>
+                      Limite: {cadena+16}m
+                    </span>
+                  </div>
                 </div>
               )}
+
+              <button onClick={levantarAncla} style={{
+                width:"100%",background:T.danger+"15",border:`1px solid ${T.danger}40`,
+                borderRadius:8,padding:"11px",color:T.danger,fontSize:13,fontWeight:600,
+                cursor:"pointer",fontFamily:"inherit"}}>
+                Levantar ancla
+              </button>
             </Card>
-          )}
-
-          {/* Setup card */}
-          <Card style={{ marginBottom:14 }} pad="0 18px">
-            <div style={{ padding:"12px 0" }}>
-              <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:1.5,
-                textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:8 }}>
-                Radio de seguridad (metros)
-              </div>
-              <div style={{ display:"flex", gap:8 }}>
-                {[30,50,75,100,150].map(v=>(
-                  <button key={v} onClick={()=>setRadio(v)} style={{
-                    flex:1, padding:"8px 0", borderRadius:6, border:"none",
-                    background:radio===v?T.brass:T.surfaceUp,
-                    color:radio===v?"#0C0F14":T.inkMid,
-                    fontSize:11, fontWeight:radio===v?700:400,
-                    cursor:"pointer", fontFamily:"'DM Mono',monospace" }}>{v}</button>
-                ))}
-              </div>
-            </div>
-            <Divider/>
-            <div style={{ padding:"12px 0" }}>
-              <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:1.5,
-                textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:8 }}>
-                Profundidad del agua (metros)
-              </div>
-              <input type="number" value={profundidad} onChange={e=>setProfundidad(e.target.value)}
-                placeholder="ej. 8" disabled={fondeado}
-                style={{ background:T.surfaceUp, border:`1px solid ${T.rimHi}`, borderRadius:7,
-                  padding:"10px 14px", color:T.ink, fontSize:16,
-                  fontFamily:"'Cormorant Garamond',serif", outline:"none", width:"100%",
-                  fontWeight:600, opacity:fondeado?0.5:1 }}/>
-            </div>
-            {cadenaRec && (
-              <>
-                <Divider/>
-                <div style={{ padding:"12px 0" }}>
-                  <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:1.5,
-                    textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:8 }}>
-                    Viento actual
-                  </div>
-                  <div style={{ display:"flex", gap:8 }}>
-                    {[["normal","Normal (<15kn)"],["fuerte","Fuerte (>15kn)"]].map(([v,l])=>(
-                      <button key={v} onClick={()=>setViento(v)} disabled={fondeado} style={{
-                        flex:1, padding:"9px", borderRadius:6, border:"none",
-                        background:viento===v?T.brass:T.surfaceUp,
-                        color:viento===v?"#0C0F14":T.inkMid,
-                        fontSize:11, fontWeight:viento===v?700:400,
-                        cursor:"pointer", fontFamily:"inherit", opacity:fondeado?0.5:1 }}>{l}</button>
-                    ))}
-                  </div>
-                  <div style={{ marginTop:12, background:T.brassDim, border:`1px solid ${T.brass}35`,
-                    borderRadius:8, padding:"10px 14px", display:"flex",
-                    justifyContent:"space-between", alignItems:"center" }}>
-                    <span style={{ color:T.inkMid, fontSize:12 }}>Cadena recomendada</span>
-                    <span style={{ color:T.brassLt, fontSize:20, fontWeight:700,
-                      fontFamily:"'Cormorant Garamond',serif" }}>{cadenaRec} m</span>
-                  </div>
-                  <div style={{ color:T.inkDim, fontSize:10, marginTop:6,
-                    fontFamily:"'DM Mono',monospace" }}>
-                    Ratio {viento==="fuerte"?"7":"5"}:1 · Prof. {prof}m × {viento==="fuerte"?7:5}
-                  </div>
-                </div>
-              </>
-            )}
-          </Card>
-
-          {gpsError && (
-            <div style={{ background:T.danger+"15", border:`1px solid ${T.danger}30`,
-              borderRadius:8, padding:"10px 14px", marginBottom:14 }}>
-              <div style={{ color:T.danger, fontSize:12 }}>{gpsError}</div>
-            </div>
-          )}
-
-          {!fondeado ? (
-            <Btn onClick={fondear}>⚓ Fondear aquí</Btn>
           ) : (
-            <button onClick={levarAncla} style={{
-              width:"100%", background:"transparent", border:`2px solid ${T.danger}`,
-              borderRadius:8, padding:"12px", color:T.danger,
-              fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit",
-              letterSpacing:0.5 }}>
-              Levar ancla y guardar fondeo
-            </button>
-          )}
-        </div>
-      )}
-
-      {tab === "historico" && (
-        <div>
-          {fondeos.map((f,i)=>(
-            <Card key={f.id} style={{ marginBottom:10 }}>
-              <div style={{ display:"flex", justifyContent:"space-between",
-                alignItems:"flex-start", marginBottom:8 }}>
-                <div>
-                  <div style={{ color:T.ink, fontWeight:600, fontSize:16,
-                    fontFamily:"'Cormorant Garamond',serif" }}>{f.nombre}</div>
-                  <div style={{ color:T.inkDim, fontSize:10, marginTop:3,
-                    fontFamily:"'DM Mono',monospace" }}>{f.fecha}</div>
-                </div>
-                {f.valoracion && (
-                  <div style={{ color:T.brassLt, fontSize:13,
-                    fontFamily:"'DM Mono',monospace" }}>
-                    {"★".repeat(f.valoracion)}{"☆".repeat(5-f.valoracion)}
+            /* BOTON ECHAR ANCLA */
+            <Card style={{marginBottom:16}} pad="24px 20px">
+              <div style={{textAlign:"center",marginBottom:20}}>
+                <div style={{fontSize:9.5,color:T.inkDim,letterSpacing:2,textTransform:"uppercase",
+                  fontFamily:"'DM Mono',monospace",marginBottom:8}}>Sin fondeo activo</div>
+                {pos && (
+                  <div style={{color:T.inkDim,fontSize:10,fontFamily:"'DM Mono',monospace"}}>
+                    {pos.lat.toFixed(5)}, {pos.lon.toFixed(5)} · acc {pos.acc?.toFixed(0)}m
                   </div>
                 )}
               </div>
-              <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:f.notas?8:0 }}>
-                {[
-                  f.prof ? `Prof. ${f.prof}m` : null,
-                  f.cadena ? `Cadena ${f.cadena}m` : null,
-                  `${f.lat.toFixed(4)}° N`,
-                  `${Math.abs(f.lon).toFixed(4)}° W`,
-                ].filter(Boolean).map((tag,j)=>(
-                  <span key={j} style={{ background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
-                    borderRadius:4, padding:"2px 8px", color:T.inkMid,
-                    fontSize:10, fontFamily:"'DM Mono',monospace" }}>{tag}</span>
-                ))}
-              </div>
-              {f.notas && <div style={{ color:T.inkDim, fontSize:12 }}>{f.notas}</div>}
+              <button onClick={echarAncla} disabled={!pos} style={{
+                width:"100%",background:pos?T.brass:T.surfaceUp,
+                border:"none",borderRadius:10,padding:"16px",
+                color:pos?"#fff":T.inkDim,fontSize:16,fontWeight:700,
+                cursor:pos?"pointer":"not-allowed",fontFamily:"inherit",
+                boxShadow:pos?"0 4px 16px rgba(140,106,46,0.3)":"none",
+                transition:"all 0.2s"}}>
+                Echar ancla aqui
+              </button>
             </Card>
-          ))}
+          )}
+
+          {/* CADENA */}
+          <Card style={{marginBottom:16}} pad="14px 18px">
+            <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+              fontFamily:"'DM Mono',monospace",marginBottom:8}}>Cadena filada</div>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <input type="range" min="10" max="100" step="5" value={cadena}
+                onChange={e=>setCadena(parseInt(e.target.value))}
+                style={{flex:1,accentColor:T.brass}}/>
+              <span style={{fontSize:20,fontWeight:700,minWidth:52,textAlign:"right",
+                fontFamily:"'Cormorant Garamond',serif",color:T.brassLt}}>
+                {cadena} m
+              </span>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
+              <span style={{fontSize:9.5,color:T.inkDim,fontFamily:"'DM Mono',monospace"}}>
+                Relacion 5:1 -- prof {(cadena/5).toFixed(1)}m
+              </span>
+              <span style={{fontSize:9.5,color:T.inkDim,fontFamily:"'DM Mono',monospace"}}>
+                Limite alarma: {cadena+16}m
+              </span>
+            </div>
+          </Card>
+
+          {/* GUARDAR FONDEO */}
+          {pos && (
+            <div>
+              <Btn onClick={()=>setShowForm(!showForm)} variant="ghost">
+                {showForm?"Cancelar":"+ Guardar este fondeo en el historico"}
+              </Btn>
+              {showForm && (
+                <Card style={{marginTop:12}} pad="16px">
+                  <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
+                    textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>
+                    Datos del fondeo
+                  </div>
+                  <FInput label="Nombre del lugar" value={formFondeo.nombre}
+                    onChange={updF("nombre")} placeholder="Cala del Pino, Ensenada..."/>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <FInput label="Profundidad (m)" type="number"
+                      value={formFondeo.profundidad} onChange={updF("profundidad")}/>
+                    <FInput label="Viento (kn)" value={formFondeo.viento}
+                      onChange={updF("viento")} placeholder="12kn NE"/>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <FSelect label="Direccion viento" value={formFondeo.direccion_viento}
+                      onChange={updF("direccion_viento")} options={DIRS}/>
+                    <FSelect label="Resguardado de" value={formFondeo.resguardado_de}
+                      onChange={updF("resguardado_de")} options={["","N","NE","E","SE","S","SO","O","NO"]}/>
+                  </div>
+                  <FInput label="Valoracion (1-5)" type="number"
+                    value={formFondeo.valoracion} onChange={updF("valoracion")}/>
+                  <FTextarea label="Notas" value={formFondeo.notas} onChange={updF("notas")}
+                    placeholder="Buen tenedero, arena limpia..."/>
+                  <Btn onClick={guardarFondeo}>{saving?"Guardando...":"Guardar fondeo"}</Btn>
+                </Card>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══ PESTAÑA HISTORICO ══ */}
+      {tab==="historico" && (
+        <div>
+          {loadingF ? (
+            <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+          ) : fondeos.length===0 ? (
+            <Card>
+              <div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>
+                Sin fondeos guardados. Fondea y guarda el punto desde la pestana anterior.
+              </div>
+            </Card>
+          ) : fondeos.map(f=>{
+            const distF = pos ? distanciaMetros(pos.lat, pos.lon, f.lat, f.lon) : null;
+            return (
+              <Card key={f.id} style={{marginBottom:11}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                  <div style={{flex:1}}>
+                    <div style={{color:T.ink,fontWeight:600,fontSize:17,
+                      fontFamily:"'Cormorant Garamond',serif"}}>{f.nombre||"Fondeo"}</div>
+                    <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,
+                      fontFamily:"'DM Mono',monospace"}}>
+                      {f.fecha}
+                      {f.profundidad ? ` · ${f.profundidad}m prof.` : ""}
+                      {f.viento ? ` · ${f.viento}` : ""}
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    {f.valoracion && (
+                      <div style={{color:T.brassLt,fontSize:11}}>{estrellas(f.valoracion)}</div>
+                    )}
+                    {distF !== null && (
+                      <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,
+                        fontFamily:"'DM Mono',monospace"}}>
+                        {distF>1000 ? `${(distF/1000).toFixed(1)}km` : `${distF.toFixed(0)}m`}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
+                  {f.resguardado_de && (
+                    <span style={{background:T.ok+"15",border:`1px solid ${T.ok}30`,
+                      borderRadius:4,padding:"2px 8px",fontSize:9.5,color:T.ok,
+                      fontFamily:"'DM Mono',monospace"}}>
+                      Prot. del {f.resguardado_de}
+                    </span>
+                  )}
+                  {f.direccion_viento && (
+                    <span style={{background:T.info+"15",border:`1px solid ${T.info}30`,
+                      borderRadius:4,padding:"2px 8px",fontSize:9.5,color:T.info,
+                      fontFamily:"'DM Mono',monospace"}}>
+                      Viento {f.direccion_viento}
+                    </span>
+                  )}
+                </div>
+
+                {f.notas && (
+                  <div style={{color:T.inkDim,fontSize:12,lineHeight:1.4,marginBottom:8}}>{f.notas}</div>
+                )}
+
+                <div style={{display:"flex",gap:7}}>
+                  {f.lat && f.lon && (
+                    <a href={`https://maps.google.com?q=${f.lat},${f.lon}`}
+                      target="_blank" rel="noopener noreferrer"
+                      style={{flex:1,background:T.brassDim,border:`1px solid ${T.brass}35`,
+                        borderRadius:7,padding:"7px",color:T.brass,fontSize:11,
+                        textDecoration:"none",textAlign:"center",fontWeight:600}}>
+                      Ver en mapa
+                    </a>
+                  )}
+                  <button onClick={()=>eliminarFondeo(f.id)} style={{background:"none",
+                    border:`1px solid ${T.danger}40`,borderRadius:7,padding:"7px 12px",
+                    color:T.danger,fontSize:11,cursor:"pointer"}}>
+                    Eliminar
+                  </button>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-// ── SHELL ─────────────────────────────────────────────────────────────────────
-const MENU = [
-  { section:"Navegación", items:[
-    { id:"dashboard",    label:"Panel general",   svg:"M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
-    { id:"clima",        label:"Clima",           svg:"M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" },
-    { id:"calculadora",  label:"Calculadora",     svg:"M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" },
-    { id:"fondeo",       label:"Fondeo",          svg:"M3 12h18M12 3v9m0 0L8 8m4 4l4-4M5 20h14" },
-  ]},
-  { section:"Barco", items:[
-    { id:"bitacora",     label:"Bitácora",        svg:"M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
-    { id:"puertos",      label:"Puertos",         svg:"M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z" },
-    { id:"patrones",     label:"Patrones",        svg:"M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" },
-    { id:"ficha",        label:"Ficha técnica",   svg:"M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
-  ]},
-  { section:"Gestión", items:[
-    { id:"mantenimiento",label:"Mantenimiento",   svg:"M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
-    { id:"combustible",  label:"Combustible",     svg:"M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" },
-    { id:"inventario",   label:"Inventario",      svg:"M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
-    { id:"seguridad",    label:"Seguridad",       svg:"M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" },
-    { id:"documentos",   label:"Documentos",      svg:"M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" },
-  ]},
-  { section:"IA", items:[
-    { id:"ia",           label:"Asistente IA",    svg:"M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" },
-  ]},
-];
-
-const SCREENS = {
-  dashboard:Dashboard, ficha:Ficha, bitacora:Bitacora,
-  mantenimiento:Mantenimiento, combustible:Combustible,
-  seguridad:Seguridad, puertos:Puertos, inventario:Inventario,
-  documentos:Documentos, patrones:Patrones, ia:AsistenteIA,
-  clima:Clima, calculadora:Calculadora, fondeo:Fondeo
-};
-
-export default function App() {
-  const [screen, setScreen] = useState("dashboard");
-  const [sideOpen, setSideOpen] = useState(false);
-  const Screen = SCREENS[screen] || Dashboard;
-
-  function navTo(id) { setScreen(id); setSideOpen(false); }
-
-  const currentLabel = MENU.flatMap(s=>s.items).find(i=>i.id===screen)?.label || "Panel";
-
-  return (
-    <div style={{ height:"100dvh", background:T.bg, color:T.ink,
-      fontFamily:"'Crimson Pro',Georgia,serif",
-      display:"flex", flexDirection:"row", overflow:"hidden" }}>
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Crimson+Pro:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&display=swap');
-        *{box-sizing:border-box}
-        ::-webkit-scrollbar{width:0}
-        input::placeholder{color:#9A9488}
-        @keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
-        @keyframes garreo-pulse{from{box-shadow:0 0 0 0 rgba(168,52,40,0.5)}to{box-shadow:0 0 0 14px rgba(168,52,40,0)}}
-        @keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
-        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-        button{font-family:inherit}
-        input[type=time]::-webkit-calendar-picker-indicator{filter:invert(0) opacity(0.4)}
-        select{font-family:inherit}
-        textarea{font-family:inherit}
-
-        /* ── RESPONSIVE BREAKPOINTS ── */
-        .app-sidebar-desktop { display:none; }
-        .app-content { flex:1; display:flex; flex-direction:column; min-width:0; max-width:600px; margin:0 auto; width:100%; }
-        .app-header-hamburger { display:flex; }
-        .app-header-title { display:flex; }
-
-        @media (min-width: 768px) {
-          .app-sidebar-desktop { display:flex !important; }
-          .app-header-hamburger { display:none !important; }
-          .app-content { max-width:none; margin:0; }
-        }
-
-        @media (min-width: 1024px) {
-          .app-content-inner { padding:24px 32px 40px !important; max-width:800px; margin:0 auto; width:100%; }
-        }
-      `}</style>
-
-      {/* ── SIDEBAR OVERLAY (móvil) ── */}
-      {sideOpen && (
-        <div style={{ position:"fixed", inset:0, zIndex:200, display:"flex" }}>
-          <div onClick={()=>setSideOpen(false)} style={{ position:"absolute", inset:0,
-            background:"rgba(0,0,0,0.65)", animation:"fadeIn 0.2s ease" }}/>
-          <div style={{ position:"relative", width:272, height:"100%", background:T.surface,
-            borderRight:`1px solid ${T.rimHi}`, overflowY:"auto",
-            animation:"slideIn 0.25s ease", zIndex:1, display:"flex", flexDirection:"column",
-            boxShadow:"4px 0 24px rgba(0,0,0,0.3)" }}>
-            <SidebarContent navTo={navTo} screen={screen} onClose={()=>setSideOpen(false)} showClose={true}/>
-          </div>
-        </div>
-      )}
-
-      {/* ── SIDEBAR FIJO (tablet/desktop) ── */}
-      <div className="app-sidebar-desktop" style={{ width:240, height:"100dvh", background:T.surface,
-        borderRight:`1px solid ${T.line}`, flexDirection:"column", flexShrink:0, overflowY:"auto" }}>
-        <SidebarContent navTo={navTo} screen={screen} onClose={()=>{}} showClose={false}/>
-      </div>
-
-      {/* ── MAIN AREA ── */}
-      <div className="app-content" style={{ background:T.bg }}>
-
-        {/* HEADER */}
-        <div style={{ position:"sticky", top:0, zIndex:100, background:T.bg,
-          borderBottom:`1px solid ${T.line}`, padding:"13px 18px",
-          display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
-          <button className="app-header-hamburger" onClick={()=>setSideOpen(true)}
-            style={{ background:"none", border:"none", cursor:"pointer",
-              flexDirection:"column", gap:4.5, padding:"4px 2px", borderRadius:4 }}>
-            {[0,1,2].map(i=>(
-              <div key={i} style={{ width:20, height:1.5, background:T.inkMid, borderRadius:1 }}/>
-            ))}
-          </button>
-          <div style={{ textAlign:"center" }}>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16,
-              fontWeight:600, color:T.ink, lineHeight:1 }}>{currentLabel}</div>
-            <div style={{ fontSize:8.5, color:T.inkDim, letterSpacing:2,
-              textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginTop:2 }}>Leonidas</div>
-          </div>
-          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-            <div style={{ width:5, height:5, borderRadius:"50%", background:T.ok,
-              boxShadow:`0 0 7px ${T.ok}` }}/>
-            <span style={{ fontSize:9.5, color:T.inkDim, fontFamily:"'DM Mono',monospace" }}>Porto</span>
-          </div>
-        </div>
-
-        {/* CONTENT */}
-        <div className="app-content-inner" style={{ flex:1, overflowY:"auto", overflowX:"hidden",
-          padding:"18px 16px 40px", WebkitOverflowScrolling:"touch", minHeight:0 }}>
-          <Screen setScreen={navTo}/>
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
-// ── SIDEBAR CONTENT (shared between overlay and fixed) ────────────────────────
 function SidebarContent({ navTo, screen, onClose, showClose }) {
   return (
     <>
