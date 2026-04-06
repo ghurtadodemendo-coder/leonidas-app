@@ -1008,6 +1008,7 @@ function Combustible() {
   };
   const [form, setForm] = useState(FORM_INIT);
   const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
+  const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
 
   async function cargar() {
     try {
