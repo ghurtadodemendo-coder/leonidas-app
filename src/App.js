@@ -656,15 +656,7 @@ function Mantenimiento() {
     } catch(e){ alert("Error: "+e.message); }
   }
 
-  const Inp = ({val,onChange,label,type="text",small}) => (
-    <div style={{marginBottom:8}}>
-      <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-        fontFamily:"'DM Mono',monospace",marginBottom:4}}>{label}</div>
-      <input type={type} value={val} onChange={onChange}
-        style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
-          padding:"8px 12px",color:T.ink,fontSize:13,fontFamily:"inherit",outline:"none"}}/>
-    </div>
-  );
+
 
   return (
     <div>
@@ -690,10 +682,10 @@ function Mantenimiento() {
             <Card key={t.id} style={{marginBottom:9}}>
               {isEditing ? (
                 <div>
-                  <Inp val={form.fecha_ultima} onChange={e=>setForm(f=>({...f,fecha_ultima:e.target.value}))} label="Fecha última revisión" type="date"/>
-                  <Inp val={form.horas_ultima} onChange={e=>setForm(f=>({...f,horas_ultima:e.target.value}))} label="Horas motor en revisión" type="number"/>
-                  <Inp val={form.coste} onChange={e=>setForm(f=>({...f,coste:e.target.value}))} label="Coste (€)" type="number"/>
-                  <Inp val={form.notas} onChange={e=>setForm(f=>({...f,notas:e.target.value}))} label="Notas"/>
+                  <FInput value={form.fecha_ultima} onChange={e=>setForm(f=>({...f,fecha_ultima:e.target.value}))} label="Fecha última revisión" type="date"/>
+                  <FInput value={form.horas_ultima} onChange={e=>setForm(f=>({...f,horas_ultima:e.target.value}))} label="Horas motor en revisión" type="number"/>
+                  <FInput value={form.coste} onChange={e=>setForm(f=>({...f,coste:e.target.value}))} label="Coste (€)" type="number"/>
+                  <FInput value={form.notas} onChange={e=>setForm(f=>({...f,notas:e.target.value}))} label="Notas"/>
                   <div style={{display:"flex",gap:8,marginTop:6}}>
                     <Btn sm onClick={()=>actualizarTarea(t.id,{fecha_ultima:form.fecha_ultima,horas_ultima:parseFloat(form.horas_ultima)||null,coste:parseFloat(form.coste)||0,notas:form.notas,estado:"ok"})}>Guardar</Btn>
                     <Btn sm variant="ghost" onClick={()=>setEditId(null)}>Cancelar</Btn>
@@ -742,10 +734,10 @@ function Mantenimiento() {
             <Card style={{marginBottom:14}} pad="16px">
               <div style={{fontSize:11,color:T.danger,fontWeight:700,marginBottom:12,
                 textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nueva avería</div>
-              <Inp val={averiaForm.fecha} onChange={e=>setAveriaForm(f=>({...f,fecha:e.target.value}))} label="Fecha" type="date"/>
-              <Inp val={averiaForm.descripcion} onChange={e=>setAveriaForm(f=>({...f,descripcion:e.target.value}))} label="Descripción *"/>
-              <Inp val={averiaForm.notas} onChange={e=>setAveriaForm(f=>({...f,notas:e.target.value}))} label="Notas / diagnóstico"/>
-              <Inp val={averiaForm.coste} onChange={e=>setAveriaForm(f=>({...f,coste:e.target.value}))} label="Coste (€)" type="number"/>
+              <FInput value={averiaForm.fecha} onChange={e=>setAveriaForm(f=>({...f,fecha:e.target.value}))} label="Fecha" type="date"/>
+              <FInput value={averiaForm.descripcion} onChange={e=>setAveriaForm(f=>({...f,descripcion:e.target.value}))} label="Descripción *"/>
+              <FInput value={averiaForm.notas} onChange={e=>setAveriaForm(f=>({...f,notas:e.target.value}))} label="Notas / diagnóstico"/>
+              <FInput value={averiaForm.coste} onChange={e=>setAveriaForm(f=>({...f,coste:e.target.value}))} label="Coste (€)" type="number"/>
               <div style={{marginBottom:12}}>
                 <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
                   fontFamily:"'DM Mono',monospace",marginBottom:4}}>Patrón que reporta</div>
@@ -811,15 +803,7 @@ function Combustible() {
   const totalL = repostajes.reduce((a,c)=>a+(c.litros||0),0);
   const totalE = repostajes.reduce((a,c)=>a+(c.importe||0),0);
 
-  const Inp = ({field,label,type="text"}) => (
-    <div style={{marginBottom:9}}>
-      <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-        fontFamily:"'DM Mono',monospace",marginBottom:4}}>{label}</div>
-      <input type={type} value={form[field]} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))}
-        style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
-          padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}/>
-    </div>
-  );
+
 
   return (
     <div>
@@ -842,9 +826,9 @@ function Combustible() {
           <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
             textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nuevo repostaje</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            <div><Inp field="fecha" label="Fecha" type="date"/><Inp field="litros" label="Litros *" type="number"/><Inp field="precio_litro" label="€ / Litro" type="number"/></div>
+            <div><FInput label="Fecha" type="date" value={form["fecha"]} onChange={upd("fecha")}/><FInput label="Litros *" type="number" value={form["litros"]} onChange={upd("litros")}/><FInput label="€ / Litro" type="number" value={form["precio_litro"]} onChange={upd("precio_litro")}/></div>
             <div>
-              <Inp field="puerto" label="Puerto"/><Inp field="horas_motor" label="Horas motor" type="number"/>
+              <FInput label="Puerto" value={form["puerto"]} onChange={upd("puerto")}/><FInput label="Horas motor" type="number" value={form["horas_motor"]} onChange={upd("horas_motor")}/>
               <div style={{marginBottom:9}}>
                 <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
                   fontFamily:"'DM Mono',monospace",marginBottom:4}}>Patrón</div>
@@ -1554,7 +1538,7 @@ function Clima() {
     ? LUGARES_GUARDADOS.filter(l => l.nombre.toLowerCase().includes(busqueda.toLowerCase()))
     : LUGARES_GUARDADOS;
 
-  const LocationBar = () => (
+  const renderLocationBar = () => (
     <div style={{ marginBottom:16 }}>
       {/* Location display + toggle */}
       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
@@ -1626,7 +1610,7 @@ function Clima() {
   if (loading) return (
     <div>
       <Hdr eyebrow="Condiciones meteorológicas" title="Clima"/>
-      <LocationBar/>
+      {renderLocationBar()}
       <Card style={{ textAlign:"center", padding:"40px 20px" }}>
         <div style={{ color:T.inkDim, fontSize:13 }}>Consultando datos en {ubicActual.nombre}…</div>
         <div style={{ display:"flex", justifyContent:"center", gap:6, marginTop:16 }}>
@@ -1639,7 +1623,7 @@ function Clima() {
   if (err) return (
     <div>
       <Hdr eyebrow="Condiciones meteorológicas" title="Clima"/>
-      <LocationBar/>
+      {renderLocationBar()}
       <Card><div style={{ color:T.warn, fontSize:13 }}>{err}</div></Card>
     </div>
   );
@@ -1690,7 +1674,7 @@ function Clima() {
     <div>
       <Hdr eyebrow="Condiciones meteorológicas" title="Clima"/>
 
-      <LocationBar/>
+      {renderLocationBar()}
 
       {/* Semáforo principal */}
       <div style={{ background: semColor+"18", border:`1px solid ${semColor}40`,
