@@ -2508,9 +2508,8 @@ export default function App() {
 
   return (
     <div style={{ height:"100dvh", background:T.bg, color:T.ink,
-      fontFamily:"'Crimson Pro',Georgia,serif", maxWidth:480, margin:"0 auto",
-      position:"fixed", left:"50%", transform:"translateX(-50%)",
-      width:"100%", display:"flex", flexDirection:"column", overflow:"hidden" }}>
+      fontFamily:"'Crimson Pro',Georgia,serif",
+      display:"flex", flexDirection:"row", overflow:"hidden" }}>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Crimson+Pro:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&display=swap');
@@ -2523,113 +2522,141 @@ export default function App() {
         @keyframes fadeIn{from{opacity:0}to{opacity:1}}
         button{font-family:inherit}
         input[type=time]::-webkit-calendar-picker-indicator{filter:invert(0) opacity(0.4)}
+        select{font-family:inherit}
+        textarea{font-family:inherit}
+
+        /* ── RESPONSIVE BREAKPOINTS ── */
+        .app-sidebar-desktop { display:none; }
+        .app-content { flex:1; display:flex; flex-direction:column; min-width:0; max-width:600px; margin:0 auto; width:100%; }
+        .app-header-hamburger { display:flex; }
+        .app-header-title { display:flex; }
+
+        @media (min-width: 768px) {
+          .app-sidebar-desktop { display:flex !important; }
+          .app-header-hamburger { display:none !important; }
+          .app-content { max-width:none; margin:0; }
+        }
+
+        @media (min-width: 1024px) {
+          .app-content-inner { padding:24px 32px 40px !important; max-width:800px; margin:0 auto; width:100%; }
+        }
       `}</style>
 
-      {/* ── SIDEBAR OVERLAY ── */}
+      {/* ── SIDEBAR OVERLAY (móvil) ── */}
       {sideOpen && (
         <div style={{ position:"fixed", inset:0, zIndex:200, display:"flex" }}>
-          {/* Backdrop */}
           <div onClick={()=>setSideOpen(false)} style={{ position:"absolute", inset:0,
             background:"rgba(0,0,0,0.65)", animation:"fadeIn 0.2s ease" }}/>
-          {/* Drawer — anchored to real left edge */}
           <div style={{ position:"relative", width:272, height:"100%", background:T.surface,
             borderRight:`1px solid ${T.rimHi}`, overflowY:"auto",
             animation:"slideIn 0.25s ease", zIndex:1, display:"flex", flexDirection:"column",
-            boxShadow:"4px 0 24px rgba(0,0,0,0.5)" }}>
-
-            {/* Sidebar header */}
-            <div style={{ padding:"16px 18px 14px", borderBottom:`1px solid ${T.line}`,
-              display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <AppLogo size={28}/>
-                <div>
-                  <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16,
-                    fontWeight:600, color:T.ink, lineHeight:1 }}>ShipLog</div>
-                  <div style={{ fontSize:8, color:T.inkDim, letterSpacing:2.5,
-                    textTransform:"uppercase", fontFamily:"'DM Mono',monospace",
-                    marginTop:2 }}>Leonidas</div>
-                </div>
-              </div>
-              <button onClick={()=>setSideOpen(false)} style={{ background:"none", border:"none",
-                cursor:"pointer", color:T.inkDim, fontSize:18, lineHeight:1, padding:"2px 4px" }}>✕</button>
-            </div>
-
-            {/* Menu sections */}
-            <div style={{ flex:1, padding:"6px 0 12px" }}>
-              {MENU.map(section=>(
-                <div key={section.section} style={{ marginBottom:2 }}>
-                  <div style={{ fontSize:7.5, color:T.inkDim+"99", letterSpacing:2.5,
-                    textTransform:"uppercase", fontFamily:"'DM Mono',monospace",
-                    padding:"10px 18px 4px" }}>{section.section}</div>
-                  {section.items.map(item=>{
-                    const active = screen === item.id;
-                    return (
-                      <button key={item.id} onClick={()=>navTo(item.id)} style={{
-                        width:"100%", display:"flex", alignItems:"center", gap:10,
-                        padding:"8px 18px", border:"none", cursor:"pointer", textAlign:"left",
-                        background: active ? T.brass+"15" : "transparent",
-                        borderLeft: active ? `2px solid ${T.brass}` : "2px solid transparent",
-                        borderRight:"none", borderTop:"none", borderBottom:"none" }}>
-                        <Icon d={item.svg} color={active?T.brass:T.inkDim} size={14} sw={active?2:1.5}/>
-                        <span style={{ color:active?T.brassLt:T.inkMid, fontSize:13,
-                          fontWeight:active?600:400, letterSpacing:0.1 }}>{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-
-            {/* Sidebar footer */}
-            <div style={{ padding:"14px 20px", borderTop:`1px solid ${T.line}` }}>
-              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <div style={{ width:7, height:7, borderRadius:"50%", background:T.ok,
-                  boxShadow:`0 0 6px ${T.ok}` }}/>
-                <span style={{ color:T.inkDim, fontSize:11,
-                  fontFamily:"'DM Mono',monospace" }}>En puerto · Caleta de Vélez</span>
-              </div>
-            </div>
+            boxShadow:"4px 0 24px rgba(0,0,0,0.3)" }}>
+            <SidebarContent navTo={navTo} screen={screen} onClose={()=>setSideOpen(false)} showClose={true}/>
           </div>
         </div>
       )}
 
-      {/* ── HEADER ── */}
-      <div style={{ position:"sticky", top:0, zIndex:100, background:T.bg,
-        borderBottom:`1px solid ${T.line}`, padding:"13px 18px",
-        display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        {/* Hamburger */}
-        <button onClick={()=>setSideOpen(true)} style={{ background:"none", border:"none",
-          cursor:"pointer", display:"flex", flexDirection:"column", gap:4.5,
-          padding:"4px 2px", borderRadius:4 }}>
-          {[0,1,2].map(i=>(
-            <div key={i} style={{ width:20, height:1.5, background:T.inkMid, borderRadius:1 }}/>
-          ))}
-        </button>
-
-        {/* Current screen label */}
-        <div style={{ textAlign:"center" }}>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16,
-            fontWeight:600, color:T.ink, lineHeight:1 }}>{currentLabel}</div>
-          <div style={{ fontSize:8.5, color:T.inkDim, letterSpacing:2,
-            textTransform:"uppercase", fontFamily:"'DM Mono',monospace",
-            marginTop:2 }}>Leonidas</div>
-        </div>
-
-        {/* Status dot */}
-        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-          <div style={{ width:5, height:5, borderRadius:"50%", background:T.ok,
-            boxShadow:`0 0 7px ${T.ok}` }}/>
-          <span style={{ fontSize:9.5, color:T.inkDim,
-            fontFamily:"'DM Mono',monospace" }}>Porto</span>
-        </div>
+      {/* ── SIDEBAR FIJO (tablet/desktop) ── */}
+      <div className="app-sidebar-desktop" style={{ width:240, height:"100dvh", background:T.surface,
+        borderRight:`1px solid ${T.line}`, flexDirection:"column", flexShrink:0, overflowY:"auto" }}>
+        <SidebarContent navTo={navTo} screen={screen} onClose={()=>{}} showClose={false}/>
       </div>
 
-      {/* ── CONTENT ── */}
-      <div style={{ flex:1, overflowY:"auto", overflowX:"hidden",
-        padding:"18px 16px 40px", WebkitOverflowScrolling:"touch",
-        minHeight:0 }}>
-        <Screen setScreen={navTo}/>
+      {/* ── MAIN AREA ── */}
+      <div className="app-content" style={{ background:T.bg }}>
+
+        {/* HEADER */}
+        <div style={{ position:"sticky", top:0, zIndex:100, background:T.bg,
+          borderBottom:`1px solid ${T.line}`, padding:"13px 18px",
+          display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
+          <button className="app-header-hamburger" onClick={()=>setSideOpen(true)}
+            style={{ background:"none", border:"none", cursor:"pointer",
+              flexDirection:"column", gap:4.5, padding:"4px 2px", borderRadius:4 }}>
+            {[0,1,2].map(i=>(
+              <div key={i} style={{ width:20, height:1.5, background:T.inkMid, borderRadius:1 }}/>
+            ))}
+          </button>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16,
+              fontWeight:600, color:T.ink, lineHeight:1 }}>{currentLabel}</div>
+            <div style={{ fontSize:8.5, color:T.inkDim, letterSpacing:2,
+              textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginTop:2 }}>Leonidas</div>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+            <div style={{ width:5, height:5, borderRadius:"50%", background:T.ok,
+              boxShadow:`0 0 7px ${T.ok}` }}/>
+            <span style={{ fontSize:9.5, color:T.inkDim, fontFamily:"'DM Mono',monospace" }}>Porto</span>
+          </div>
+        </div>
+
+        {/* CONTENT */}
+        <div className="app-content-inner" style={{ flex:1, overflowY:"auto", overflowX:"hidden",
+          padding:"18px 16px 40px", WebkitOverflowScrolling:"touch", minHeight:0 }}>
+          <Screen setScreen={navTo}/>
+        </div>
+
       </div>
     </div>
+  );
+}
+
+// ── SIDEBAR CONTENT (shared between overlay and fixed) ────────────────────────
+function SidebarContent({ navTo, screen, onClose, showClose }) {
+  return (
+    <>
+      {/* Header */}
+      <div style={{ padding:"16px 18px 14px", borderBottom:`1px solid ${T.line}`,
+        display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <AppLogo size={28}/>
+          <div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16,
+              fontWeight:600, color:T.ink, lineHeight:1 }}>ShipLog</div>
+            <div style={{ fontSize:8, color:T.inkDim, letterSpacing:2.5,
+              textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginTop:2 }}>Leonidas</div>
+          </div>
+        </div>
+        {showClose && (
+          <button onClick={onClose} style={{ background:"none", border:"none",
+            cursor:"pointer", color:T.inkDim, fontSize:18, lineHeight:1, padding:"2px 4px" }}>✕</button>
+        )}
+      </div>
+
+      {/* Menu */}
+      <div style={{ flex:1, padding:"6px 0 12px", overflowY:"auto" }}>
+        {MENU.map(section=>(
+          <div key={section.section} style={{ marginBottom:2 }}>
+            <div style={{ fontSize:7.5, color:T.inkDim+"99", letterSpacing:2.5,
+              textTransform:"uppercase", fontFamily:"'DM Mono',monospace",
+              padding:"10px 18px 4px" }}>{section.section}</div>
+            {section.items.map(item=>{
+              const active = screen === item.id;
+              return (
+                <button key={item.id} onClick={()=>navTo(item.id)} style={{
+                  width:"100%", display:"flex", alignItems:"center", gap:10,
+                  padding:"9px 18px", border:"none", cursor:"pointer", textAlign:"left",
+                  background: active ? T.brass+"15" : "transparent",
+                  borderLeft: active ? `2px solid ${T.brass}` : "2px solid transparent",
+                  borderRight:"none", borderTop:"none", borderBottom:"none" }}>
+                  <Icon d={item.svg} color={active?T.brass:T.inkDim} size={14} sw={active?2:1.5}/>
+                  <span style={{ color:active?T.brassLt:T.inkMid, fontSize:13,
+                    fontWeight:active?600:400, letterSpacing:0.1 }}>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div style={{ padding:"14px 18px", borderTop:`1px solid ${T.line}`, flexShrink:0 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ width:6, height:6, borderRadius:"50%", background:T.ok,
+            boxShadow:`0 0 6px ${T.ok}` }}/>
+          <span style={{ color:T.inkDim, fontSize:10,
+            fontFamily:"'DM Mono',monospace" }}>En puerto · Caleta de Vélez</span>
+        </div>
+      </div>
+    </>
   );
 }
