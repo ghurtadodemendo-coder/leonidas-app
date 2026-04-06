@@ -242,60 +242,17 @@ function Btn({ children, onClick, variant="primary", sm }) {
 
 
 // ── APP LOGO ──────────────────────────────────────────────────────────────────
-// Ship Log logo — anchor + compass + book
 function AppLogo({ size = 32 }) {
-  const s = size;
   return (
-    <svg width={s} height={s} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"
-      style={{ borderRadius: s * 0.22, flexShrink:0 }}>
-      {/* Background */}
-      <rect width="100" height="100" rx="22" fill="#1B3358"/>
-      <rect width="100" height="100" rx="22" fill="url(#bggrad)"/>
-
-      {/* Compass rose subtle */}
-      <circle cx="50" cy="50" r="38" stroke="#B8935A" strokeWidth="0.8" strokeOpacity="0.25"/>
-      <line x1="50" y1="14" x2="50" y2="86" stroke="#B8935A" strokeWidth="0.6" strokeOpacity="0.2"/>
-      <line x1="14" y1="50" x2="86" y2="50" stroke="#B8935A" strokeWidth="0.6" strokeOpacity="0.2"/>
-
-      {/* N E S W */}
-      <text x="50" y="11" textAnchor="middle" fill="#B8935A" fontSize="7" fontFamily="serif" fillOpacity="0.7">N</text>
-      <text x="91" y="53" textAnchor="middle" fill="#B8935A" fontSize="7" fontFamily="serif" fillOpacity="0.7">E</text>
-      <text x="9" y="53" textAnchor="middle" fill="#B8935A" fontSize="7" fontFamily="serif" fillOpacity="0.7">W</text>
-
-      {/* Anchor shaft */}
-      <line x1="50" y1="22" x2="50" y2="72" stroke="#C4A96A" strokeWidth="3.5" strokeLinecap="round"/>
-      {/* Anchor crossbar */}
-      <line x1="33" y1="32" x2="67" y2="32" stroke="#C4A96A" strokeWidth="3" strokeLinecap="round"/>
-      {/* Anchor ring */}
-      <circle cx="50" cy="20" r="5" stroke="#C4A96A" strokeWidth="2.5" fill="none"/>
-      {/* Anchor flukes */}
-      <path d="M50 72 Q38 78 34 72 Q33 65 40 63" stroke="#C4A96A" strokeWidth="3" strokeLinecap="round" fill="none"/>
-      <path d="M50 72 Q62 78 66 72 Q67 65 60 63" stroke="#C4A96A" strokeWidth="3" strokeLinecap="round" fill="none"/>
-      {/* Anchor stock ends */}
-      <circle cx="33" cy="32" r="2.5" fill="#C4A96A"/>
-      <circle cx="67" cy="32" r="2.5" fill="#C4A96A"/>
-
-      {/* Open book overlay — small, centered on anchor */}
-      <path d="M35 48 Q35 44 50 44 Q65 44 65 48 L65 62 Q65 58 50 58 Q35 58 35 62 Z"
-        fill="#243F6A" stroke="#C4A96A" strokeWidth="1" strokeOpacity="0.6"/>
-      <line x1="50" y1="44" x2="50" y2="62" stroke="#C4A96A" strokeWidth="1" strokeOpacity="0.5"/>
-      {/* Book lines */}
-      <line x1="38" y1="50" x2="48" y2="50" stroke="#C4A96A" strokeWidth="0.8" strokeOpacity="0.4"/>
-      <line x1="38" y1="53" x2="48" y2="53" stroke="#C4A96A" strokeWidth="0.8" strokeOpacity="0.4"/>
-      <line x1="38" y1="56" x2="48" y2="56" stroke="#C4A96A" strokeWidth="0.8" strokeOpacity="0.4"/>
-      <line x1="52" y1="50" x2="62" y2="50" stroke="#C4A96A" strokeWidth="0.8" strokeOpacity="0.4"/>
-      <line x1="52" y1="53" x2="62" y2="53" stroke="#C4A96A" strokeWidth="0.8" strokeOpacity="0.4"/>
-      <line x1="52" y1="56" x2="62" y2="56" stroke="#C4A96A" strokeWidth="0.8" strokeOpacity="0.4"/>
-
-      <defs>
-        <linearGradient id="bggrad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#1B3358"/>
-          <stop offset="100%" stopColor="#0E1E30"/>
-        </linearGradient>
-      </defs>
-    </svg>
+    <img
+      src="https://wfgcffmgzqvxmtybdvse.supabase.co/storage/v1/object/public/assets/WhatsApp%20Image%202026-04-05%20at%2021.37.22.jpeg"
+      alt="ShipLog"
+      style={{ width:size, height:size, borderRadius:size*0.22,
+        objectFit:"cover", flexShrink:0 }}
+    />
   );
 }
+
 
 // Mini weather widget for dashboard
 function DashboardWeather({ setScreen }) {
