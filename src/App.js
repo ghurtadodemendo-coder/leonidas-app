@@ -337,12 +337,28 @@ function Dashboard({ setScreen }) {
     cargarStats();
   },[]);
 
+  const [combustibleAlert, setCombustibleAlert] = useState(null);
+
+  useEffect(()=>{
+    async function checkCombustible() {
+      try {
+        const bits = await db("bitacora","GET",null,"?order=fecha.desc&limit=1&select=combustible_cargado");
+        if (bits.length && bits[0].combustible_cargado !== null) {
+          const pct = parseFloat(bits[0].combustible_cargado);
+          if (pct < 40) setCombustibleAlert(pct);
+        }
+      } catch(e){}
+    }
+    checkCombustible();
+  },[]);
+
   const alerts = [
+    combustibleAlert !== null ? { msg:`Combustible bajo · ${combustibleAlert}%`, sub:"Repostar antes de la próxima salida", c:T.danger, to:"bitacora" } : null,
     { msg:"Seguro de responsabilidad civil",       sub:"Verificar vigencia y añadir datos",    c:T.warn, to:"documentos" },
     { msg:"ITV · Cert. Navegabilidad 04/12/2025", sub:"Verificar próxima fecha de revisión",  c:T.info, to:"documentos" },
     { msg:"Historial de mantenimiento vacío",     sub:"Añadir fechas de últimas revisiones",  c:T.info, to:"mantenimiento" },
     { msg:"Aceite motores · revisar a 800h",      sub:"Actual 774h · intervalo 250h MAN",     c:T.info, to:"mantenimiento" },
-  ];
+  ].filter(Boolean);
 
   return (
     <div>
@@ -513,8 +529,8 @@ function Bitacora() {
     fecha: new Date().toISOString().split("T")[0],
     patron: "Guille", salida: "Caleta de Vélez", llegada: "",
     millas: "", horas_motor_inicio: "", horas_motor_fin: "",
-    tripulantes: "2", combustible_cargado: "0",
-    condiciones: "", incidencias: "Sin novedad",
+    tripulantes: "2", combustible_pct: "100",
+    condiciones: "", incidencias: "Sin novedad", notas: "",
   };
   const [form, setForm] = useState(FORM_INIT);
   const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
@@ -540,9 +556,10 @@ function Bitacora() {
         horas_motor_inicio: parseFloat(form.horas_motor_inicio)||null,
         horas_motor_fin: parseFloat(form.horas_motor_fin)||null,
         tripulantes: parseInt(form.tripulantes)||1,
-        combustible_cargado: parseFloat(form.combustible_cargado)||0,
+        combustible_cargado: parseFloat(form.combustible_pct)||null,
         condiciones: form.condiciones,
         incidencias: form.incidencias||"Sin novedad",
+        notas: form.notas||null,
       };
       if (editId) {
         await db(`bitacora?id=eq.${editId}`,"PATCH",payload);
@@ -567,11 +584,14 @@ function Bitacora() {
     setForm({
       fecha: e.fecha||"", patron: e.patron||"Guille",
       salida: e.salida||"", llegada: e.llegada||"",
-      millas: e.millas||"", horas_motor_inicio: e.horas_motor_inicio||"",
+      millas: e.millas||"",
+      horas_motor_inicio: e.horas_motor_inicio||"",
       horas_motor_fin: e.horas_motor_fin||"",
       tripulantes: e.tripulantes||"2",
-      combustible_cargado: e.combustible_cargado||"0",
-      condiciones: e.condiciones||"", incidencias: e.incidencias||"Sin novedad",
+      combustible_pct: e.combustible_cargado||"100",
+      condiciones: e.condiciones||"",
+      incidencias: e.incidencias||"Sin novedad",
+      notas: e.notas||"",
     });
     setEditId(e.id);
     setOpen(null);
@@ -657,20 +677,47 @@ function Bitacora() {
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <div>
               <FInput label="Fecha" type="date" value={form.fecha} onChange={upd("fecha")}/>
+              <FSelect label="Patrón" value={form.patron} onChange={upd("patron")} options={["Guille","Varo"]}/>
               <FInput label="Puerto salida" value={form.salida} onChange={upd("salida")}/>
               <FInput label="Puerto llegada *" value={form.llegada} onChange={upd("llegada")}/>
-              <FInput label="Millas" type="number" value={form.millas} onChange={upd("millas")}/>
-              <FInput label="H. motor inicio" type="number" value={form.horas_motor_inicio} onChange={upd("horas_motor_inicio")}/>
+              <FInput label="Millas navegadas" type="number" value={form.millas} onChange={upd("millas")}/>
+              <FInput label="Tripulantes" type="number" value={form.tripulantes} onChange={upd("tripulantes")}/>
             </div>
             <div>
+              <FInput label="H. motor inicio" type="number" value={form.horas_motor_inicio} onChange={upd("horas_motor_inicio")}
+                placeholder={entradas.length > 0 ? String(entradas[0].horas_motor_fin||"") : "774"}/>
               <FInput label="H. motor fin" type="number" value={form.horas_motor_fin} onChange={upd("horas_motor_fin")}/>
-              <FInput label="Tripulantes" type="number" value={form.tripulantes} onChange={upd("tripulantes")}/>
-              <FInput label="Combustible (L)" type="number" value={form.combustible_cargado} onChange={upd("combustible_cargado")}/>
-              <FInput label="Condiciones" value={form.condiciones} onChange={upd("condiciones")}/>
-              <FSelect label="Patrón" value={form.patron} onChange={upd("patron")} options={["Guille","Varo"]}/>
+              <FInput label="Condiciones" value={form.condiciones} onChange={upd("condiciones")} placeholder="NE 10kn, mar llana"/>
+              {/* Combustible en % */}
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                  fontFamily:"'DM Mono',monospace",marginBottom:5}}>
+                  Combustible aprox.
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <input type="range" min="0" max="100" step="10"
+                    value={form.combustible_pct}
+                    onChange={upd("combustible_pct")}
+                    style={{flex:1,accentColor:T.brass}}/>
+                  <span style={{fontSize:14,fontWeight:700,color:
+                    parseInt(form.combustible_pct)<40?T.danger:T.ink,
+                    fontFamily:"'Cormorant Garamond',serif",minWidth:36,textAlign:"right"}}>
+                    {form.combustible_pct}%
+                  </span>
+                </div>
+                {parseInt(form.combustible_pct) < 40 && (
+                  <div style={{fontSize:10,color:T.danger,marginTop:4,
+                    fontFamily:"'DM Mono',monospace"}}>
+                    ⚠ Combustible bajo — repostar antes de salir
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          <FTextarea label="Incidencias" value={form.incidencias} onChange={upd("incidencias")}/>
+          <FTextarea label="Incidencias" value={form.incidencias} onChange={upd("incidencias")}
+            placeholder="Sin novedad"/>
+          <FTextarea label="Observaciones" value={form.notas} onChange={upd("notas")}
+            placeholder="Notas, anécdotas, puntos de interés..."/>
           <div style={{display:"flex",gap:8,marginTop:4}}>
             <Btn onClick={guardar}>{saving?"Guardando...":editId?"Actualizar entrada":"Guardar entrada"}</Btn>
             <Btn variant="ghost" onClick={()=>{setShowForm(false);setEditId(null);setForm(FORM_INIT);}}>Cancelar</Btn>
@@ -729,13 +776,15 @@ function Bitacora() {
           {open===e.id && (
             <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${T.line}`}}>
               {[
+                ["Patrón",             e.patron||"--"],
                 ["Condiciones",        e.condiciones||"--"],
                 ["Tripulantes",        e.tripulantes||"--"],
-                ["Combustible cargado",(e.combustible_cargado||0)+" L"],
+                ["Combustible",        e.combustible_cargado ? e.combustible_cargado+"%" : "--"],
                 ["H. motor ini / fin", e.horas_motor_inicio
                   ? `${e.horas_motor_inicio}h → ${e.horas_motor_fin||"?"}h` : "--"],
                 ["Incidencias",        e.incidencias||"Sin novedad"],
-              ].map(([k,v])=>(
+                e.notas ? ["Observaciones", e.notas] : null,
+              ].filter(Boolean).map(([k,v])=>(
                 <div key={k}><Divider/>
                   <Row label={k} value={v}
                     accent={k==="Incidencias"&&!sinNovedad(e)?T.inkMid:undefined}/>
