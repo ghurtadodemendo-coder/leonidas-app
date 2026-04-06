@@ -1576,7 +1576,7 @@ function AsistenteIA() {
     const next = [...msgs,{role:"user",text}];
     setMsgs(next); setLoading(true);
     try {
-      const res = await fetch("/.netlify/functions/claude",{
+      const res = await fetch("/api/claude",{
         method:"POST", headers:{"Content-Type":"application/json"},
         body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000,
           system:SYS, messages:next.map(m=>({role:m.role,content:m.text})) })
