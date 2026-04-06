@@ -342,10 +342,21 @@ function Dashboard({ setScreen }) {
   useEffect(()=>{
     async function checkCombustible() {
       try {
-        const bits = await db("bitacora","GET",null,"?order=fecha.desc&limit=1&select=combustible_cargado");
+        // Check latest bitacora entry for fuel level
+        const bits = await db("bitacora","GET",null,"?order=fecha.desc&limit=1&select=combustible_cargado,fecha");
         if (bits.length && bits[0].combustible_cargado !== null) {
           const pct = parseFloat(bits[0].combustible_cargado);
-          if (pct < 40) setCombustibleAlert(pct);
+          // Check if there's a repostaje AFTER the last bitacora entry
+          const ultimaFecha = bits[0].fecha;
+          const repostajes = await db("combustible","GET",null,`?order=fecha.desc&limit=1&fecha=gte.${ultimaFecha}`);
+          // If there's a recent repostaje, assume tank is full — no alert
+          if (repostajes.length > 0) {
+            setCombustibleAlert(null);
+          } else if (pct < 40) {
+            setCombustibleAlert(pct);
+          } else {
+            setCombustibleAlert(null);
+          }
         }
       } catch(e){}
     }
@@ -353,7 +364,7 @@ function Dashboard({ setScreen }) {
   },[]);
 
   const alerts = [
-    combustibleAlert !== null ? { msg:`Combustible bajo · ${combustibleAlert}%`, sub:"Repostar antes de la próxima salida", c:T.danger, to:"bitacora" } : null,
+    combustibleAlert !== null ? { msg:`⛽ Combustible bajo · ${combustibleAlert}%`, sub:"Repostar antes de la próxima salida · toca para registrar", c:T.danger, to:"combustible" } : null,
     { msg:"Seguro de responsabilidad civil",       sub:"Verificar vigencia y añadir datos",    c:T.warn, to:"documentos" },
     { msg:"ITV · Cert. Navegabilidad 04/12/2025", sub:"Verificar próxima fecha de revisión",  c:T.info, to:"documentos" },
     { msg:"Historial de mantenimiento vacío",     sub:"Añadir fechas de últimas revisiones",  c:T.info, to:"mantenimiento" },
