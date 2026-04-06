@@ -262,12 +262,13 @@ function DashboardWeather({ setScreen }) {
       try {
         const [mr, wr] = await Promise.all([
           fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${CALETA.lat}&longitude=${CALETA.lon}&current=wave_height&timezone=Europe%2FMadrid`),
-          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${CALETA.lat}&longitude=${CALETA.lon}&current=wind_speed_10m,wind_gusts_10m&wind_speed_unit=kn&timezone=Europe%2FMadrid`)
+          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${CALETA.lat}&longitude=${CALETA.lon}&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=kn&timezone=Europe%2FMadrid`)
         ]);
         const [md, wd] = await Promise.all([mr.json(), wr.json()]);
         const wind = Math.round(wd.current.wind_speed_10m);
         const wave = md.current.wave_height;
-        setWx({ wind, wave, sem: semaforo(wind, wave||0) });
+        const dir  = degToCompass(wd.current.wind_direction_10m);
+        setWx({ wind, wave, dir, sem: semaforo(wind, wave||0) });
       } catch(e) { /* silent fail */ }
     }
     load();
@@ -288,7 +289,7 @@ function DashboardWeather({ setScreen }) {
           <div style={{ color:sc, fontSize:12.5, fontWeight:600 }}>{wx.sem.label}</div>
           <div style={{ color:T.inkDim, fontSize:10, marginTop:2,
             fontFamily:"'DM Mono',monospace" }}>
-            Viento {wx.wind}kn · Ola {wx.wave?.toFixed(1)??"—"}m · Caleta de Vélez · toca para cambiar
+            {wx.wind}kn del {wx.dir} · Ola {wx.wave?.toFixed(1)??"—"}m · {wx.lugar||"Caleta de Vélez"}
           </div>
         </div>
       </div>
@@ -299,25 +300,39 @@ function DashboardWeather({ setScreen }) {
 
 
 function Dashboard({ setScreen }) {
-  const [stats, setStats] = useState({ horas:774, millas:0, ultimoRepo:"Sin datos" });
+  const [stats, setStats] = useState({ horas:"—", millas:"—", ultimoRepo:"—" });
   const [ultimaBitacora, setUltimaBitacora] = useState(null);
 
   useEffect(()=>{
     async function cargarStats() {
       try {
-        const [bits, repos, allBits] = await Promise.all([
+        const [ultimaBit, ultimoRepo, todasBits] = await Promise.all([
           db("bitacora","GET",null,"?order=fecha.desc&limit=1"),
           db("combustible","GET",null,"?order=fecha.desc&limit=1"),
-          db("bitacora","GET",null,"?select=millas"),
+          db("bitacora","GET",null,"?select=millas,horas_motor_inicio,horas_motor_fin"),
         ]);
-        const totalMillas = allBits.reduce((a,c)=>a+(parseFloat(c.millas)||0),0);
-        if (bits.length) setUltimaBitacora(bits[0]);
-        setStats(s=>({
-          ...s,
+
+        // Millas totales — suma de todas las entradas
+        const totalMillas = todasBits.reduce((a,c) => a + (parseFloat(c.millas)||0), 0);
+
+        // Horas motor — base 774h + horas navegadas registradas en bitácora
+        const HORAS_BASE = 774;
+        const horasNavegadas = todasBits.reduce((a,c) => {
+          const ini = parseFloat(c.horas_motor_inicio) || 0;
+          const fin = parseFloat(c.horas_motor_fin) || 0;
+          return a + (fin > ini ? fin - ini : 0);
+        }, 0);
+        const totalHoras = HORAS_BASE + horasNavegadas;
+
+        if (ultimaBit.length) setUltimaBitacora(ultimaBit[0]);
+        setStats({
+          horas: totalHoras % 1 === 0 ? totalHoras : totalHoras.toFixed(1),
           millas: totalMillas.toFixed(0),
-          ultimoRepo: repos.length ? `${repos[0].litros}L · ${repos[0].fecha}` : "Sin datos",
-        }));
-      } catch(e){}
+          ultimoRepo: ultimoRepo.length
+            ? `${ultimoRepo[0].litros}L · ${ultimoRepo[0].fecha}`
+            : "Sin datos",
+        });
+      } catch(e){ console.error("cargarStats:", e); }
     }
     cargarStats();
   },[]);
@@ -483,72 +498,163 @@ function Ficha() {
 
 function Bitacora() {
   const [entradas, setEntradas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [open, setOpen]         = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
+  const [editId, setEditId]     = useState(null);
+  const [saving, setSaving]     = useState(false);
+
+  // ── Filtros ──
+  const [filtroPatron, setFiltroPatron] = useState("Todos");
+  const [filtroMes, setFiltroMes]       = useState("Todos");
+  const [showFiltros, setShowFiltros]   = useState(false);
+
+  const FORM_INIT = {
     fecha: new Date().toISOString().split("T")[0],
-    patron: "Guille",
-    salida: "Caleta de Vélez",
-    llegada: "",
-    millas: "",
-    horas_motor_inicio: "",
-    horas_motor_fin: "",
-    tripulantes: "2",
-    combustible_cargado: "0",
-    condiciones: "",
-    incidencias: "Sin novedad",
-  });
+    patron: "Guille", salida: "Caleta de Vélez", llegada: "",
+    millas: "", horas_motor_inicio: "", horas_motor_fin: "",
+    tripulantes: "2", combustible_cargado: "0",
+    condiciones: "", incidencias: "Sin novedad",
+  };
+  const [form, setForm] = useState(FORM_INIT);
+  const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
 
   async function cargar() {
     try {
       setLoading(true);
-      const data = await db("bitacora", "GET", null, "?order=fecha.desc");
+      const data = await db("bitacora","GET",null,"?order=fecha.desc");
       setEntradas(data);
-    } catch(e) { console.error(e); }
+    } catch(e){ console.error(e); }
     finally { setLoading(false); }
   }
-
-  useEffect(() => { cargar(); }, []);
+  useEffect(()=>{ cargar(); },[]);
 
   async function guardar() {
     if (!form.llegada) return;
     setSaving(true);
     try {
-      await db("bitacora", "POST", {
-        fecha: form.fecha,
-        patron: form.patron,
-        salida: form.salida,
-        llegada: form.llegada,
-        millas: parseFloat(form.millas) || 0,
-        horas_motor_inicio: parseFloat(form.horas_motor_inicio) || null,
-        horas_motor_fin: parseFloat(form.horas_motor_fin) || null,
-        tripulantes: parseInt(form.tripulantes) || 1,
-        combustible_cargado: parseFloat(form.combustible_cargado) || 0,
+      const payload = {
+        fecha: form.fecha, patron: form.patron,
+        salida: form.salida, llegada: form.llegada,
+        millas: parseFloat(form.millas)||0,
+        horas_motor_inicio: parseFloat(form.horas_motor_inicio)||null,
+        horas_motor_fin: parseFloat(form.horas_motor_fin)||null,
+        tripulantes: parseInt(form.tripulantes)||1,
+        combustible_cargado: parseFloat(form.combustible_cargado)||0,
         condiciones: form.condiciones,
-        incidencias: form.incidencias || "Sin novedad",
-      });
+        incidencias: form.incidencias||"Sin novedad",
+      };
+      if (editId) {
+        await db(`bitacora?id=eq.${editId}`,"PATCH",payload);
+        setEditId(null);
+      } else {
+        await db("bitacora","POST",payload);
+      }
       setShowForm(false);
+      setForm(FORM_INIT);
       cargar();
-    } catch(e) { alert("Error al guardar: " + e.message); }
+    } catch(e){ alert("Error: "+e.message); }
     finally { setSaving(false); }
   }
 
-  const upd = (field) => e => setForm(f=>({...f,[field]:e.target.value}));
+  async function eliminar(id) {
+    if (!window.confirm("¿Eliminar esta entrada de bitácora?")) return;
+    try { await db(`bitacora?id=eq.${id}`,"DELETE"); cargar(); }
+    catch(e){ alert("Error: "+e.message); }
+  }
+
+  function editar(e) {
+    setForm({
+      fecha: e.fecha||"", patron: e.patron||"Guille",
+      salida: e.salida||"", llegada: e.llegada||"",
+      millas: e.millas||"", horas_motor_inicio: e.horas_motor_inicio||"",
+      horas_motor_fin: e.horas_motor_fin||"",
+      tripulantes: e.tripulantes||"2",
+      combustible_cargado: e.combustible_cargado||"0",
+      condiciones: e.condiciones||"", incidencias: e.incidencias||"Sin novedad",
+    });
+    setEditId(e.id);
+    setOpen(null);
+    setShowForm(true);
+    setTimeout(()=>window.scrollTo(0,0),50);
+  }
+
+  // ── Filtrado ──
+  const meses = ["Todos", ...new Set(entradas.map(e => e.fecha?.slice(0,7)).filter(Boolean))].sort().reverse();
+  const patrones = ["Todos", ...new Set(entradas.map(e=>e.patron).filter(Boolean))];
+
+  const entradasFiltradas = entradas.filter(e => {
+    const okPatron = filtroPatron === "Todos" || e.patron === filtroPatron;
+    const okMes    = filtroMes    === "Todos" || e.fecha?.startsWith(filtroMes);
+    return okPatron && okMes;
+  });
+
+  const sinNovedad = e => !e.incidencias || e.incidencias.trim() === "" || e.incidencias === "Sin novedad";
 
   return (
     <div>
       <Hdr eyebrow="Registro de navegación" title="Bitácora"
-        action={<Btn sm onClick={()=>setShowForm(!showForm)}>{showForm?"Cancelar":"+ Nueva"}</Btn>}/>
-
-      {showForm && (
-        <Card style={{ marginBottom:16 }} pad="16px">
-          <div style={{ fontSize:11, color:T.brass, fontWeight:700, marginBottom:14,
-            textTransform:"uppercase", letterSpacing:1, fontFamily:"'DM Mono',monospace" }}>
-            Nueva entrada
+        action={
+          <div style={{display:"flex",gap:7}}>
+            <button onClick={()=>setShowFiltros(!showFiltros)} style={{
+              display:"flex", alignItems:"center", gap:5,
+              background:"transparent", border:`1px solid ${T.rimHi}`,
+              borderRadius:7, padding:"7px 12px", cursor:"pointer",
+              color: showFiltros||filtroPatron!=="Todos"||filtroMes!=="Todos" ? T.brass : T.inkMid,
+              fontSize:11, fontFamily:"inherit" }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+              </svg>
+              Filtrar
+            </button>
+            <Btn sm onClick={()=>{ setShowForm(!showForm); setEditId(null); setForm(FORM_INIT); }}>
+              {showForm&&!editId?"Cancelar":"+ Nueva"}
+            </Btn>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+        }/>
+
+      {/* ── FILTROS ── */}
+      {showFiltros && (
+        <Card style={{marginBottom:14}} pad="14px 16px">
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div>
+              <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                fontFamily:"'DM Mono',monospace",marginBottom:5}}>Patrón</div>
+              <select value={filtroPatron} onChange={e=>setFiltroPatron(e.target.value)}
+                style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,
+                  borderRadius:7,padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
+                {patrones.map(p=><option key={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                fontFamily:"'DM Mono',monospace",marginBottom:5}}>Mes</div>
+              <select value={filtroMes} onChange={e=>setFiltroMes(e.target.value)}
+                style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,
+                  borderRadius:7,padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
+                {meses.map(m=><option key={m}>{m}</option>)}
+              </select>
+            </div>
+          </div>
+          {(filtroPatron!=="Todos"||filtroMes!=="Todos") && (
+            <button onClick={()=>{setFiltroPatron("Todos");setFiltroMes("Todos");}}
+              style={{marginTop:10,background:"none",border:"none",color:T.brass,
+                fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:0}}>
+              × Limpiar filtros
+            </button>
+          )}
+        </Card>
+      )}
+
+      {/* ── FORMULARIO ── */}
+      {showForm && (
+        <Card style={{marginBottom:16}} pad="16px">
+          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:14,
+            textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>
+            {editId ? "Editar entrada" : "Nueva entrada"}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <div>
               <FInput label="Fecha" type="date" value={form.fecha} onChange={upd("fecha")}/>
               <FInput label="Puerto salida" value={form.salida} onChange={upd("salida")}/>
@@ -565,49 +671,88 @@ function Bitacora() {
             </div>
           </div>
           <FTextarea label="Incidencias" value={form.incidencias} onChange={upd("incidencias")}/>
-          <Btn onClick={guardar}>{saving?"Guardando...":"Guardar entrada"}</Btn>
+          <div style={{display:"flex",gap:8,marginTop:4}}>
+            <Btn onClick={guardar}>{saving?"Guardando...":editId?"Actualizar entrada":"Guardar entrada"}</Btn>
+            <Btn variant="ghost" onClick={()=>{setShowForm(false);setEditId(null);setForm(FORM_INIT);}}>Cancelar</Btn>
+          </div>
         </Card>
       )}
 
+      {/* ── CONTADOR ── */}
+      {entradasFiltradas.length > 0 && (
+        <div style={{fontSize:10,color:T.inkDim,fontFamily:"'DM Mono',monospace",
+          marginBottom:12,textAlign:"right"}}>
+          {entradasFiltradas.length} entrada{entradasFiltradas.length!==1?"s":""}
+          {(filtroPatron!=="Todos"||filtroMes!=="Todos") ? " (filtradas)" : ""}
+        </div>
+      )}
+
+      {/* ── LISTA ── */}
       {loading ? (
-        <Card><div style={{ color:T.inkDim, fontSize:13, textAlign:"center", padding:"20px 0" }}>Cargando...</div></Card>
-      ) : entradas.length === 0 ? (
+        <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+      ) : entradasFiltradas.length === 0 ? (
         <Card>
-          <div style={{ color:T.inkDim, fontSize:13, fontStyle:"italic", textAlign:"center", padding:"12px 0" }}>
-            Aún no hay entradas. Pulsa "+ Nueva" para registrar la primera salida.
+          <div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>
+            {entradas.length === 0
+              ? "Aún no hay entradas. Pulsa "+ Nueva" para registrar la primera salida."
+              : "No hay entradas con los filtros aplicados."}
           </div>
         </Card>
-      ) : entradas.map(e=>(
-        <Card key={e.id} style={{ marginBottom:9, cursor:"pointer" }}>
-          <div onClick={()=>setOpen(open===e.id?null:e.id)}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+      ) : entradasFiltradas.map(e=>(
+        <Card key={e.id} style={{marginBottom:9}}>
+          {/* ── CABECERA ── */}
+          <div onClick={()=>setOpen(open===e.id?null:e.id)} style={{cursor:"pointer"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div>
-                <div style={{ fontSize:9.5, color:T.brass, letterSpacing:1.5,
-                  fontFamily:"'DM Mono',monospace", marginBottom:4 }}>{e.fecha} · {e.patron}</div>
-                <div style={{ color:T.ink, fontWeight:600, fontSize:17,
-                  fontFamily:"'Cormorant Garamond',serif" }}>{e.salida} → {e.llegada}</div>
-                <div style={{ color:T.inkDim, fontSize:10, marginTop:3,
-                  fontFamily:"'DM Mono',monospace" }}>{e.millas} mn</div>
+                <div style={{fontSize:9.5,color:T.brass,letterSpacing:1.5,
+                  fontFamily:"'DM Mono',monospace",marginBottom:4}}>{e.fecha} · {e.patron}</div>
+                <div style={{color:T.ink,fontWeight:600,fontSize:17,
+                  fontFamily:"'Cormorant Garamond',serif"}}>{e.salida} → {e.llegada}</div>
+                <div style={{color:T.inkDim,fontSize:10,marginTop:3,
+                  fontFamily:"'DM Mono',monospace"}}>
+                  {e.millas} mn
+                  {e.horas_motor_inicio && e.horas_motor_fin
+                    ? ` · ${(e.horas_motor_fin - e.horas_motor_inicio).toFixed(1)}h motor` : ""}
+                </div>
               </div>
-              <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}>
-                <Signal estado={e.incidencias==="Sin novedad"?"ok":"warn"}/>
-                <span style={{ color:T.inkDim, fontSize:16 }}>{open===e.id?"−":"+"}</span>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8}}>
+                {!sinNovedad(e) && (
+                  <span style={{fontSize:9.5,color:T.warn,fontFamily:"'DM Mono',monospace",
+                    letterSpacing:0.5}}>incidencia</span>
+                )}
+                <span style={{color:T.inkDim,fontSize:16,lineHeight:1}}>{open===e.id?"−":"+"}</span>
               </div>
             </div>
           </div>
-          {open===e.id&&(
-            <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${T.line}` }}>
+
+          {/* ── DETALLE ── */}
+          {open===e.id && (
+            <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${T.line}`}}>
               {[
-                ["Condiciones", e.condiciones||"—"],
-                ["Tripulantes", e.tripulantes],
-                ["Combustible cargado", (e.combustible_cargado||0)+" L"],
-                ["H. motor inicio", (e.horas_motor_inicio||"—")+" h"],
-                ["H. motor fin", (e.horas_motor_fin||"—")+" h"],
-                ["Incidencias", e.incidencias||"Sin novedad"],
+                ["Condiciones",        e.condiciones||"—"],
+                ["Tripulantes",        e.tripulantes||"—"],
+                ["Combustible cargado",(e.combustible_cargado||0)+" L"],
+                ["H. motor ini / fin", e.horas_motor_inicio
+                  ? `${e.horas_motor_inicio}h → ${e.horas_motor_fin||"?"}h` : "—"],
+                ["Incidencias",        e.incidencias||"Sin novedad"],
               ].map(([k,v])=>(
-                <div key={k}><Divider/><Row label={k} value={v}
-                  accent={k==="Incidencias"&&v!=="Sin novedad"?T.warn:undefined}/></div>
+                <div key={k}><Divider/>
+                  <Row label={k} value={v}
+                    accent={k==="Incidencias"&&!sinNovedad(e)?T.inkMid:undefined}/>
+                </div>
               ))}
+              {/* ── ACCIONES ── */}
+              <div style={{display:"flex",gap:8,marginTop:12,paddingTop:10,
+                borderTop:`1px solid ${T.line}`}}>
+                <button onClick={()=>editar(e)}
+                  style={{flex:1,background:T.surfaceUp,border:`1px solid ${T.rimHi}`,
+                    borderRadius:7,padding:"8px",color:T.inkMid,fontSize:12,
+                    cursor:"pointer",fontFamily:"inherit"}}>✏️ Editar</button>
+                <button onClick={()=>eliminar(e.id)}
+                  style={{flex:1,background:"none",border:`1px solid ${T.danger}40`,
+                    borderRadius:7,padding:"8px",color:T.danger,fontSize:12,
+                    cursor:"pointer",fontFamily:"inherit"}}>✕ Eliminar</button>
+              </div>
             </div>
           )}
         </Card>
@@ -615,7 +760,6 @@ function Bitacora() {
     </div>
   );
 }
-
 function Mantenimiento() {
   const [tab, setTab] = useState("tareas");
   const [tareas, setTareas] = useState([]);
