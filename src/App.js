@@ -538,6 +538,7 @@ function Bitacora() {
 
   const FORM_INIT = {
     fecha: new Date().toISOString().split("T")[0],
+    hora_salida: "", hora_llegada: "",
     patron: "Guille", salida: "Caleta de Vélez", llegada: "",
     millas: "", horas_motor_inicio: "", horas_motor_fin: "",
     tripulantes: "2", combustible_pct: "100",
@@ -561,7 +562,10 @@ function Bitacora() {
     setSaving(true);
     try {
       const payload = {
-        fecha: form.fecha, patron: form.patron,
+        fecha: form.fecha,
+        hora_salida: form.hora_salida||null,
+        hora_llegada: form.hora_llegada||null,
+        patron: form.patron,
         salida: form.salida, llegada: form.llegada,
         millas: parseFloat(form.millas)||0,
         horas_motor_inicio: parseFloat(form.horas_motor_inicio)||null,
@@ -593,7 +597,10 @@ function Bitacora() {
 
   function editar(e) {
     setForm({
-      fecha: e.fecha||"", patron: e.patron||"Guille",
+      fecha: e.fecha||"",
+      hora_salida: e.hora_salida||"",
+      hora_llegada: e.hora_llegada||"",
+      patron: e.patron||"Guille",
       salida: e.salida||"", llegada: e.llegada||"",
       millas: e.millas||"",
       horas_motor_inicio: e.horas_motor_inicio||"",
@@ -690,7 +697,9 @@ function Bitacora() {
               <FInput label="Fecha" type="date" value={form.fecha} onChange={upd("fecha")}/>
               <FSelect label="Patrón" value={form.patron} onChange={upd("patron")} options={["Guille","Varo"]}/>
               <FInput label="Puerto salida" value={form.salida} onChange={upd("salida")}/>
+              <FInput label="Hora salida" type="time" value={form.hora_salida} onChange={upd("hora_salida")}/>
               <FInput label="Puerto llegada *" value={form.llegada} onChange={upd("llegada")}/>
+              <FInput label="Hora llegada" type="time" value={form.hora_llegada} onChange={upd("hora_llegada")}/>
               <FInput label="Millas navegadas" type="number" value={form.millas} onChange={upd("millas")}/>
               <FInput label="Tripulantes" type="number" value={form.tripulantes} onChange={upd("tripulantes")}/>
             </div>
@@ -768,9 +777,10 @@ function Bitacora() {
                   fontFamily:"'Cormorant Garamond',serif"}}>{e.salida} → {e.llegada}</div>
                 <div style={{color:T.inkDim,fontSize:10,marginTop:3,
                   fontFamily:"'DM Mono',monospace"}}>
-                  {e.millas} mn
+                  {e.hora_salida ? `${e.hora_salida} → ${e.hora_llegada||"?"}` : e.fecha}
+                  {e.millas ? ` · ${e.millas} mn` : ""}
                   {e.horas_motor_inicio && e.horas_motor_fin
-                    ? ` · ${(e.horas_motor_fin - e.horas_motor_inicio).toFixed(1)}h motor` : ""}
+                    ? ` · ${(parseFloat(e.horas_motor_fin)-parseFloat(e.horas_motor_inicio)).toFixed(1)}h motor` : ""}
                 </div>
               </div>
               <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8}}>
@@ -788,11 +798,21 @@ function Bitacora() {
             <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${T.line}`}}>
               {[
                 ["Patrón",             e.patron||"--"],
-                ["Condiciones",        e.condiciones||"--"],
+                ["Salida",             e.hora_salida ? `${e.salida} · ${e.hora_salida}` : e.salida||"--"],
+                ["Llegada",            e.hora_llegada ? `${e.llegada} · ${e.hora_llegada}` : e.llegada||"--"],
+                ["Millas navegadas",   e.millas ? `${e.millas} mn` : "--"],
+                ["Duración",           e.hora_salida && e.hora_llegada ? (() => {
+                  const [sh,sm] = e.hora_salida.split(":").map(Number);
+                  const [eh,em] = e.hora_llegada.split(":").map(Number);
+                  const mins = (eh*60+em) - (sh*60+sm);
+                  if (mins <= 0) return "--";
+                  return `${Math.floor(mins/60)}h ${mins%60}min`;
+                })() : "--"],
+                ["H. motor",           e.horas_motor_inicio
+                  ? `${e.horas_motor_inicio}h → ${e.horas_motor_fin||"?"}h (${e.horas_motor_fin&&e.horas_motor_inicio ? (parseFloat(e.horas_motor_fin)-parseFloat(e.horas_motor_inicio)).toFixed(1)+"h" : "--"})` : "--"],
                 ["Tripulantes",        e.tripulantes||"--"],
-                ["Combustible",        e.combustible_cargado ? e.combustible_cargado+"%" : "--"],
-                ["H. motor ini / fin", e.horas_motor_inicio
-                  ? `${e.horas_motor_inicio}h → ${e.horas_motor_fin||"?"}h` : "--"],
+                ["Combustible",        e.combustible_cargado!=null ? e.combustible_cargado+"%" : "--"],
+                ["Condiciones",        e.condiciones||"--"],
                 ["Incidencias",        e.incidencias||"Sin novedad"],
                 e.notas ? ["Observaciones", e.notas] : null,
               ].filter(Boolean).map(([k,v])=>(
