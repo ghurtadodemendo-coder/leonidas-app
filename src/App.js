@@ -976,6 +976,376 @@ function Mantenimiento() {
 }
 function Combustible() {
   const [repostajes, setRepostajes] = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [showForm, setShowForm]     = useState(false);
+  const [editItem, setEditItem]     = useState(null);
+  const [saving, setSaving]         = useState(false);
+
+  const FORM_INIT = {
+    fecha: new Date().toISOString().split("T")[0],
+    litros: "", precio_litro: "", puerto: "Caleta de Vélez",
+    patron: "Guille", horas_motor: "", nivel_tras_repostaje: "100",
+  };
+  const [form, setForm] = useState(FORM_INIT);
+  const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
+
+  async function cargar() {
+    try {
+      setLoading(true);
+      const d = await db("combustible","GET",null,"?order=fecha.desc");
+      setRepostajes(d);
+    } catch(e){ console.error(e); }
+    finally { setLoading(false); }
+  }
+  useEffect(()=>{ cargar(); },[]);
+
+  async function guardar() {
+    if (!form.litros) return;
+    setSaving(true);
+    try {
+      const litros  = parseFloat(form.litros);
+      const precio  = parseFloat(form.precio_litro)||0;
+      const nivel   = parseFloat(form.nivel_tras_repostaje)||100;
+      const payload = {
+        fecha: form.fecha,
+        litros,
+        precio_litro: precio||null,
+        importe: precio ? parseFloat((litros*precio).toFixed(2)) : null,
+        puerto: form.puerto||null,
+        patron: form.patron,
+        horas_motor: parseFloat(form.horas_motor)||null,
+        notas: `Nivel tras repostaje: ${nivel}%`,
+      };
+      if (editItem) {
+        await db(`combustible?id=eq.${editItem}`,"PATCH",payload);
+        setEditItem(null);
+      } else {
+        await db("combustible","POST",payload);
+      }
+      setShowForm(false);
+      setForm(FORM_INIT);
+      cargar();
+    } catch(e){ alert("Error al guardar: "+e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function eliminar(id) {
+    if (!window.confirm("¿Eliminar este repostaje?")) return;
+    try { await db(`combustible?id=eq.${id}`,"DELETE"); cargar(); }
+    catch(e){ alert("Error: "+e.message); }
+  }
+
+  function editar(r) {
+    setForm({
+      fecha: r.fecha||"", litros: r.litros||"",
+      precio_litro: r.precio_litro||"", puerto: r.puerto||"Caleta de Vélez",
+      patron: r.patron||"Guille", horas_motor: r.horas_motor||"",
+      nivel_tras_repostaje: "100",
+    });
+    setEditItem(r.id);
+    setShowForm(true);
+  }
+
+  const totalL = repostajes.reduce((a,c)=>a+(parseFloat(c.litros)||0),0);
+  const totalE = repostajes.reduce((a,c)=>a+(parseFloat(c.importe)||0),0);
+
+  // Nivel actual — extraído del último repostaje si tiene nota
+  const nivelActual = (() => {
+    if (!repostajes.length) return null;
+    const nota = repostajes[0].notas||"";
+    const m = nota.match(/Nivel tras repostaje: (\d+)%/);
+    return m ? parseInt(m[1]) : null;
+  })();
+
+  return (
+    <div>
+      <Hdr eyebrow="Repostajes y consumo" title="Combustible"
+        action={<Btn sm onClick={()=>{ setShowForm(!showForm); setEditItem(null); setForm(FORM_INIT); }}>
+          {showForm&&!editItem?"Cancelar":"+ Repostaje"}
+        </Btn>}/>
+
+      {/* KPIs */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:16}}>
+        <Card pad="13px 15px">
+          <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+            fontFamily:"'DM Mono',monospace",marginBottom:5}}>Total litros</div>
+          <div style={{fontSize:24,color:T.ink,fontWeight:600,
+            fontFamily:"'Cormorant Garamond',serif"}}>{totalL.toFixed(0)} L</div>
+        </Card>
+        <Card pad="13px 15px">
+          <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+            fontFamily:"'DM Mono',monospace",marginBottom:5}}>Gasto total</div>
+          <div style={{fontSize:24,color:T.brassLt,fontWeight:600,
+            fontFamily:"'Cormorant Garamond',serif"}}>{totalE.toFixed(0)} €</div>
+        </Card>
+      </div>
+
+      {/* Nivel actual */}
+      {nivelActual !== null && (
+        <Card style={{marginBottom:16}} pad="14px 18px">
+          <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+            fontFamily:"'DM Mono',monospace",marginBottom:8}}>Nivel actual estimado</div>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{flex:1,background:T.surfaceUp,borderRadius:4,height:8,overflow:"hidden"}}>
+              <div style={{
+                height:"100%",
+                width:`${nivelActual}%`,
+                background: nivelActual < 40 ? T.danger : nivelActual < 60 ? T.warn : T.ok,
+                borderRadius:4,transition:"width 0.4s"
+              }}/>
+            </div>
+            <span style={{
+              fontSize:18,fontWeight:700,minWidth:44,textAlign:"right",
+              fontFamily:"'Cormorant Garamond',serif",
+              color: nivelActual < 40 ? T.danger : nivelActual < 60 ? T.warn : T.ok
+            }}>{nivelActual}%</span>
+          </div>
+          {nivelActual < 40 && (
+            <div style={{color:T.danger,fontSize:11,marginTop:6,
+              fontFamily:"'DM Mono',monospace"}}>
+              ⚠ Nivel bajo -- repostar antes de la próxima salida
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Formulario */}
+      {showForm && (
+        <Card style={{marginBottom:14}} pad="16px">
+          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
+            textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>
+            {editItem ? "Editar repostaje" : "Nuevo repostaje"}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <div>
+              <FInput label="Fecha" type="date" value={form.fecha} onChange={upd("fecha")}/>
+              <FInput label="Litros *" type="number" value={form.litros} onChange={upd("litros")}/>
+              <FInput label="€ / Litro" type="number" value={form.precio_litro} onChange={upd("precio_litro")}/>
+            </div>
+            <div>
+              <FInput label="Puerto" value={form.puerto} onChange={upd("puerto")}/>
+              <FInput label="Horas motor" type="number" value={form.horas_motor} onChange={upd("horas_motor")}/>
+              <FSelect label="Patrón" value={form.patron} onChange={upd("patron")} options={["Guille","Varo"]}/>
+            </div>
+          </div>
+
+          {/* Nivel tras repostaje */}
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+              fontFamily:"'DM Mono',monospace",marginBottom:6}}>
+              Nivel del depósito tras repostar
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <input type="range" min="0" max="100" step="10"
+                value={form.nivel_tras_repostaje}
+                onChange={upd("nivel_tras_repostaje")}
+                style={{flex:1, accentColor:T.brass}}/>
+              <span style={{fontSize:16,fontWeight:700,minWidth:44,textAlign:"right",
+                fontFamily:"'Cormorant Garamond',serif",
+                color: parseInt(form.nivel_tras_repostaje)<40 ? T.danger : T.ok}}>
+                {form.nivel_tras_repostaje}%
+              </span>
+            </div>
+          </div>
+
+          <div style={{display:"flex",gap:8}}>
+            <Btn onClick={guardar}>{saving?"Guardando...":editItem?"Actualizar":"Guardar"}</Btn>
+            <Btn variant="ghost" onClick={()=>{setShowForm(false);setEditItem(null);setForm(FORM_INIT);}}>Cancelar</Btn>
+          </div>
+        </Card>
+      )}
+
+      {/* Lista */}
+      {loading ? (
+        <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+      ) : repostajes.length===0 ? (
+        <Card><div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>
+          Sin repostajes registrados.
+        </div></Card>
+      ) : repostajes.map(r=>(
+        <Card key={r.id} style={{marginBottom:9}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{flex:1}}>
+              <div style={{color:T.ink,fontWeight:600,fontSize:16,
+                fontFamily:"'Cormorant Garamond',serif"}}>{r.puerto||"--"}</div>
+              <div style={{color:T.inkDim,fontSize:10,marginTop:3,
+                fontFamily:"'DM Mono',monospace"}}>
+                {r.fecha} · {r.patron} · {r.litros}L
+                {r.precio_litro ? ` · ${r.precio_litro}€/L` : ""}
+              </div>
+              {r.notas && <div style={{color:T.inkDim,fontSize:10,marginTop:2,
+                fontFamily:"'DM Mono',monospace"}}>{r.notas}</div>}
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {r.importe && <div style={{fontSize:16,fontWeight:600,color:T.brassLt,
+                fontFamily:"'Cormorant Garamond',serif"}}>{parseFloat(r.importe).toFixed(2)}€</div>}
+              <button onClick={()=>editar(r)} style={{background:"none",border:`1px solid ${T.rimHi}`,
+                borderRadius:5,padding:"3px 7px",color:T.inkDim,fontSize:11,cursor:"pointer"}}>✏️</button>
+              <button onClick={()=>eliminar(r.id)} style={{background:"none",border:`1px solid ${T.danger}40`,
+                borderRadius:5,padding:"3px 7px",color:T.danger,fontSize:11,cursor:"pointer"}}>✕</button>
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+function Mantenimiento() {
+  const [tab, setTab] = useState("tareas");
+  const [tareas, setTareas] = useState([]);
+  const [averias, setAverias] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [showAveriaForm, setShowAveriaForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState({ tipo:"", fecha_ultima:"", horas_ultima:"", notas:"", coste:"" });
+  const [averiaForm, setAveriaForm] = useState({ fecha:new Date().toISOString().split("T")[0], descripcion:"", patron:"Guille", notas:"", coste:"0" });
+
+  async function cargar() {
+    try {
+      setLoading(true);
+      const [t, a] = await Promise.all([
+        db("mantenimiento","GET",null,"?order=tipo.asc"),
+        db("averias","GET",null,"?order=fecha.desc"),
+      ]);
+      setTareas(t); setAverias(a);
+    } catch(e){} finally { setLoading(false); }
+  }
+  useEffect(()=>{ cargar(); },[]);
+
+  async function guardarAveria() {
+    if (!averiaForm.descripcion) return;
+    setSaving(true);
+    try {
+      await db("averias","POST",{ ...averiaForm, coste:parseFloat(averiaForm.coste)||0, estado:"pendiente" });
+      setShowAveriaForm(false); cargar();
+    } catch(e){ alert("Error: "+e.message); } finally { setSaving(false); }
+  }
+
+  async function actualizarTarea(id, datos) {
+    try {
+      await db(`mantenimiento?id=eq.${id}`,"PATCH",datos);
+      setEditId(null); cargar();
+    } catch(e){ alert("Error: "+e.message); }
+  }
+
+
+
+  return (
+    <div>
+      <Hdr eyebrow="Estado técnico" title="Mantenimiento"/>
+      <div style={{display:"flex",background:T.bg,borderRadius:7,padding:3,gap:3,marginBottom:18,border:`1px solid ${T.rimHi}`}}>
+        {[["tareas","Tareas periódicas"],["averias","Averías"]].map(([id,lbl])=>(
+          <button key={id} onClick={()=>setTab(id)} style={{
+            flex:1,padding:"8px",borderRadius:5,border:"none",cursor:"pointer",
+            background:tab===id?T.surface:"transparent",
+            color:tab===id?T.ink:T.inkDim,fontSize:11.5,fontWeight:tab===id?600:400,
+            fontFamily:"inherit",boxShadow:tab===id?"0 1px 3px rgba(0,0,0,0.15)":"none"}}>{lbl}</button>
+        ))}
+      </div>
+
+      {tab==="tareas" && (
+        loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+        : tareas.map(t=>{
+          const pct = t.horas_intervalo && t.horas_ultima
+            ? Math.min(100,((774-t.horas_ultima)/t.horas_intervalo)*100) : null;
+          const bc = t.estado==="danger"?T.danger:t.estado==="warn"?T.warn:T.ok;
+          const isEditing = editId === t.id;
+          return (
+            <Card key={t.id} style={{marginBottom:9}}>
+              {isEditing ? (
+                <div>
+                  <FInput value={form.fecha_ultima} onChange={e=>setForm(f=>({...f,fecha_ultima:e.target.value}))} label="Fecha última revisión" type="date"/>
+                  <FInput value={form.horas_ultima} onChange={e=>setForm(f=>({...f,horas_ultima:e.target.value}))} label="Horas motor en revisión" type="number"/>
+                  <FInput value={form.coste} onChange={e=>setForm(f=>({...f,coste:e.target.value}))} label="Coste (€)" type="number"/>
+                  <FInput value={form.notas} onChange={e=>setForm(f=>({...f,notas:e.target.value}))} label="Notas"/>
+                  <div style={{display:"flex",gap:8,marginTop:6}}>
+                    <Btn sm onClick={()=>actualizarTarea(t.id,{fecha_ultima:form.fecha_ultima,horas_ultima:parseFloat(form.horas_ultima)||null,coste:parseFloat(form.coste)||0,notas:form.notas,estado:"ok"})}>Guardar</Btn>
+                    <Btn sm variant="ghost" onClick={()=>setEditId(null)}>Cancelar</Btn>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:pct!==null?10:0}}>
+                    <div style={{flex:1}}>
+                      <div style={{color:T.ink,fontWeight:600,fontSize:13.5}}>{t.tipo}</div>
+                      <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>
+                        Últ: {t.fecha_ultima||"Pendiente"} · {t.notas||""}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <Signal estado={t.estado}/>
+                      <button onClick={()=>{setEditId(t.id);setForm({fecha_ultima:t.fecha_ultima||"",horas_ultima:t.horas_ultima||"",notas:t.notas||"",coste:t.coste||""});}}
+                        style={{background:"none",border:`1px solid ${T.rimHi}`,borderRadius:5,
+                          padding:"3px 8px",color:T.inkDim,fontSize:10,cursor:"pointer"}}>✏️</button>
+                    </div>
+                  </div>
+                  {pct!==null&&(
+                    <div>
+                      <div style={{background:T.bg,borderRadius:2,height:2.5,overflow:"hidden"}}>
+                        <div style={{height:"100%",width:`${pct}%`,background:bc,borderRadius:2}}/>
+                      </div>
+                      <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+                        <span style={{color:T.inkDim,fontSize:9.5,fontFamily:"'DM Mono',monospace"}}>{Math.round(pct)}% del intervalo</span>
+                        <span style={{color:T.inkDim,fontSize:9.5,fontFamily:"'DM Mono',monospace"}}>{t.horas_intervalo}h intervalo</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          );
+        })
+      )}
+
+      {tab==="averias" && (
+        <div>
+          <div style={{marginBottom:14}}>
+            <Btn onClick={()=>setShowAveriaForm(!showAveriaForm)}>{showAveriaForm?"Cancelar":"+ Registrar avería"}</Btn>
+          </div>
+          {showAveriaForm && (
+            <Card style={{marginBottom:14}} pad="16px">
+              <div style={{fontSize:11,color:T.danger,fontWeight:700,marginBottom:12,
+                textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nueva avería</div>
+              <FInput value={averiaForm.fecha} onChange={e=>setAveriaForm(f=>({...f,fecha:e.target.value}))} label="Fecha" type="date"/>
+              <FInput value={averiaForm.descripcion} onChange={e=>setAveriaForm(f=>({...f,descripcion:e.target.value}))} label="Descripción *"/>
+              <FInput value={averiaForm.notas} onChange={e=>setAveriaForm(f=>({...f,notas:e.target.value}))} label="Notas / diagnóstico"/>
+              <FInput value={averiaForm.coste} onChange={e=>setAveriaForm(f=>({...f,coste:e.target.value}))} label="Coste (€)" type="number"/>
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                  fontFamily:"'DM Mono',monospace",marginBottom:4}}>Patrón que reporta</div>
+                <select value={averiaForm.patron} onChange={e=>setAveriaForm(f=>({...f,patron:e.target.value}))}
+                  style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
+                    padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
+                  <option>Guille</option><option>Varo</option>
+                </select>
+              </div>
+              <Btn onClick={guardarAveria}>{saving?"Guardando...":"Registrar avería"}</Btn>
+            </Card>
+          )}
+          {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+          : averias.length===0 ? <Card><div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>Sin averías registradas.</div></Card>
+          : averias.map(a=>(
+            <Card key={a.id} style={{marginBottom:9}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div style={{flex:1,paddingRight:12}}>
+                  <div style={{color:T.ink,fontWeight:600,fontSize:13.5}}>{a.descripcion}</div>
+                  <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{a.fecha} · {a.patron}</div>
+                  {a.notas&&<div style={{color:T.inkMid,fontSize:12,marginTop:6}}>{a.notas}</div>}
+                  {a.coste>0&&<div style={{color:T.brassLt,fontSize:13,fontWeight:600,marginTop:6,fontFamily:"'DM Mono',monospace"}}>{a.coste}€</div>}
+                </div>
+                <Signal estado={a.estado||"warn"}/>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+function Combustible() {
+  const [repostajes, setRepostajes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
