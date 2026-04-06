@@ -2037,7 +2037,7 @@ function Clima() {
       {/* Tabs */}
       <div style={{ display:"flex", background:T.bg, borderRadius:7, padding:3,
         gap:3, marginBottom:16, border:`1px solid ${T.rimHi}` }}>
-        {[["ahora","Ahora"],["horas","Próximas 24h"],["dias","3 días"]].map(([id,lbl])=>(
+        {[["ahora","Ahora"],["horas","24h"],["dias","3 días"],["mapa","Mapa"]].map(([id,lbl])=>(
           <button key={id} onClick={()=>setTab(id)} style={{
             flex:1, padding:"8px 4px", borderRadius:5, border:"none", cursor:"pointer",
             background:tab===id?T.surface:"transparent",
@@ -2118,6 +2118,32 @@ function Clima() {
           </Card>
         );
       })}
+
+      {/* ── MAPA WINDY ── */}
+      {tab==="mapa" && (
+        <div>
+          <div style={{fontSize:10,color:T.inkDim,fontFamily:"'DM Mono',monospace",
+            marginBottom:12,lineHeight:1.5}}>
+            Mapa meteorológico en tiempo real · Puedes mover, hacer zoom y cambiar capas
+            (viento, olas, lluvia). Centrado en la Costa del Sol.
+          </div>
+          <div style={{borderRadius:12,overflow:"hidden",border:`1px solid ${T.rimHi}`,
+            boxShadow:"0 2px 12px rgba(0,0,0,0.08)"}}>
+            <iframe
+              src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=kt&zoom=8&overlay=wind&product=ecmwf&level=surface&lat=36.73&lon=-4.08&detailLat=36.73&detailLon=-4.08&marker=true&message=true"
+              width="100%"
+              height="450"
+              frameBorder="0"
+              title="Windy - Mapa meteorológico"
+              style={{display:"block"}}
+            />
+          </div>
+          <div style={{fontSize:9.5,color:T.inkDim,fontFamily:"'DM Mono',monospace",
+            marginTop:8,textAlign:"center"}}>
+            Powered by Windy.com · Datos ECMWF
+          </div>
+        </div>
+      )}
     </div>
   );
 }
