@@ -349,7 +349,7 @@ function Dashboard({ setScreen }) {
           // Check if there's a repostaje AFTER the last bitacora entry
           const ultimaFecha = bits[0].fecha;
           const repostajes = await db("combustible","GET",null,`?order=fecha.desc&limit=1&fecha=gte.${ultimaFecha}`);
-          // If there's a recent repostaje, assume tank is full — no alert
+          // If there's a recent repostaje, assume tank is full - no alert
           if (repostajes.length > 0) {
             setCombustibleAlert(null);
           } else if (pct < 40) {
@@ -728,7 +728,7 @@ function Bitacora() {
                 {parseInt(form.combustible_pct) < 40 && (
                   <div style={{fontSize:10,color:T.danger,marginTop:4,
                     fontFamily:"'DM Mono',monospace"}}>
-                    ⚠ Combustible bajo — repostar antes de salir
+                    ⚠ Combustible bajo -- repostar antes de salir
                   </div>
                 )}
               </div>
