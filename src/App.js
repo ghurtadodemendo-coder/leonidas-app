@@ -63,7 +63,7 @@ const NAV = [
 
 const BOAT = {
   nombre:"Leonidas", matricula:"7ª PM-1-231-25", bandera:"España",
-  eslora:"16.21 m", manga:"4.54 m", calado:"—", año:"2007",
+  eslora:"16.21 m", manga:"4.54 m", calado:"--", año:"2007",
   reforma:"Electrónica y confort (reciente)", astillero:"Sunseeker Portofino 53",
   nib:"500496", casco:"GB-XSK03858B707", homologacion:"CE-258-06",
   motores:"2× MAN D28 MCR", cv:"2× 588 kW (≈ 800 CV c/u)", horas:774,
@@ -72,17 +72,17 @@ const BOAT = {
   electronica:"Garmin chartplotter · AIS · Piloto automático · Sistema de sonido",
   propietario:"Florido Álvarez, Carmen",
   permiso:"15/12/2030",
-  seguro:"Pendiente añadir", seguroVence:"—",
+  seguro:"Pendiente añadir", seguroVence:"--",
   itv:"Cert. Navegabilidad · 04/12/2025", itvVence:"Según certificado vigente",
 };
 const BITACORA = [];
 const MANTENIMIENTO = [
-  { id:1, tipo:"Cambio aceite · Motor Estribor", estado:"ok", fUlt:"Pendiente", fProx:"—", hInt:250, hAct:774, hUlt:600, notas:"MAN D2848 LE423 · aceite recomendado", coste:0 },
-  { id:2, tipo:"Cambio aceite · Motor Babor",    estado:"ok", fUlt:"Pendiente", fProx:"—", hInt:250, hAct:774, hUlt:600, notas:"MAN D2848 LE423 · aceite recomendado", coste:0 },
-  { id:3, tipo:"Filtros combustible (×2)",       estado:"ok", fUlt:"Pendiente", fProx:"—", hInt:500, hAct:774, hUlt:500, notas:"Revisar cada 500h o anualmente", coste:0 },
-  { id:4, tipo:"Impelentes bomba agua (×2)",     estado:"ok", fUlt:"Pendiente", fProx:"—", hInt:300, hAct:774, hUlt:600, notas:"Anual obligatorio — crítico en MAN", coste:0 },
-  { id:5, tipo:"Ánodos / cátodos zinc",          estado:"ok", fUlt:"Pendiente", fProx:"—", hInt:null, notas:"Varada anual — hélices y bocinas", coste:0 },
-  { id:6, tipo:"Revisión ITV náutica",           estado:"ok", fUlt:"Pendiente", fProx:"—", hInt:null, notas:"Pendiente añadir fecha", coste:0 },
+  { id:1, tipo:"Cambio aceite · Motor Estribor", estado:"ok", fUlt:"Pendiente", fProx:"--", hInt:250, hAct:774, hUlt:600, notas:"MAN D2848 LE423 · aceite recomendado", coste:0 },
+  { id:2, tipo:"Cambio aceite · Motor Babor",    estado:"ok", fUlt:"Pendiente", fProx:"--", hInt:250, hAct:774, hUlt:600, notas:"MAN D2848 LE423 · aceite recomendado", coste:0 },
+  { id:3, tipo:"Filtros combustible (×2)",       estado:"ok", fUlt:"Pendiente", fProx:"--", hInt:500, hAct:774, hUlt:500, notas:"Revisar cada 500h o anualmente", coste:0 },
+  { id:4, tipo:"Impelentes bomba agua (×2)",     estado:"ok", fUlt:"Pendiente", fProx:"--", hInt:300, hAct:774, hUlt:600, notas:"Anual obligatorio -- crítico en MAN", coste:0 },
+  { id:5, tipo:"Ánodos / cátodos zinc",          estado:"ok", fUlt:"Pendiente", fProx:"--", hInt:null, notas:"Varada anual -- hélices y bocinas", coste:0 },
+  { id:6, tipo:"Revisión ITV náutica",           estado:"ok", fUlt:"Pendiente", fProx:"--", hInt:null, notas:"Pendiente añadir fecha", coste:0 },
 ];
 const AVERIAS = [];
 const COMBUSTIBLE = [];
@@ -110,8 +110,8 @@ const INVENTARIO = [
   { id:7, cat:"Seguridad", art:"Bengalas sustitución", qty:0, min:6, estado:"danger" },
 ];
 const PATRONES = [
-  { id:1, nombre:"Salvador Álvarez Escobar", rol:"Patrón", tit:"Patrón de Yate", tel:"—", av:"VA", salidas:0, millas:0, hue:T.info },
-  { id:2, nombre:"Guillermo J. Hurtado de Mendoza", rol:"Patrón", tit:"PER", tel:"—", av:"GU", salidas:0, millas:0, hue:T.brass },
+  { id:1, nombre:"Salvador Álvarez Escobar", rol:"Patrón", tit:"Patrón de Yate", tel:"--", av:"VA", salidas:0, millas:0, hue:T.info },
+  { id:2, nombre:"Guillermo J. Hurtado de Mendoza", rol:"Patrón", tit:"PER", tel:"--", av:"GU", salidas:0, millas:0, hue:T.brass },
 ];
 
 // ── PRIMITIVES ────────────────────────────────────────────────────────────────
@@ -289,7 +289,7 @@ function DashboardWeather({ setScreen }) {
           <div style={{ color:sc, fontSize:12.5, fontWeight:600 }}>{wx.sem.label}</div>
           <div style={{ color:T.inkDim, fontSize:10, marginTop:2,
             fontFamily:"'DM Mono',monospace" }}>
-            {wx.wind}kn del {wx.dir} · Ola {wx.wave?.toFixed(1)??"—"}m · {wx.lugar||"Caleta de Vélez"}
+            {wx.wind}kn del {wx.dir} · Ola {wx.wave?.toFixed(1)??"--"}m · {wx.lugar||"Caleta de Vélez"}
           </div>
         </div>
       </div>
@@ -300,7 +300,7 @@ function DashboardWeather({ setScreen }) {
 
 
 function Dashboard({ setScreen }) {
-  const [stats, setStats] = useState({ horas:"—", millas:"—", ultimoRepo:"—" });
+  const [stats, setStats] = useState({ horas:"--", millas:"--", ultimoRepo:"--" });
   const [ultimaBitacora, setUltimaBitacora] = useState(null);
 
   useEffect(()=>{
@@ -312,10 +312,10 @@ function Dashboard({ setScreen }) {
           db("bitacora","GET",null,"?select=millas,horas_motor_inicio,horas_motor_fin"),
         ]);
 
-        // Millas totales — suma de todas las entradas
+        // Millas totales -- suma de todas las entradas
         const totalMillas = todasBits.reduce((a,c) => a + (parseFloat(c.millas)||0), 0);
 
-        // Horas motor — base 774h + horas navegadas registradas en bitácora
+        // Horas motor -- base 774h + horas navegadas registradas en bitácora
         const HORAS_BASE = 774;
         const horasNavegadas = todasBits.reduce((a,c) => {
           const ini = parseFloat(c.horas_motor_inicio) || 0;
@@ -694,7 +694,7 @@ function Bitacora() {
         <Card>
           <div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>
             {entradas.length === 0
-              ? "Aún no hay entradas. Pulsa "+ Nueva" para registrar la primera salida."
+              ? "Aún no hay entradas. Pulsa + Nueva para registrar la primera salida."
               : "No hay entradas con los filtros aplicados."}
           </div>
         </Card>
@@ -729,11 +729,11 @@ function Bitacora() {
           {open===e.id && (
             <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${T.line}`}}>
               {[
-                ["Condiciones",        e.condiciones||"—"],
-                ["Tripulantes",        e.tripulantes||"—"],
+                ["Condiciones",        e.condiciones||"--"],
+                ["Tripulantes",        e.tripulantes||"--"],
                 ["Combustible cargado",(e.combustible_cargado||0)+" L"],
                 ["H. motor ini / fin", e.horas_motor_inicio
-                  ? `${e.horas_motor_inicio}h → ${e.horas_motor_fin||"?"}h` : "—"],
+                  ? `${e.horas_motor_inicio}h → ${e.horas_motor_fin||"?"}h` : "--"],
                 ["Incidencias",        e.incidencias||"Sin novedad"],
               ].map(([k,v])=>(
                 <div key={k}><Divider/>
@@ -993,7 +993,7 @@ function Combustible() {
         <Card key={r.id} style={{marginBottom:9}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
-              <div style={{color:T.ink,fontWeight:600,fontSize:16,fontFamily:"'Cormorant Garamond',serif"}}>{r.puerto||"—"}</div>
+              <div style={{color:T.ink,fontWeight:600,fontSize:16,fontFamily:"'Cormorant Garamond',serif"}}>{r.puerto||"--"}</div>
               <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{r.fecha} · {r.patron} · {r.litros}L · {r.precio_litro}€/L</div>
             </div>
             <div style={{fontSize:18,fontWeight:600,color:T.brassLt,fontFamily:"'Cormorant Garamond',serif"}}>{(r.importe||0).toFixed(2)}€</div>
@@ -1139,11 +1139,11 @@ function Puertos() {
             <div style={{flex:1}}>
               <div style={{fontSize:9.5,color:p.tipo==="Base"?T.brass:T.info,letterSpacing:1.5,fontFamily:"'DM Mono',monospace",marginBottom:4}}>{p.tipo?.toUpperCase()}</div>
               <div style={{color:T.ink,fontWeight:600,fontSize:17,fontFamily:"'Cormorant Garamond',serif"}}>{p.nombre}</div>
-              <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{p.telefono||"—"}</div>
+              <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{p.telefono||"--"}</div>
             </div>
             <div style={{textAlign:"right"}}>
               <div style={{color:T.brassLt,fontSize:17,fontWeight:600,fontFamily:"'Cormorant Garamond',serif"}}>{p.precio||0}€<span style={{fontSize:10,color:T.inkDim}}>{p.tipo==="Base"?"/mes":"/noche"}</span></div>
-              <div style={{color:T.inkDim,fontSize:10,marginTop:2,fontFamily:"'DM Mono',monospace"}}>★ {p.valoracion||"—"}</div>
+              <div style={{color:T.inkDim,fontSize:10,marginTop:2,fontFamily:"'DM Mono',monospace"}}>★ {p.valoracion||"--"}</div>
             </div>
           </div>
           {p.amarre&&<div style={{display:"inline-flex",background:T.brassDim,border:`1px solid ${T.brass}35`,borderRadius:4,padding:"2px 8px",color:T.brassLt,fontSize:9.5,fontFamily:"'DM Mono',monospace",marginBottom:7}}>Amarre {p.amarre}</div>}
@@ -1389,10 +1389,10 @@ function Patrones() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ nombre:"", rol:"Patrón", tit:"PER", tel:"" });
 
-  // Hardcoded for now — will come from DB later
+  // Hardcoded for now -- will come from DB later
   const PATRONES_INIT = [
-    { id:1, nombre:"Salvador Álvarez Escobar", rol:"Patrón", tit:"Patrón de Yate", tel:"—", av:"VA", salidas:0, millas:0, hue:T.info },
-    { id:2, nombre:"Guillermo J. Hurtado de Mendoza", rol:"Patrón", tit:"PER", tel:"—", av:"GU", salidas:0, millas:0, hue:T.brass },
+    { id:1, nombre:"Salvador Álvarez Escobar", rol:"Patrón", tit:"Patrón de Yate", tel:"--", av:"VA", salidas:0, millas:0, hue:T.info },
+    { id:2, nombre:"Guillermo J. Hurtado de Mendoza", rol:"Patrón", tit:"PER", tel:"--", av:"GU", salidas:0, millas:0, hue:T.brass },
   ];
   const [extraPatrones, setExtraPatrones] = useState([]);
 
@@ -1487,9 +1487,9 @@ DATOS TÉCNICOS:
 NOTAS SOBRE EL SUNSEEKER PORTOFINO 53:
 - Barco con planing hull de alta velocidad, diseño de crucero de lujo
 - Los motores MAN D2848 requieren mantenimiento riguroso: cambio de aceite cada 250h o anual, filtros de combustible cada 500h, impelentes anualmente
-- Sistema de refrigeración por agua de mar — impelentes críticos
-- Doble hélice — revisar ánodos y bocinas regularmente
-- Con 774h los motores están en rodaje medio — buen momento para revisar correas, manguitos y juntas
+- Sistema de refrigeración por agua de mar -- impelentes críticos
+- Doble hélice -- revisar ánodos y bocinas regularmente
+- Con 774h los motores están en rodaje medio -- buen momento para revisar correas, manguitos y juntas
 
 PATRONES:
 - Salvador Álvarez Escobar "Varo" · Patrón de Yate
@@ -1609,9 +1609,9 @@ function AsistenteIA() {
 const CALETA = { lat: 36.7333, lon: -4.0833 };
 
 function semaforo(windKn, waveM) {
-  if (windKn > 20 || waveM > 1.2) return { level:"danger", label:"No recomendable salir",    icon:"🔴", desc:`Viento ${windKn}kn · Ola ${waveM.toFixed(1)}m — Condiciones adversas` };
-  if (windKn > 8  || waveM > 0.5) return { level:"warn",   label:"Navegar con precaución",   icon:"🟡", desc:`Viento ${windKn}kn · Ola ${waveM.toFixed(1)}m — Condiciones moderadas` };
-  return                                  { level:"ok",     label:"Día perfecto para salir",   icon:"🟢", desc:`Viento ${windKn}kn · Ola ${waveM.toFixed(1)}m — Condiciones excelentes` };
+  if (windKn > 20 || waveM > 1.2) return { level:"danger", label:"No recomendable salir",    icon:"🔴", desc:`Viento ${windKn}kn · Ola ${waveM.toFixed(1)}m -- Condiciones adversas` };
+  if (windKn > 8  || waveM > 0.5) return { level:"warn",   label:"Navegar con precaución",   icon:"🟡", desc:`Viento ${windKn}kn · Ola ${waveM.toFixed(1)}m -- Condiciones moderadas` };
+  return                                  { level:"ok",     label:"Día perfecto para salir",   icon:"🟢", desc:`Viento ${windKn}kn · Ola ${waveM.toFixed(1)}m -- Condiciones excelentes` };
 }
 
 function degToCompass(deg) {
@@ -1853,8 +1853,8 @@ function Clima() {
             ["Viento",       `${windKn} kn · ${degToCompass(windDir)}`, windKn>20?T.warn:T.ink],
             ["Rachas",       `${gustKn} kn`, gustKn>25?T.danger:gustKn>18?T.warn:T.ink],
             ["Dirección viento", degToCompass(windDir)+"  ("+windDir+"°)", T.ink],
-            ["Altura de ola", `${waveM?.toFixed(1) ?? "—"} m`, waveM>1.5?T.danger:waveM>0.8?T.warn:T.ok],
-            ["Período de ola",`${wavePer?.toFixed(0) ?? "—"} s`, T.ink],
+            ["Altura de ola", `${waveM?.toFixed(1) ?? "--"} m`, waveM>1.5?T.danger:waveM>0.8?T.warn:T.ok],
+            ["Período de ola",`${wavePer?.toFixed(0) ?? "--"} s`, T.ink],
             ["Dirección ola", degToCompass(waveDir), T.ink],
             ["Temperatura",  `${tempC} °C`, T.ink],
           ].map(([k,v,c],i)=>(
@@ -1878,7 +1878,7 @@ function Clima() {
                   <div style={{ color:T.ink, fontSize:12, fontWeight:600,
                     fontFamily:"'DM Mono',monospace" }}>{h.wind}kn</div>
                   <div style={{ color:T.inkDim, fontSize:10, marginTop:3,
-                    fontFamily:"'DM Mono',monospace" }}>{h.wave?.toFixed(1)??"—"}m</div>
+                    fontFamily:"'DM Mono',monospace" }}>{h.wave?.toFixed(1)??"--"}m</div>
                 </Card>
               );
             })}
@@ -1911,7 +1911,7 @@ function Clima() {
                   letterSpacing:1.5, textTransform:"uppercase", marginBottom:3 }}>Ola máx.</div>
                 <div style={{ color:d.maxWave>1.5?T.danger:d.maxWave>0.8?T.warn:T.ok,
                   fontWeight:600, fontSize:18, fontFamily:"'Cormorant Garamond',serif" }}>
-                  {d.maxWave?.toFixed(1)??"—"} m</div>
+                  {d.maxWave?.toFixed(1)??"--"} m</div>
               </div>
             </div>
           </Card>
@@ -2017,7 +2017,7 @@ function Calculadora() {
       optReturn = goodHours[0].ms;
       optReturnEnd = optReturn + 3600000;
     } else {
-      // No good window — just recommend before sunset
+      // No good window -- just recommend before sunset
       optReturn = sunset.ms - 90*60000;
       optReturnEnd = sunset.ms - 15*60000;
     }
@@ -2132,7 +2132,7 @@ function Calculadora() {
           <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
             fontFamily:"'DM Mono',monospace", marginBottom:8 }}>Velocidad de crucero (nudos)</div>
           <input type="number" value={velocidad} onChange={e=>setVelocidad(e.target.value)}
-            placeholder="10–15"
+            placeholder="10-15"
             style={{ background:T.surfaceUp, border:`1px solid ${T.rimHi}`, borderRadius:7,
               padding:"10px 14px", color:T.ink, fontSize:16,
               fontFamily:"'Cormorant Garamond',serif", outline:"none", width:"100%", fontWeight:600 }}/>
@@ -2154,7 +2154,7 @@ function Calculadora() {
                 fontFamily:"'DM Mono',monospace", marginBottom:8 }}>🌅 Ventana dorada</div>
               <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:28,
                 fontWeight:600, color:T.brassLt, lineHeight:1 }}>
-                {r.optReturnStr} – {r.optReturnEndStr}
+                {r.optReturnStr} - {r.optReturnEndStr}
               </div>
               <div style={{ color:T.inkDim, fontSize:11, marginTop:6, fontFamily:"'DM Mono',monospace" }}>
                 {r.windAtReturn !== null ? `Viento estimado ${r.windAtReturn}kn` : ""}
@@ -2176,7 +2176,7 @@ function Calculadora() {
             <div style={{ background:T.warn+"15", border:`1px solid ${T.warn}30`,
               borderRadius:10, padding:"14px 16px", marginBottom:14 }}>
               <div style={{ color:T.warn, fontSize:13, fontWeight:600 }}>
-                Ventana aceptable {r.optReturnStr} – {r.optReturnEndStr}
+                Ventana aceptable {r.optReturnStr} - {r.optReturnEndStr}
               </div>
               <div style={{ color:T.inkDim, fontSize:11, marginTop:4 }}>
                 Condiciones moderadas, no ideales. Valora salir otro día.
@@ -2190,7 +2190,7 @@ function Calculadora() {
               ["Vuelta óptima",          r.optReturnStr,     T.brassLt],
               ["Hasta las",              r.optReturnEndStr,  T.brassLt],
               ["Puesta de sol",          r.sunset.str,       T.warn  ],
-              ["Viento en vuelta",       r.windAtReturn ? r.windAtReturn+"kn" : "—", r.windAtReturn>18?T.warn:T.ok],
+              ["Viento en vuelta",       r.windAtReturn ? r.windAtReturn+"kn" : "--", r.windAtReturn>18?T.warn:T.ok],
               ["Tiempo fuera aprox.",    r.totalHours+"h",   T.ink   ],
             ].map(([l,v,c],i)=>(
               <div key={i}>{i>0&&<Divider/>}
@@ -2411,7 +2411,7 @@ function Fondeo() {
                 </div>
               </div>
               <div style={{ color:garreando?T.danger:T.ok, fontSize:13, fontWeight:600 }}>
-                {garreando ? "Garreando — ¡comprueba el ancla!" : "Ancla firme"}
+                {garreando ? "Garreando -- ¡comprueba el ancla!" : "Ancla firme"}
               </div>
               {anclaPos && (
                 <div style={{ color:T.inkDim, fontSize:10, marginTop:6,
