@@ -1,4 +1,3 @@
-// v2.1
 import { useState, useEffect, useRef } from "react";
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
