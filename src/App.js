@@ -3012,3 +3012,142 @@ function SidebarContent({ navTo, screen, onClose, showClose }) {
     </>
   );
 }
+
+// ── NAVIGATION CONFIG ─────────────────────────────────────────────────────────
+const MENU = [
+  { section:"Navegación", items:[
+    { id:"dashboard",    label:"Panel",        svg:NAV[0].svg },
+    { id:"clima",        label:"Clima",         svg:NAV[1].svg },
+    { id:"calculadora",  label:"Calculadora",   svg:NAV[11].svg },
+    { id:"fondeo",       label:"Fondeo",        svg:NAV[12].svg },
+  ]},
+  { section:"Barco", items:[
+    { id:"bitacora",     label:"Bitácora",      svg:NAV[2].svg },
+    { id:"puertos",      label:"Puertos",       svg:NAV[5].svg },
+    { id:"patrones",     label:"Patrones",      svg:NAV[6].svg },
+    { id:"ficha",        label:"Ficha técnica", svg:NAV[7].svg },
+  ]},
+  { section:"Gestión", items:[
+    { id:"mantenimiento",label:"Mantenimiento", svg:NAV[3].svg },
+    { id:"combustible",  label:"Combustible",   svg:NAV[4].svg },
+    { id:"inventario",   label:"Inventario",    svg:NAV[8].svg },
+    { id:"seguridad",    label:"Seguridad",     svg:NAV[9].svg },
+    { id:"documentos",   label:"Documentos",    svg:NAV[10].svg },
+  ]},
+  { section:"IA", items:[
+    { id:"ia",           label:"Asistente IA",  svg:NAV[10].svg },
+  ]},
+];
+
+const SCREENS = {
+  dashboard:    Dashboard,
+  clima:        Clima,
+  calculadora:  Calculadora,
+  fondeo:       Fondeo,
+  bitacora:     Bitacora,
+  puertos:      Puertos,
+  patrones:     Patrones,
+  ficha:        Ficha,
+  mantenimiento:Mantenimiento,
+  combustible:  Combustible,
+  inventario:   Inventario,
+  seguridad:    Seguridad,
+  documentos:   Documentos,
+  ia:           AsistenteIA,
+};
+
+// ── APP ROOT ──────────────────────────────────────────────────────────────────
+export default function App() {
+  const [screen, setScreen] = useState("dashboard");
+  const [sideOpen, setSideOpen] = useState(false);
+  const Screen = SCREENS[screen] || Dashboard;
+
+  function navTo(id) { setScreen(id); setSideOpen(false); }
+
+  const currentLabel = MENU.flatMap(s=>s.items).find(i=>i.id===screen)?.label || "Panel";
+
+  return (
+    <div style={{ height:"100dvh", background:T.bg, color:T.ink,
+      fontFamily:"'Crimson Pro',Georgia,serif",
+      display:"flex", flexDirection:"row", overflow:"hidden" }}>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Crimson+Pro:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&display=swap');
+        *{box-sizing:border-box}
+        ::-webkit-scrollbar{width:0}
+        input::placeholder{color:#9A9488}
+        select{font-family:inherit}
+        textarea{font-family:inherit}
+        button{font-family:inherit}
+        @keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+        @keyframes garreo-pulse{from{box-shadow:0 0 0 0 rgba(168,52,40,0.5)}to{box-shadow:0 0 0 14px rgba(168,52,40,0)}}
+        @keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        .app-sidebar-desktop{display:none}
+        .app-content{flex:1;display:flex;flex-direction:column;min-width:0;max-width:600px;margin:0 auto;width:100%}
+        .app-header-hamburger{display:flex}
+        @media(min-width:768px){
+          .app-sidebar-desktop{display:flex !important}
+          .app-header-hamburger{display:none !important}
+          .app-content{max-width:none;margin:0}
+        }
+        @media(min-width:1024px){
+          .app-content-inner{padding:24px 32px 40px !important;max-width:800px;margin:0 auto;width:100%}
+        }
+      `}</style>
+
+      {/* SIDEBAR OVERLAY (movil) */}
+      {sideOpen && (
+        <div style={{ position:"fixed", inset:0, zIndex:200, display:"flex" }}>
+          <div onClick={()=>setSideOpen(false)} style={{ position:"absolute", inset:0,
+            background:"rgba(0,0,0,0.65)", animation:"fadeIn 0.2s ease" }}/>
+          <div style={{ position:"relative", width:272, height:"100%", background:T.surface,
+            borderRight:`1px solid ${T.rimHi}`, overflowY:"auto",
+            animation:"slideIn 0.25s ease", zIndex:1, display:"flex", flexDirection:"column",
+            boxShadow:"4px 0 24px rgba(0,0,0,0.3)" }}>
+            <SidebarContent navTo={navTo} screen={screen} onClose={()=>setSideOpen(false)} showClose={true}/>
+          </div>
+        </div>
+      )}
+
+      {/* SIDEBAR FIJO (tablet/desktop) */}
+      <div className="app-sidebar-desktop" style={{ width:240, height:"100dvh", background:T.surface,
+        borderRight:`1px solid ${T.line}`, flexDirection:"column", flexShrink:0, overflowY:"auto" }}>
+        <SidebarContent navTo={navTo} screen={screen} onClose={()=>{}} showClose={false}/>
+      </div>
+
+      {/* MAIN */}
+      <div className="app-content" style={{ background:T.bg }}>
+        {/* HEADER */}
+        <div style={{ position:"sticky", top:0, zIndex:100, background:T.bg,
+          borderBottom:`1px solid ${T.line}`, padding:"13px 18px",
+          display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
+          <button className="app-header-hamburger" onClick={()=>setSideOpen(true)}
+            style={{ background:"none", border:"none", cursor:"pointer",
+              flexDirection:"column", gap:4.5, padding:"4px 2px" }}>
+            {[0,1,2].map(i=>(
+              <div key={i} style={{ width:20, height:1.5, background:T.inkMid, borderRadius:1 }}/>
+            ))}
+          </button>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16,
+              fontWeight:600, color:T.ink, lineHeight:1 }}>{currentLabel}</div>
+            <div style={{ fontSize:8.5, color:T.inkDim, letterSpacing:2,
+              textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginTop:2 }}>Leonidas</div>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+            <div style={{ width:5, height:5, borderRadius:"50%", background:T.ok,
+              boxShadow:`0 0 7px ${T.ok}` }}/>
+            <span style={{ fontSize:9.5, color:T.inkDim, fontFamily:"'DM Mono',monospace" }}>Porto</span>
+          </div>
+        </div>
+
+        {/* CONTENT */}
+        <div className="app-content-inner" style={{ flex:1, overflowY:"auto", overflowX:"hidden",
+          padding:"18px 16px 40px", WebkitOverflowScrolling:"touch", minHeight:0 }}>
+          <Screen setScreen={navTo}/>
+        </div>
+      </div>
+    </div>
+  );
+}
