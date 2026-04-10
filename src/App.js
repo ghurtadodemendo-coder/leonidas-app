@@ -1658,7 +1658,13 @@ function Patrones() {
     setSaving(true);
     try {
       const initials = form.nombre.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
-      await db("patrones","POST",{ ...form, av:initials });
+      await db("patrones","POST",{
+        nombre: form.nombre,
+        rol: form.rol,
+        tit: form.tit,
+        tel: form.tel,
+        av: initials,
+      });
       setShowForm(false);
       setForm({ nombre:"", alias:"", rol:"Patron", tit:"PER", tel:"" });
       cargar();
@@ -1736,7 +1742,7 @@ function Patrones() {
       {loading ? (
         <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
       ) : todos.map(p => {
-        const key = p.alias || p.nombre.split(" ")[0];
+        const key = p.nombre.split(" ")[0];
         const stats = statsMap[key] || statsMap[p.nombre] || { salidas:0, millas:0 };
         const docs = p.id === "va" || p.id === "gu" ? [] : (docsMap[p.id] || []);
         const isOpen = openCard === p.id;
