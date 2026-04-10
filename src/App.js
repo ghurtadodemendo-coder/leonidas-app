@@ -1802,15 +1802,17 @@ function Patrones() {
                     <FSelect label="Tipo" value={docForm.tipo} onChange={updD("tipo")} options={DOC_TIPOS}/>
                     <FInput label="Fecha vencimiento" type="date" value={docForm.fecha_vencimiento} onChange={updD("fecha_vencimiento")}/>
                     <div style={{marginBottom:10}}>
-                      <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={e=>setSelectedFile(e.target.files[0]||null)}
-                        style={{display:"none"}}/>
-                      <button onClick={()=>fileRef.current?.click()} style={{
-                        width:"100%",background:T.surfaceUp,border:`1px dashed ${T.rimHi}`,
-                        borderRadius:7,padding:"10px",color:selectedFile?T.brass:T.inkDim,
-                        fontSize:12,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+                      <label style={{
+                        display:"block",width:"100%",background:T.surfaceUp,
+                        border:`1px dashed ${T.rimHi}`,borderRadius:7,padding:"10px",
+                        color:selectedFile?T.brass:T.inkDim,fontSize:12,
+                        cursor:"pointer",fontFamily:"inherit",textAlign:"center",
+                        boxSizing:"border-box"}}>
                         {selectedFile?`📎 ${selectedFile.name}`:"Seleccionar archivo"}
-                      </button>
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={e=>setSelectedFile(e.target.files[0]||null)}
+                          style={{display:"none"}}/>
+                      </label>
                     </div>
                     <div style={{display:"flex",gap:8}}>
                       <Btn sm onClick={()=>subirDoc(p.id)}>{saving?"Guardando...":"Guardar"}</Btn>
