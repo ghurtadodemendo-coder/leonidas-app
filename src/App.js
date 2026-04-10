@@ -227,6 +227,23 @@ function FTextarea({ label, value, onChange, rows=2 }) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+
+// ── PATRON SELECT (carga patrones desde Supabase + base hardcodeados) ─────────
+function PatronSelect({ value, onChange }) {
+  const [opciones, setOpciones] = useState(["Guille","Varo"]);
+  useEffect(()=>{
+    db("patrones","GET",null,"?order=nombre.asc")
+      .then(rows => {
+        const extras = rows.map(r => r.alias || r.nombre.split(" ")[0]);
+        const todos = ["Guille","Varo",...extras.filter(n=>!["Guille","Varo"].includes(n))];
+        setOpciones([...new Set(todos)]);
+      })
+      .catch(()=>{});
+  },[]);
+  return <FSelect label="Patron" value={value} onChange={onChange} options={opciones}/>;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function Btn({ children, onClick, variant="primary", sm }) {
   const base = { border:"none", borderRadius:7, cursor:"pointer",
     fontSize:sm?11:12.5, fontWeight:700, fontFamily:"inherit", letterSpacing:0.4,
@@ -695,7 +712,7 @@ function Bitacora() {
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <div>
               <FInput label="Fecha" type="date" value={form.fecha} onChange={upd("fecha")}/>
-              <FSelect label="Patrón" value={form.patron} onChange={upd("patron")} options={["Guille","Varo"]}/>
+              <PatronSelect value={form.patron} onChange={upd("patron")}/>
               <FInput label="Puerto salida" value={form.salida} onChange={upd("salida")}/>
               <FInput label="Hora salida" type="time" value={form.hora_salida} onChange={upd("hora_salida")}/>
               <FInput label="Puerto llegada *" value={form.llegada} onChange={upd("llegada")}/>
@@ -1586,25 +1603,35 @@ function Documentos() {
 function Patrones() {
   const [patrones, setPatrones] = useState([]);
   const [statsMap, setStatsMap] = useState({});
+  const [docsMap, setDocsMap]   = useState({});
   const [loading, setLoading]   = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showDocForm, setShowDocForm] = useState(null); // patron id
   const [saving, setSaving]     = useState(false);
-  const [form, setForm]         = useState({ nombre:"", rol:"Patron", tit:"PER", tel:"" });
+  const [openCard, setOpenCard] = useState(null);
+  const [form, setForm]         = useState({ nombre:"", alias:"", rol:"Patron", tit:"PER", tel:"" });
+  const [docForm, setDocForm]   = useState({ nombre:"", tipo:"Titulacion", fecha_vencimiento:"" });
+  const fileRef = useRef(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
+  const updD = f => e => setDocForm(v=>({...v,[f]:e.target.value}));
 
   const PATRONES_BASE = [
-    { id:"va", nombre:"Salvador Alvarez Escobar",           rol:"Patron", tit:"Patron de Yate", tel:"--", av:"VA", hue:T.info },
-    { id:"gu", nombre:"Guillermo J. Hurtado de Mendoza",    rol:"Patron", tit:"PER",            tel:"--", av:"GU", hue:T.brass },
+    { id:"va", nombre:"Salvador Alvarez Escobar",        alias:"Varo",  rol:"Patron", tit:"Patron de Yate", tel:"--", av:"VA", hue:T.info },
+    { id:"gu", nombre:"Guillermo J. Hurtado de Mendoza", alias:"Guille",rol:"Patron", tit:"PER",            tel:"--", av:"GU", hue:T.brass },
   ];
 
   async function cargar() {
     try {
       setLoading(true);
-      const [extras, bits] = await Promise.all([
+      const [extras, bits, docs] = await Promise.all([
         db("patrones","GET",null,"?order=created_at.asc"),
         db("bitacora","GET",null,"?select=patron,millas"),
+        db("documentos","GET",null,"?patron_id=not.is.null"),
       ]);
       setPatrones(extras);
+
+      // Build stats map by alias AND nombre
       const map = {};
       bits.forEach(b => {
         const p = b.patron;
@@ -1613,6 +1640,14 @@ function Patrones() {
         map[p].millas += parseFloat(b.millas)||0;
       });
       setStatsMap(map);
+
+      // Build docs map by patron_id
+      const dm = {};
+      docs.forEach(d => {
+        if (!dm[d.patron_id]) dm[d.patron_id] = [];
+        dm[d.patron_id].push(d);
+      });
+      setDocsMap(dm);
     } catch(e){ console.error(e); }
     finally { setLoading(false); }
   }
@@ -1625,7 +1660,7 @@ function Patrones() {
       const initials = form.nombre.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
       await db("patrones","POST",{ ...form, av:initials });
       setShowForm(false);
-      setForm({ nombre:"", rol:"Patron", tit:"PER", tel:"" });
+      setForm({ nombre:"", alias:"", rol:"Patron", tit:"PER", tel:"" });
       cargar();
     } catch(e){ alert("Error: "+e.message); }
     finally { setSaving(false); }
@@ -1636,10 +1671,46 @@ function Patrones() {
     try { await db(`patrones?id=eq.${id}`,"DELETE"); cargar(); } catch(e){}
   }
 
+  async function subirDoc(patronId) {
+    if (!docForm.nombre) return;
+    setSaving(true);
+    try {
+      let url_archivo = null;
+      if (selectedFile) {
+        const ext = selectedFile.name.split(".").pop();
+        const filename = `${Date.now()}-${docForm.nombre.replace(/\s+/g,"-")}.${ext}`;
+        const res = await fetch(`${SUPA_URL}/storage/v1/object/documentos/${filename}`, {
+          method:"POST",
+          headers:{ "apikey":SUPA_KEY, "Authorization":`Bearer ${SUPA_KEY}`,
+            "Content-Type":selectedFile.type, "x-upsert":"true" },
+          body: selectedFile
+        });
+        if (res.ok) url_archivo = `${SUPA_URL}/storage/v1/object/public/documentos/${filename}`;
+      }
+      await db("documentos","POST",{
+        nombre:docForm.nombre, tipo:docForm.tipo,
+        fecha_vencimiento:docForm.fecha_vencimiento||null,
+        url_archivo, patron_id:patronId
+      });
+      setShowDocForm(null);
+      setDocForm({ nombre:"", tipo:"Titulacion", fecha_vencimiento:"" });
+      setSelectedFile(null);
+      cargar();
+    } catch(e){ alert("Error: "+e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function eliminarDoc(id) {
+    if (!window.confirm("Eliminar documento?")) return;
+    try { await db(`documentos?id=eq.${id}`,"DELETE"); cargar(); } catch(e){}
+  }
+
   const todos = [
     ...PATRONES_BASE,
     ...patrones.map(p=>({ ...p, hue:T.ok }))
   ];
+
+  const DOC_TIPOS = ["Titulacion","DNI","Pasaporte","Seguro medico","Certificado medico","Otro"];
 
   return (
     <div>
@@ -1651,6 +1722,7 @@ function Patrones() {
           <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
             textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nuevo patron</div>
           <FInput label="Nombre completo *" value={form.nombre} onChange={upd("nombre")}/>
+          <FInput label="Alias en bitacora (ej: Guille)" value={form.alias} onChange={upd("alias")}/>
           <FInput label="Titulacion" value={form.tit} onChange={upd("tit")}/>
           <FInput label="Telefono" value={form.tel} onChange={upd("tel")}/>
           <FSelect label="Rol" value={form.rol} onChange={upd("rol")} options={["Patron","Marinero","Invitado"]}/>
@@ -1664,34 +1736,117 @@ function Patrones() {
       {loading ? (
         <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
       ) : todos.map(p => {
-        const firstName = p.nombre.split(" ")[0];
-        const stats = statsMap[firstName] || statsMap[p.nombre] || { salidas:0, millas:0 };
+        const key = p.alias || p.nombre.split(" ")[0];
+        const stats = statsMap[key] || statsMap[p.nombre] || { salidas:0, millas:0 };
+        const docs = p.id === "va" || p.id === "gu" ? [] : (docsMap[p.id] || []);
+        const isOpen = openCard === p.id;
+
         return (
           <Card key={p.id} style={{marginBottom:11}}>
+            {/* Header */}
             <div style={{display:"flex",alignItems:"center",gap:13,marginBottom:13}}>
               <div style={{width:44,height:44,borderRadius:9,background:p.hue+"18",
                 border:`1px solid ${p.hue}38`,display:"flex",alignItems:"center",
                 justifyContent:"center",fontSize:13,fontWeight:700,color:p.hue,
                 flexShrink:0,fontFamily:"'DM Mono',monospace"}}>{p.av}</div>
               <div style={{flex:1}}>
-                <div style={{color:T.ink,fontWeight:600,fontSize:17,fontFamily:"'Cormorant Garamond',serif"}}>{p.nombre}</div>
-                <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{p.rol} · {p.tit} · {p.tel}</div>
+                <div style={{color:T.ink,fontWeight:600,fontSize:17,
+                  fontFamily:"'Cormorant Garamond',serif"}}>{p.nombre}</div>
+                <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,
+                  fontFamily:"'DM Mono',monospace"}}>{p.rol} · {p.tit} · {p.tel}</div>
               </div>
-              {!["va","gu"].includes(p.id) && (
-                <button onClick={()=>eliminar(p.id)} style={{background:"none",
-                  border:`1px solid ${T.danger}40`,borderRadius:5,padding:"4px 8px",
-                  color:T.danger,fontSize:11,cursor:"pointer"}}>✕</button>
-              )}
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={()=>setOpenCard(isOpen?null:p.id)}
+                  style={{background:"none",border:`1px solid ${T.rimHi}`,borderRadius:5,
+                    padding:"4px 8px",color:T.inkDim,fontSize:12,cursor:"pointer"}}>
+                  {isOpen?"−":"+"}
+                </button>
+                {!["va","gu"].includes(p.id) && (
+                  <button onClick={()=>eliminar(p.id)} style={{background:"none",
+                    border:`1px solid ${T.danger}40`,borderRadius:5,padding:"4px 8px",
+                    color:T.danger,fontSize:11,cursor:"pointer"}}>✕</button>
+                )}
+              </div>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
+
+            {/* Stats */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:isOpen?13:0}}>
               {[["Salidas",stats.salidas],["Millas",stats.millas.toFixed(0)+" mn"]].map(([lbl,val])=>(
                 <div key={lbl} style={{background:T.bg,borderRadius:7,padding:"9px 11px"}}>
                   <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
                     fontFamily:"'DM Mono',monospace",marginBottom:4}}>{lbl}</div>
-                  <div style={{fontSize:20,fontWeight:600,color:p.hue,fontFamily:"'Cormorant Garamond',serif"}}>{val}</div>
+                  <div style={{fontSize:20,fontWeight:600,color:p.hue,
+                    fontFamily:"'Cormorant Garamond',serif"}}>{val}</div>
                 </div>
               ))}
             </div>
+
+            {/* Documentos expandidos */}
+            {isOpen && (
+              <div style={{borderTop:`1px solid ${T.line}`,paddingTop:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div style={{fontSize:9.5,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                    fontFamily:"'DM Mono',monospace"}}>Documentos</div>
+                  {!["va","gu"].includes(p.id) && (
+                    <button onClick={()=>setShowDocForm(showDocForm===p.id?null:p.id)}
+                      style={{background:"none",border:`1px solid ${T.rimHi}`,borderRadius:5,
+                        padding:"3px 8px",color:T.brass,fontSize:11,cursor:"pointer"}}>
+                      + Añadir
+                    </button>
+                  )}
+                </div>
+
+                {showDocForm === p.id && (
+                  <div style={{background:T.bg,borderRadius:8,padding:"12px",marginBottom:10}}>
+                    <FInput label="Nombre del documento *" value={docForm.nombre} onChange={updD("nombre")}/>
+                    <FSelect label="Tipo" value={docForm.tipo} onChange={updD("tipo")} options={DOC_TIPOS}/>
+                    <FInput label="Fecha vencimiento" type="date" value={docForm.fecha_vencimiento} onChange={updD("fecha_vencimiento")}/>
+                    <div style={{marginBottom:10}}>
+                      <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={e=>setSelectedFile(e.target.files[0]||null)}
+                        style={{display:"none"}}/>
+                      <button onClick={()=>fileRef.current?.click()} style={{
+                        width:"100%",background:T.surfaceUp,border:`1px dashed ${T.rimHi}`,
+                        borderRadius:7,padding:"10px",color:selectedFile?T.brass:T.inkDim,
+                        fontSize:12,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+                        {selectedFile?`📎 ${selectedFile.name}`:"Seleccionar archivo"}
+                      </button>
+                    </div>
+                    <div style={{display:"flex",gap:8}}>
+                      <Btn sm onClick={()=>subirDoc(p.id)}>{saving?"Guardando...":"Guardar"}</Btn>
+                      <Btn sm variant="ghost" onClick={()=>{setShowDocForm(null);setSelectedFile(null);}}>Cancelar</Btn>
+                    </div>
+                  </div>
+                )}
+
+                {docs.length === 0 ? (
+                  <div style={{color:T.inkDim,fontSize:12,fontStyle:"italic"}}>
+                    Sin documentos. Pulsa "+ Añadir".
+                  </div>
+                ) : docs.map(d=>(
+                  <div key={d.id} style={{display:"flex",justifyContent:"space-between",
+                    alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.line}`}}>
+                    <div>
+                      <div style={{color:T.ink,fontSize:13}}>{d.nombre}</div>
+                      <div style={{color:T.inkDim,fontSize:9.5,fontFamily:"'DM Mono',monospace"}}>
+                        {d.tipo}{d.fecha_vencimiento?` · Vence ${d.fecha_vencimiento}`:""}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:6}}>
+                      {d.url_archivo && (
+                        <a href={d.url_archivo} target="_blank" rel="noopener noreferrer"
+                          style={{background:T.brassDim,border:`1px solid ${T.brass}35`,
+                            borderRadius:5,padding:"3px 8px",color:T.brass,
+                            fontSize:11,textDecoration:"none"}}>Ver</a>
+                      )}
+                      <button onClick={()=>eliminarDoc(d.id)} style={{background:"none",
+                        border:`1px solid ${T.danger}40`,borderRadius:5,padding:"3px 6px",
+                        color:T.danger,fontSize:11,cursor:"pointer"}}>✕</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
         );
       })}
