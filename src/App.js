@@ -861,155 +861,295 @@ function Mantenimiento() {
   const [tab, setTab] = useState("tareas");
   const [tareas, setTareas] = useState([]);
   const [averias, setAverias] = useState([]);
+  const [horasActuales, setHorasActuales] = useState(774);
   const [loading, setLoading] = useState(true);
+  const [editId, setEditId] = useState(null);
   const [showAveriaForm, setShowAveriaForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ fecha_ultima:"", horas_ultima:"", notas:"", coste:"" });
-  const [averiaForm, setAveriaForm] = useState({
-    fecha: new Date().toISOString().split("T")[0],
-    descripcion:"", patron:"Guille", notas:"", coste:"0"
-  });
-  const updA = f => e => setAveriaForm(v=>({...v,[f]:e.target.value}));
-  const updF = f => e => setForm(v=>({...v,[f]:e.target.value}));
+  const [formEdit, setFormEdit] = useState({ fecha_ultima:"", horas_ultima:"", coste:"", notas:"" });
+  const [formAveria, setFormAveria] = useState({ fecha:new Date().toISOString().split("T")[0], descripcion:"", patron:"Guille", notas:"", coste:"0" });
+  const updE = f => e => setFormEdit(v=>({...v,[f]:e.target.value}));
+  const updA = f => e => setFormAveria(v=>({...v,[f]:e.target.value}));
 
   async function cargar() {
     try {
       setLoading(true);
-      const [t, a] = await Promise.all([
+      const [t, a, bits] = await Promise.all([
         db("mantenimiento","GET",null,"?order=tipo.asc"),
         db("averias","GET",null,"?order=fecha.desc"),
+        db("bitacora","GET",null,"?select=horas_motor_inicio,horas_motor_fin"),
       ]);
-      setTareas(t); setAverias(a);
-    } catch(e){} finally { setLoading(false); }
+      setTareas(t);
+      setAverias(a);
+      const horasNav = bits.reduce((acc,b)=>{
+        const ini = parseFloat(b.horas_motor_inicio)||0;
+        const fin = parseFloat(b.horas_motor_fin)||0;
+        return acc + (fin > ini ? fin - ini : 0);
+      }, 0);
+      setHorasActuales(774 + horasNav);
+    } catch(e){ console.error(e); }
+    finally { setLoading(false); }
   }
   useEffect(()=>{ cargar(); },[]);
 
-  async function guardarAveria() {
-    if (!averiaForm.descripcion) return;
+  async function marcarRealizado(id) {
+    if (!formEdit.fecha_ultima) return;
     setSaving(true);
     try {
-      await db("averias","POST",{ ...averiaForm, coste:parseFloat(averiaForm.coste)||0, estado:"pendiente" });
-      setShowAveriaForm(false);
-      setAveriaForm({ fecha:new Date().toISOString().split("T")[0], descripcion:"", patron:"Guille", notas:"", coste:"0" });
-      cargar();
-    } catch(e){ alert("Error: "+e.message); } finally { setSaving(false); }
-  }
-
-  async function actualizarTarea(id) {
-    try {
       await db(`mantenimiento?id=eq.${id}`,"PATCH",{
-        fecha_ultima: form.fecha_ultima||null,
-        horas_ultima: parseFloat(form.horas_ultima)||null,
-        coste: parseFloat(form.coste)||0,
-        notas: form.notas||null,
+        fecha_ultima: formEdit.fecha_ultima,
+        horas_ultima: parseFloat(formEdit.horas_ultima)||horasActuales,
+        coste: parseFloat(formEdit.coste)||0,
+        notas: formEdit.notas||null,
         estado: "ok",
         updated_at: new Date().toISOString(),
       });
       setEditId(null);
+      setFormEdit({ fecha_ultima:"", horas_ultima:"", coste:"", notas:"" });
       cargar();
     } catch(e){ alert("Error: "+e.message); }
+    finally { setSaving(false); }
   }
+
+  async function guardarAveria() {
+    if (!formAveria.descripcion) return;
+    setSaving(true);
+    try {
+      await db("averias","POST",{ ...formAveria, coste:parseFloat(formAveria.coste)||0, estado:"pendiente" });
+      setShowAveriaForm(false);
+      setFormAveria({ fecha:new Date().toISOString().split("T")[0], descripcion:"", patron:"Guille", notas:"", coste:"0" });
+      cargar();
+    } catch(e){ alert("Error: "+e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function cambiarEstadoAveria(id, estado) {
+    try { await db(`averias?id=eq.${id}`,"PATCH",{ estado }); cargar(); } catch(e){}
+  }
+
+  // Calcular estado de cada tarea
+  function calcEstado(t) {
+    const hInt = t.horas_intervalo;
+    const hUlt = parseFloat(t.horas_ultima)||0;
+    const hoy = new Date();
+
+    // Por horas
+    if (hInt && hUlt) {
+      const hRestantes = hInt - (horasActuales - hUlt);
+      if (hRestantes <= 0) return { nivel:"danger", texto:`Vencido hace ${Math.abs(Math.round(hRestantes))}h`, pct:100 };
+      if (hRestantes <= hInt * 0.2) return { nivel:"warn", texto:`${Math.round(hRestantes)}h restantes`, pct:Math.round(((hInt-hRestantes)/hInt)*100) };
+      return { nivel:"ok", texto:`${Math.round(hRestantes)}h restantes`, pct:Math.round(((hInt-hRestantes)/hInt)*100) };
+    }
+
+    // Por fecha
+    if (t.fecha_proxima) {
+      const diasRestantes = Math.round((new Date(t.fecha_proxima) - hoy) / 86400000);
+      if (diasRestantes <= 0) return { nivel:"danger", texto:`Vencido hace ${Math.abs(diasRestantes)} dias`, pct:100 };
+      if (diasRestantes <= 30) return { nivel:"warn", texto:`${diasRestantes} dias`, pct:80 };
+      return { nivel:"ok", texto:`${diasRestantes} dias`, pct:20 };
+    }
+
+    if (t.fecha_ultima) return { nivel:"ok", texto:`Ult: ${t.fecha_ultima}`, pct:10 };
+    return { nivel:"info", texto:"Sin datos", pct:0 };
+  }
+
+  const CATEGORIAS = ["Motor","Sistema de refrigeracion","Combustible","Sistemas generales","Obligatorio legal"];
+
+  const tareasPorCat = CATEGORIAS.map(cat => ({
+    cat,
+    items: tareas.filter(t => t.tipo?.startsWith(cat) ||
+      (cat === "Motor" && (t.tipo?.includes("aceite") || t.tipo?.includes("Aceite") || t.tipo?.includes("correa") || t.tipo?.includes("Correa") || t.tipo?.includes("turbo") || t.tipo?.includes("valvula"))) ||
+      (cat === "Sistema de refrigeracion" && (t.tipo?.includes("mpelente") || t.tipo?.includes("nodo") || t.tipo?.includes("efrigerante"))) ||
+      (cat === "Combustible" && (t.tipo?.includes("iltro") || t.tipo?.includes("ombustible"))) ||
+      (cat === "Obligatorio legal" && (t.tipo?.includes("ITV") || t.tipo?.includes("eguro") || t.tipo?.includes("alsa") || t.tipo?.includes("engala"))) ||
+      (cat === "Sistemas generales" && !["Motor","Sistema de refrigeracion","Combustible","Obligatorio legal"].some(c =>
+        c === "Motor" && (t.tipo?.includes("aceite") || t.tipo?.includes("Aceite") || t.tipo?.includes("correa") || t.tipo?.includes("Correa")) ||
+        c === "Sistema de refrigeracion" && (t.tipo?.includes("mpelente") || t.tipo?.includes("nodo") || t.tipo?.includes("efrigerante")) ||
+        c === "Combustible" && (t.tipo?.includes("iltro") || t.tipo?.includes("ombustible")) ||
+        c === "Obligatorio legal" && (t.tipo?.includes("ITV") || t.tipo?.includes("eguro") || t.tipo?.includes("alsa") || t.tipo?.includes("engala"))
+      ))
+    )
+  })).filter(c => c.items.length > 0);
+
+  const alertas = tareas.filter(t => ["danger","warn"].includes(calcEstado(t).nivel));
 
   return (
     <div>
-      <Hdr eyebrow="Estado técnico" title="Mantenimiento"/>
-      <div style={{display:"flex",background:T.bg,borderRadius:7,padding:3,gap:3,marginBottom:18,border:`1px solid ${T.rimHi}`}}>
-        {[["tareas","Tareas periódicas"],["averias","Averías"]].map(([id,lbl])=>(
+      <Hdr eyebrow="Estado tecnico" title="Mantenimiento"/>
+
+      {/* Resumen alertas */}
+      {alertas.length > 0 && (
+        <div style={{background:T.danger+"10",border:`1px solid ${T.danger}28`,
+          borderRadius:8,padding:"11px 15px",marginBottom:16}}>
+          <div style={{color:T.danger,fontSize:12,fontWeight:600,marginBottom:4}}>
+            {alertas.filter(t=>calcEstado(t).nivel==="danger").length} tareas vencidas ·{" "}
+            {alertas.filter(t=>calcEstado(t).nivel==="warn").length} proximas
+          </div>
+          <div style={{color:T.inkDim,fontSize:10,fontFamily:"'DM Mono',monospace"}}>
+            Horas motor actuales: {horasActuales.toFixed(1)}h
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div style={{display:"flex",background:T.bg,borderRadius:7,padding:3,
+        gap:3,marginBottom:18,border:`1px solid ${T.rimHi}`}}>
+        {[["tareas","Tareas"],["averias","Averias"]].map(([id,lbl])=>(
           <button key={id} onClick={()=>setTab(id)} style={{
             flex:1,padding:"8px",borderRadius:5,border:"none",cursor:"pointer",
             background:tab===id?T.surface:"transparent",
             color:tab===id?T.ink:T.inkDim,fontSize:11.5,fontWeight:tab===id?600:400,
-            fontFamily:"inherit",boxShadow:tab===id?"0 1px 3px rgba(0,0,0,0.15)":"none"}}>{lbl}</button>
+            fontFamily:"inherit",boxShadow:tab===id?"0 1px 3px rgba(0,0,0,0.15)":"none"}}>
+            {lbl}
+            {id==="averias" && averias.filter(a=>a.estado==="pendiente").length > 0 && (
+              <span style={{marginLeft:6,background:T.danger,color:"#fff",borderRadius:8,
+                padding:"1px 5px",fontSize:9,fontWeight:700}}>
+                {averias.filter(a=>a.estado==="pendiente").length}
+              </span>
+            )}
+          </button>
         ))}
       </div>
 
+      {/* ══ TAREAS ══ */}
       {tab==="tareas" && (
         loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
-        : tareas.map(t=>{
-          const pct = t.horas_intervalo && t.horas_ultima
-            ? Math.min(100,((774-t.horas_ultima)/t.horas_intervalo)*100) : null;
-          const bc = t.estado==="danger"?T.danger:t.estado==="warn"?T.warn:T.ok;
-          const isEditing = editId === t.id;
-          return (
-            <Card key={t.id} style={{marginBottom:9}}>
-              {isEditing ? (
-                <div>
-                  <FInput label="Fecha última revisión" type="date" value={form.fecha_ultima} onChange={updF("fecha_ultima")}/>
-                  <FInput label="Horas motor en revisión" type="number" value={form.horas_ultima} onChange={updF("horas_ultima")}/>
-                  <FInput label="Coste (€)" type="number" value={form.coste} onChange={updF("coste")}/>
-                  <FInput label="Notas" value={form.notas} onChange={updF("notas")}/>
-                  <div style={{display:"flex",gap:8,marginTop:6}}>
-                    <Btn sm onClick={()=>actualizarTarea(t.id)}>Guardar</Btn>
-                    <Btn sm variant="ghost" onClick={()=>setEditId(null)}>Cancelar</Btn>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:pct!==null?10:0}}>
-                    <div style={{flex:1}}>
-                      <div style={{color:T.ink,fontWeight:600,fontSize:13.5}}>{t.tipo}</div>
-                      <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>
-                        Últ: {t.fecha_ultima||"Pendiente"}{t.notas ? ` · ${t.notas}` : ""}
-                      </div>
-                    </div>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <Signal estado={t.estado}/>
-                      <button onClick={()=>{setEditId(t.id);setForm({fecha_ultima:t.fecha_ultima||"",horas_ultima:t.horas_ultima||"",notas:t.notas||"",coste:t.coste||""});}}
-                        style={{background:"none",border:`1px solid ${T.rimHi}`,borderRadius:5,
-                          padding:"3px 8px",color:T.inkDim,fontSize:10,cursor:"pointer"}}>✏️</button>
-                    </div>
-                  </div>
-                  {pct!==null&&(
+        : tareasPorCat.map(({cat, items})=>(
+          <div key={cat} style={{marginBottom:20}}>
+            <div style={{fontSize:9.5,color:T.brass,letterSpacing:2,textTransform:"uppercase",
+              fontFamily:"'DM Mono',monospace",marginBottom:10}}>{cat}</div>
+            {items.map(t => {
+              const est = calcEstado(t);
+              const bc = est.nivel==="danger"?T.danger:est.nivel==="warn"?T.warn:T.ok;
+              const isEditing = editId === t.id;
+              return (
+                <Card key={t.id} style={{marginBottom:8,borderLeft:`3px solid ${bc}`}}>
+                  {isEditing ? (
                     <div>
-                      <div style={{background:T.surfaceUp,borderRadius:2,height:2.5,overflow:"hidden"}}>
-                        <div style={{height:"100%",width:`${pct}%`,background:bc,borderRadius:2}}/>
+                      <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
+                        textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>
+                        Registrar revision
                       </div>
-                      <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-                        <span style={{color:T.inkDim,fontSize:9.5,fontFamily:"'DM Mono',monospace"}}>{Math.round(pct)}% del intervalo</span>
-                        <span style={{color:T.inkDim,fontSize:9.5,fontFamily:"'DM Mono',monospace"}}>{t.horas_intervalo}h intervalo</span>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                        <FInput label="Fecha realizacion *" type="date" value={formEdit.fecha_ultima} onChange={updE("fecha_ultima")}/>
+                        <FInput label="Horas motor" type="number" value={formEdit.horas_ultima}
+                          onChange={updE("horas_ultima")} placeholder={horasActuales.toFixed(0)}/>
                       </div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                        <FInput label="Coste (EUR)" type="number" value={formEdit.coste} onChange={updE("coste")}/>
+                        <FInput label="Notas" value={formEdit.notas} onChange={updE("notas")}/>
+                      </div>
+                      <div style={{display:"flex",gap:8}}>
+                        <Btn sm onClick={()=>marcarRealizado(t.id)}>{saving?"Guardando...":"Confirmar"}</Btn>
+                        <Btn sm variant="ghost" onClick={()=>setEditId(null)}>Cancelar</Btn>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                        <div style={{flex:1}}>
+                          <div style={{color:T.ink,fontWeight:600,fontSize:13.5}}>{t.tipo}</div>
+                          <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,
+                            fontFamily:"'DM Mono',monospace"}}>
+                            {t.fecha_ultima ? `Ultima revision: ${t.fecha_ultima}` : "Sin revisiones registradas"}
+                            {t.horas_intervalo ? ` · Cada ${t.horas_intervalo}h` : ""}
+                          </div>
+                        </div>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                          <span style={{color:bc,fontSize:10,fontWeight:600,
+                            fontFamily:"'DM Mono',monospace"}}>{est.texto}</span>
+                          <button onClick={()=>{
+                            setEditId(t.id);
+                            setFormEdit({fecha_ultima:new Date().toISOString().split("T")[0],
+                              horas_ultima:horasActuales.toFixed(0),coste:"",notas:""});
+                          }} style={{background:T.brass,border:"none",borderRadius:5,
+                            padding:"4px 10px",color:"#fff",fontSize:10,
+                            cursor:"pointer",fontWeight:700}}>
+                            Realizado
+                          </button>
+                        </div>
+                      </div>
+                      {t.horas_intervalo && t.horas_ultima && (
+                        <div>
+                          <div style={{background:T.surfaceUp,borderRadius:3,height:3,overflow:"hidden"}}>
+                            <div style={{height:"100%",
+                              width:`${Math.min(100,est.pct)}%`,
+                              background:bc,borderRadius:3,transition:"width 0.4s"}}/>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              )}
-            </Card>
-          );
-        })
+                </Card>
+              );
+            })}
+          </div>
+        ))
       )}
 
+      {/* ══ AVERIAS ══ */}
       {tab==="averias" && (
         <div>
           <div style={{marginBottom:14}}>
-            <Btn onClick={()=>setShowAveriaForm(!showAveriaForm)}>{showAveriaForm?"Cancelar":"+ Registrar avería"}</Btn>
+            <Btn onClick={()=>setShowAveriaForm(!showAveriaForm)}>
+              {showAveriaForm?"Cancelar":"+ Registrar averia"}
+            </Btn>
           </div>
+
           {showAveriaForm && (
             <Card style={{marginBottom:14}} pad="16px">
               <div style={{fontSize:11,color:T.danger,fontWeight:700,marginBottom:12,
-                textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nueva avería</div>
-              <FInput label="Fecha" type="date" value={averiaForm.fecha} onChange={updA("fecha")}/>
-              <FInput label="Descripción *" value={averiaForm.descripcion} onChange={updA("descripcion")}/>
-              <FInput label="Notas / diagnóstico" value={averiaForm.notas} onChange={updA("notas")}/>
-              <FInput label="Coste (€)" type="number" value={averiaForm.coste} onChange={updA("coste")}/>
-              <FSelect label="Patrón que reporta" value={averiaForm.patron} onChange={updA("patron")} options={["Guille","Varo"]}/>
-              <Btn onClick={guardarAveria}>{saving?"Guardando...":"Registrar avería"}</Btn>
+                textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nueva averia</div>
+              <FInput label="Descripcion *" value={formAveria.descripcion} onChange={updA("descripcion")}/>
+              <FInput label="Fecha" type="date" value={formAveria.fecha} onChange={updA("fecha")}/>
+              <FInput label="Notas / diagnostico" value={formAveria.notas} onChange={updA("notas")}/>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <FInput label="Coste (EUR)" type="number" value={formAveria.coste} onChange={updA("coste")}/>
+                <PatronSelect value={formAveria.patron} onChange={updA("patron")}/>
+              </div>
+              <Btn onClick={guardarAveria}>{saving?"Guardando...":"Registrar"}</Btn>
             </Card>
           )}
+
           {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
-          : averias.length===0 ? <Card><div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>Sin averías registradas.</div></Card>
-          : averias.map(a=>(
-            <Card key={a.id} style={{marginBottom:9}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                <div style={{flex:1,paddingRight:12}}>
-                  <div style={{color:T.ink,fontWeight:600,fontSize:13.5}}>{a.descripcion}</div>
-                  <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{a.fecha} · {a.patron}</div>
-                  {a.notas&&<div style={{color:T.inkMid,fontSize:12,marginTop:6}}>{a.notas}</div>}
-                  {a.coste>0&&<div style={{color:T.brassLt,fontSize:13,fontWeight:600,marginTop:6,fontFamily:"'DM Mono',monospace"}}>{a.coste}€</div>}
+          : averias.length===0 ? <Card><div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>Sin averias registradas.</div></Card>
+          : averias.map(a=>{
+            const colors = { pendiente:T.danger, en_taller:T.warn, resuelto:T.ok };
+            const c = colors[a.estado]||T.inkDim;
+            return (
+              <Card key={a.id} style={{marginBottom:9,borderLeft:`3px solid ${c}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div style={{flex:1,paddingRight:12}}>
+                    <div style={{color:T.ink,fontWeight:600,fontSize:13.5}}>{a.descripcion}</div>
+                    <div style={{color:T.inkDim,fontSize:10,marginTop:3,
+                      fontFamily:"'DM Mono',monospace"}}>{a.fecha} · {a.patron}</div>
+                    {a.notas&&<div style={{color:T.inkMid,fontSize:12,marginTop:6}}>{a.notas}</div>}
+                    {a.coste>0&&<div style={{color:T.brassLt,fontSize:12,marginTop:4,
+                      fontFamily:"'DM Mono',monospace"}}>{a.coste}EUR</div>}
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end"}}>
+                    <Signal estado={a.estado||"pendiente"}/>
+                    <div style={{display:"flex",gap:4,marginTop:4}}>
+                      {a.estado==="pendiente" && (
+                        <button onClick={()=>cambiarEstadoAveria(a.id,"en_taller")}
+                          style={{background:T.warn+"20",border:`1px solid ${T.warn}40`,
+                            borderRadius:4,padding:"2px 6px",color:T.warn,fontSize:9,cursor:"pointer"}}>
+                          En taller
+                        </button>
+                      )}
+                      {a.estado!=="resuelto" && (
+                        <button onClick={()=>cambiarEstadoAveria(a.id,"resuelto")}
+                          style={{background:T.ok+"20",border:`1px solid ${T.ok}40`,
+                            borderRadius:4,padding:"2px 6px",color:T.ok,fontSize:9,cursor:"pointer"}}>
+                          Resuelto
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <Signal estado={a.estado||"warn"}/>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
