@@ -1585,69 +1585,87 @@ function Documentos() {
 }
 function Patrones() {
   const [patrones, setPatrones] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [statsMap, setStatsMap] = useState({});
+  const [loading, setLoading]   = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ nombre:"", rol:"Patrón", tit:"PER", tel:"" });
+  const [saving, setSaving]     = useState(false);
+  const [form, setForm]         = useState({ nombre:"", rol:"Patron", tit:"PER", tel:"" });
+  const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
 
-  // Hardcoded for now -- will come from DB later
-  const PATRONES_INIT = [
-    { id:1, nombre:"Salvador Álvarez Escobar", rol:"Patrón", tit:"Patrón de Yate", tel:"--", av:"VA", salidas:0, millas:0, hue:T.info },
-    { id:2, nombre:"Guillermo J. Hurtado de Mendoza", rol:"Patrón", tit:"PER", tel:"--", av:"GU", salidas:0, millas:0, hue:T.brass },
+  const PATRONES_BASE = [
+    { id:"va", nombre:"Salvador Alvarez Escobar",           rol:"Patron", tit:"Patron de Yate", tel:"--", av:"VA", hue:T.info },
+    { id:"gu", nombre:"Guillermo J. Hurtado de Mendoza",    rol:"Patron", tit:"PER",            tel:"--", av:"GU", hue:T.brass },
   ];
-  const [extraPatrones, setExtraPatrones] = useState([]);
 
-  const todos = [...PATRONES_INIT, ...extraPatrones];
-
-  async function cargarStats() {
+  async function cargar() {
     try {
       setLoading(true);
-      const bits = await db("bitacora","GET",null,"?select=patron,millas");
-      const statsMap = {};
+      const [extras, bits] = await Promise.all([
+        db("patrones","GET",null,"?order=created_at.asc"),
+        db("bitacora","GET",null,"?select=patron,millas"),
+      ]);
+      setPatrones(extras);
+      const map = {};
       bits.forEach(b => {
         const p = b.patron;
-        if (!statsMap[p]) statsMap[p] = { salidas:0, millas:0 };
-        statsMap[p].salidas++;
-        statsMap[p].millas += parseFloat(b.millas)||0;
+        if (!map[p]) map[p] = { salidas:0, millas:0 };
+        map[p].salidas++;
+        map[p].millas += parseFloat(b.millas)||0;
       });
-      setPatrones(statsMap);
-    } catch(e){} finally { setLoading(false); }
+      setStatsMap(map);
+    } catch(e){ console.error(e); }
+    finally { setLoading(false); }
   }
-  useEffect(()=>{ cargarStats(); },[]);
+  useEffect(()=>{ cargar(); },[]);
+
+  async function guardar() {
+    if (!form.nombre) return;
+    setSaving(true);
+    try {
+      const initials = form.nombre.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+      await db("patrones","POST",{ ...form, av:initials });
+      setShowForm(false);
+      setForm({ nombre:"", rol:"Patron", tit:"PER", tel:"" });
+      cargar();
+    } catch(e){ alert("Error: "+e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function eliminar(id) {
+    if (!window.confirm("Eliminar este patron?")) return;
+    try { await db(`patrones?id=eq.${id}`,"DELETE"); cargar(); } catch(e){}
+  }
+
+  const todos = [
+    ...PATRONES_BASE,
+    ...patrones.map(p=>({ ...p, hue:T.ok }))
+  ];
 
   return (
     <div>
-      <Hdr eyebrow="Equipo de navegación" title="Patrones"
+      <Hdr eyebrow="Equipo de navegacion" title="Patrones"
         action={<Btn sm onClick={()=>setShowForm(!showForm)}>{showForm?"Cancelar":"+ Añadir"}</Btn>}/>
 
       {showForm && (
         <Card style={{marginBottom:14}} pad="16px">
           <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
-            textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nuevo patrón</div>
-          {["nombre","rol","tit","tel"].map(field=>(
-            <div key={field} style={{marginBottom:9}}>
-              <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-                fontFamily:"'DM Mono',monospace",marginBottom:4}}>
-                {field==="nombre"?"Nombre completo":field==="rol"?"Rol":field==="tit"?"Titulación":"Teléfono"}
-              </div>
-              <input value={form[field]} onChange={e=>setForm(f=>({...f,[field]:e.target.value}))}
-                style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,borderRadius:7,
-                  padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}/>
-            </div>
-          ))}
-          <Btn onClick={()=>{
-            if (!form.nombre) return;
-            const initials = form.nombre.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
-            setExtraPatrones(p=>[...p,{id:Date.now(),...form,av:initials,salidas:0,millas:0,hue:T.ok}]);
-            setShowForm(false);
-            setForm({ nombre:"", rol:"Patrón", tit:"PER", tel:"" });
-          }}>Añadir patrón</Btn>
+            textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nuevo patron</div>
+          <FInput label="Nombre completo *" value={form.nombre} onChange={upd("nombre")}/>
+          <FInput label="Titulacion" value={form.tit} onChange={upd("tit")}/>
+          <FInput label="Telefono" value={form.tel} onChange={upd("tel")}/>
+          <FSelect label="Rol" value={form.rol} onChange={upd("rol")} options={["Patron","Marinero","Invitado"]}/>
+          <div style={{display:"flex",gap:8}}>
+            <Btn onClick={guardar}>{saving?"Guardando...":"Guardar"}</Btn>
+            <Btn variant="ghost" onClick={()=>setShowForm(false)}>Cancelar</Btn>
+          </div>
         </Card>
       )}
 
-      {todos.map(p=>{
+      {loading ? (
+        <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+      ) : todos.map(p => {
         const firstName = p.nombre.split(" ")[0];
-        const stats = patrones[firstName] || patrones[p.nombre] || { salidas:p.salidas||0, millas:p.millas||0 };
+        const stats = statsMap[firstName] || statsMap[p.nombre] || { salidas:0, millas:0 };
         return (
           <Card key={p.id} style={{marginBottom:11}}>
             <div style={{display:"flex",alignItems:"center",gap:13,marginBottom:13}}>
@@ -1655,10 +1673,15 @@ function Patrones() {
                 border:`1px solid ${p.hue}38`,display:"flex",alignItems:"center",
                 justifyContent:"center",fontSize:13,fontWeight:700,color:p.hue,
                 flexShrink:0,fontFamily:"'DM Mono',monospace"}}>{p.av}</div>
-              <div>
+              <div style={{flex:1}}>
                 <div style={{color:T.ink,fontWeight:600,fontSize:17,fontFamily:"'Cormorant Garamond',serif"}}>{p.nombre}</div>
                 <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{p.rol} · {p.tit} · {p.tel}</div>
               </div>
+              {!["va","gu"].includes(p.id) && (
+                <button onClick={()=>eliminar(p.id)} style={{background:"none",
+                  border:`1px solid ${T.danger}40`,borderRadius:5,padding:"4px 8px",
+                  color:T.danger,fontSize:11,cursor:"pointer"}}>✕</button>
+              )}
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
               {[["Salidas",stats.salidas],["Millas",stats.millas.toFixed(0)+" mn"]].map(([lbl,val])=>(
