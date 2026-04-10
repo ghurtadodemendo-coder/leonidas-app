@@ -355,8 +355,42 @@ function Dashboard({ setScreen }) {
   },[]);
 
   const [combustibleAlert, setCombustibleAlert] = useState(null);
+  const [mantAlert, setMantAlert] = useState(null);
 
   useEffect(()=>{
+    async function checkMantenimiento() {
+      try {
+        const [tareas, bits] = await Promise.all([
+          db("mantenimiento","GET",null,"?select=tipo,horas_intervalo,horas_ultima,intervalo_dias,fecha_ultima"),
+          db("bitacora","GET",null,"?select=horas_motor_inicio,horas_motor_fin"),
+        ]);
+        const horasNav = bits.reduce((a,b)=>{
+          const ini=parseFloat(b.horas_motor_inicio)||0, fin=parseFloat(b.horas_motor_fin)||0;
+          return a+(fin>ini?fin-ini:0);
+        },0);
+        const hAct = 774 + horasNav;
+        const hoy = new Date();
+        let vencidas=0, proximas=0;
+        tareas.forEach(t=>{
+          let danger=false, warn=false;
+          if (t.horas_intervalo && t.horas_ultima) {
+            const r = t.horas_intervalo-(hAct-parseFloat(t.horas_ultima));
+            if (r<=0) danger=true; else if (r<=t.horas_intervalo*0.2) warn=true;
+          }
+          if (t.intervalo_dias && t.fecha_ultima) {
+            const fProx = new Date(new Date(t.fecha_ultima).getTime()+t.intervalo_dias*86400000);
+            const d = Math.round((fProx-hoy)/86400000);
+            if (d<=0) danger=true; else if (d<=30) warn=true;
+          } else if (t.intervalo_dias && !t.fecha_ultima) { warn=true; }
+          if (danger) vencidas++; else if (warn) proximas++;
+        });
+        if (vencidas>0) setMantAlert({nivel:"danger",texto:`${vencidas} mantenimiento${vencidas>1?"s":""} vencido${vencidas>1?"s":""}`});
+        else if (proximas>0) setMantAlert({nivel:"warn",texto:`${proximas} mantenimiento${proximas>1?"s":""} proximo${proximas>1?"s":""}`});
+        else setMantAlert(null);
+      } catch(e){}
+    }
+    checkMantenimiento();
+
     async function checkCombustible() {
       try {
         // Check latest bitacora entry for fuel level
@@ -381,7 +415,9 @@ function Dashboard({ setScreen }) {
   },[]);
 
   const alerts = [
-    combustibleAlert !== null ? { msg:`⛽ Combustible bajo · ${combustibleAlert}%`, sub:"Repostar antes de la próxima salida · toca para registrar", c:T.danger, to:"combustible" } : null,
+    combustibleAlert !== null ? { msg:`⛽ Combustible bajo · ${combustibleAlert}%`, sub:"Repostar antes de la proxima salida", c:T.danger, to:"combustible" } : null,
+    mantAlert?.nivel==="danger" ? { msg:`🔧 ${mantAlert.texto}`, sub:"Revisar modulo de mantenimiento", c:T.danger, to:"mantenimiento" } : null,
+    mantAlert?.nivel==="warn"   ? { msg:`🔧 ${mantAlert.texto}`, sub:"Revision proxima recomendada", c:T.warn, to:"mantenimiento" } : null,
     { msg:"Seguro de responsabilidad civil",       sub:"Verificar vigencia y añadir datos",    c:T.warn, to:"documentos" },
     { msg:"ITV · Cert. Navegabilidad 04/12/2025", sub:"Verificar próxima fecha de revisión",  c:T.info, to:"documentos" },
     { msg:"Historial de mantenimiento vacío",     sub:"Añadir fechas de últimas revisiones",  c:T.info, to:"mantenimiento" },
@@ -929,28 +965,41 @@ function Mantenimiento() {
 
   // Calcular estado de cada tarea
   function calcEstado(t) {
-    const hInt = t.horas_intervalo;
-    const hUlt = parseFloat(t.horas_ultima)||0;
     const hoy = new Date();
+    const hInt = t.horas_intervalo;
+    const dInt = t.intervalo_dias;
+    const hUlt = parseFloat(t.horas_ultima)||0;
+    const fUlt = t.fecha_ultima ? new Date(t.fecha_ultima) : null;
+
+    let porHoras = null, porDias = null;
 
     // Por horas
     if (hInt && hUlt) {
       const hRestantes = hInt - (horasActuales - hUlt);
-      if (hRestantes <= 0) return { nivel:"danger", texto:`Vencido hace ${Math.abs(Math.round(hRestantes))}h`, pct:100 };
-      if (hRestantes <= hInt * 0.2) return { nivel:"warn", texto:`${Math.round(hRestantes)}h restantes`, pct:Math.round(((hInt-hRestantes)/hInt)*100) };
-      return { nivel:"ok", texto:`${Math.round(hRestantes)}h restantes`, pct:Math.round(((hInt-hRestantes)/hInt)*100) };
+      const pct = Math.min(100, Math.round(((hInt - hRestantes) / hInt) * 100));
+      if (hRestantes <= 0) porHoras = { nivel:"danger", texto:`Vencido ${Math.abs(Math.round(hRestantes))}h`, pct:100 };
+      else if (hRestantes <= hInt * 0.2) porHoras = { nivel:"warn", texto:`${Math.round(hRestantes)}h restantes`, pct };
+      else porHoras = { nivel:"ok", texto:`${Math.round(hRestantes)}h restantes`, pct };
     }
 
-    // Por fecha
-    if (t.fecha_proxima) {
-      const diasRestantes = Math.round((new Date(t.fecha_proxima) - hoy) / 86400000);
-      if (diasRestantes <= 0) return { nivel:"danger", texto:`Vencido hace ${Math.abs(diasRestantes)} dias`, pct:100 };
-      if (diasRestantes <= 30) return { nivel:"warn", texto:`${diasRestantes} dias`, pct:80 };
-      return { nivel:"ok", texto:`${diasRestantes} dias`, pct:20 };
+    // Por dias
+    if (dInt && fUlt) {
+      const fProx = new Date(fUlt.getTime() + dInt * 86400000);
+      const diasRestantes = Math.round((fProx - hoy) / 86400000);
+      const pct = Math.min(100, Math.round(((dInt - diasRestantes) / dInt) * 100));
+      if (diasRestantes <= 0) porDias = { nivel:"danger", texto:`Vencido hace ${Math.abs(diasRestantes)}d`, pct:100 };
+      else if (diasRestantes <= 30) porDias = { nivel:"warn", texto:`${diasRestantes} dias`, pct };
+      else porDias = { nivel:"ok", texto:`${diasRestantes} dias`, pct };
+    } else if (dInt && !fUlt) {
+      porDias = { nivel:"warn", texto:"Sin fecha de revision", pct:50 };
     }
 
-    if (t.fecha_ultima) return { nivel:"ok", texto:`Ult: ${t.fecha_ultima}`, pct:10 };
-    return { nivel:"info", texto:"Sin datos", pct:0 };
+    // El peor de los dos gana
+    const niveles = { danger:3, warn:2, ok:1, info:0 };
+    if (porHoras && porDias) {
+      return niveles[porHoras.nivel] >= niveles[porDias.nivel] ? porHoras : porDias;
+    }
+    return porHoras || porDias || { nivel:"info", texto:"Sin datos", pct:0 };
   }
 
   const CATEGORIAS = ["Motor","Sistema de refrigeracion","Combustible","Sistemas generales","Obligatorio legal"];
@@ -1058,23 +1107,45 @@ function Mantenimiento() {
                         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
                           <span style={{color:bc,fontSize:10,fontWeight:600,
                             fontFamily:"'DM Mono',monospace"}}>{est.texto}</span>
-                          <button onClick={()=>{
-                            setEditId(t.id);
-                            setFormEdit({fecha_ultima:new Date().toISOString().split("T")[0],
-                              horas_ultima:horasActuales.toFixed(0),coste:"",notas:""});
-                          }} style={{background:T.brass,border:"none",borderRadius:5,
-                            padding:"4px 10px",color:"#fff",fontSize:10,
-                            cursor:"pointer",fontWeight:700}}>
-                            Realizado
-                          </button>
+                          <div style={{display:"flex",gap:5}}>
+                            <button onClick={()=>{
+                              setEditId(t.id);
+                              setFormEdit({fecha_ultima:new Date().toISOString().split("T")[0],
+                                horas_ultima:horasActuales.toFixed(0),coste:"",notas:""});
+                            }} style={{background:T.brass,border:"none",borderRadius:5,
+                              padding:"4px 10px",color:"#fff",fontSize:10,
+                              cursor:"pointer",fontWeight:700}}>
+                              OK
+                            </button>
+                            <button onClick={()=>{
+                              setTab("averias");
+                              setShowAveriaForm(true);
+                              setFormAveria(f=>({...f,descripcion:`Revisar: ${t.tipo}`,
+                                fecha:new Date().toISOString().split("T")[0]}));
+                            }} style={{background:"none",border:`1px solid ${T.danger}40`,
+                              borderRadius:5,padding:"4px 8px",color:T.danger,
+                              fontSize:10,cursor:"pointer"}}>
+                              Averia
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      {t.horas_intervalo && t.horas_ultima && (
-                        <div>
-                          <div style={{background:T.surfaceUp,borderRadius:3,height:3,overflow:"hidden"}}>
+                      {(t.horas_intervalo || t.intervalo_dias) && (
+                        <div style={{marginTop:6}}>
+                          <div style={{background:T.surfaceUp,borderRadius:3,height:4,overflow:"hidden"}}>
                             <div style={{height:"100%",
                               width:`${Math.min(100,est.pct)}%`,
                               background:bc,borderRadius:3,transition:"width 0.4s"}}/>
+                          </div>
+                          <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}>
+                            <span style={{fontSize:9,color:T.inkDim,fontFamily:"'DM Mono',monospace"}}>
+                              {t.horas_intervalo ? `Cada ${t.horas_intervalo}h` : ""}
+                              {t.horas_intervalo && t.intervalo_dias ? " · " : ""}
+                              {t.intervalo_dias ? `${t.intervalo_dias}d` : ""}
+                            </span>
+                            <span style={{fontSize:9,color:bc,fontFamily:"'DM Mono',monospace",fontWeight:600}}>
+                              {est.texto}
+                            </span>
                           </div>
                         </div>
                       )}
