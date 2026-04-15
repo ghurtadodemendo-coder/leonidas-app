@@ -1982,11 +1982,13 @@ function Tripulacion() {
     if (!form.nombre) return;
     setSaving(true);
     try {
+      const payload = { nombre:form.nombre, apellidos:form.apellidos, alias:form.alias,
+        rol:form.rol, telefono:form.telefono, email:form.email, notas:form.notas };
       if (editId) {
-        await db(`tripulacion?id=eq.${editId}`,"PATCH", form);
+        await db(`tripulacion?id=eq.${editId}`,"PATCH", payload);
         setEditId(null);
       } else {
-        await db("tripulacion","POST", form);
+        await db("tripulacion","POST", payload);
       }
       setShowForm(false);
       setForm(FORM_INIT);
