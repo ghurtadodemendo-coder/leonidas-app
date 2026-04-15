@@ -622,8 +622,9 @@ function Bitacora() {
   const [filtroPatron, setFiltroPatron]       = useState("Todos");
   const [filtroMes, setFiltroMes]             = useState("Todos");
   const [filtroTripulante, setFiltroTripulante] = useState("Todos");
+  const [orden, setOrden]                     = useState("desc");
   const [showFiltros, setShowFiltros]         = useState(false);
-  const [bitTrip, setBitTrip]                 = useState([]); // relaciones bitacora-tripulacion
+  const [bitTrip, setBitTrip]                 = useState([]);
   const [tripulantes, setTripulantes]         = useState([]);
 
   const FORM_INIT = {
@@ -733,16 +734,22 @@ function Bitacora() {
   const meses = ["Todos", ...new Set(entradas.map(e => e.fecha?.slice(0,7)).filter(Boolean))].sort().reverse();
   const patrones = ["Todos", ...new Set(entradas.map(e=>e.patron).filter(Boolean))];
 
-  const entradasFiltradas = entradas.filter(e => {
-    const okPatron = filtroPatron === "Todos" || e.patron === filtroPatron;
-    const okMes    = filtroMes    === "Todos" || e.fecha?.startsWith(filtroMes);
-    const okTrip   = filtroTripulante === "Todos" || (() => {
-      const trip = tripulantes.find(t => (t.alias||t.nombre) === filtroTripulante);
-      if (!trip) return false;
-      return bitTrip.some(bt => bt.bitacora_id === e.id && bt.tripulante_id === trip.id);
-    })();
-    return okPatron && okMes && okTrip;
-  });
+  const entradasFiltradas = entradas
+    .filter(e => {
+      const okPatron = filtroPatron === "Todos" || e.patron === filtroPatron;
+      const okMes    = filtroMes    === "Todos" || e.fecha?.startsWith(filtroMes);
+      const okTrip   = filtroTripulante === "Todos" || (() => {
+        const trip = tripulantes.find(t => (t.alias||t.nombre) === filtroTripulante);
+        if (!trip) return false;
+        return bitTrip.some(bt => bt.bitacora_id === e.id && bt.tripulante_id === trip.id);
+      })();
+      return okPatron && okMes && okTrip;
+    })
+    .sort((a,b) => {
+      const da = new Date(a.fecha+( a.hora_salida ? "T"+a.hora_salida : ""));
+      const db2 = new Date(b.fecha+(b.hora_salida ? "T"+b.hora_salida : ""));
+      return orden === "desc" ? db2 - da : da - db2;
+    });
 
   const sinNovedad = e => !e.incidencias || e.incidencias.trim() === "" || e.incidencias === "Sin novedad";
 
@@ -801,6 +808,21 @@ function Bitacora() {
               <option>Todos</option>
               {tripulantes.map(t=><option key={t.id}>{t.alias||t.nombre}</option>)}
             </select>
+          </div>
+          {/* Orden */}
+          <div style={{marginTop:10}}>
+            <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+              fontFamily:"'DM Mono',monospace",marginBottom:5}}>Orden</div>
+            <div style={{display:"flex",gap:6}}>
+              {[["desc","Más recientes primero"],["asc","Más antiguas primero"]].map(([val,lbl])=>(
+                <button key={val} onClick={()=>setOrden(val)} style={{
+                  flex:1,padding:"8px",borderRadius:6,border:`0.5px solid ${orden===val?T.brass:T.rim}`,
+                  background:orden===val?T.brassDim:"transparent",
+                  color:orden===val?T.brass:T.inkMid,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                  {lbl}
+                </button>
+              ))}
+            </div>
           </div>
           {(filtroPatron!=="Todos"||filtroMes!=="Todos"||filtroTripulante!=="Todos") && (
             <button onClick={()=>{setFiltroPatron("Todos");setFiltroMes("Todos");setFiltroTripulante("Todos");}}
@@ -961,6 +983,15 @@ function Bitacora() {
                   ? `${e.horas_motor_inicio}h → ${e.horas_motor_fin||"?"}h (${e.horas_motor_fin&&e.horas_motor_inicio ? (parseFloat(e.horas_motor_fin)-parseFloat(e.horas_motor_inicio)).toFixed(1)+"h" : "--"})` : "--"],
 
                 ["Combustible",        e.combustible_cargado!=null ? e.combustible_cargado+"%" : "--"],
+                ["Tripulación", (() => {
+                  const ids = bitTrip.filter(bt=>bt.bitacora_id===e.id).map(bt=>bt.tripulante_id);
+                  if (!ids.length) return "--";
+                  const nombres = ids.map(id=>{
+                    const t = tripulantes.find(t=>t.id===id);
+                    return t ? (t.alias||t.nombre) : null;
+                  }).filter(Boolean);
+                  return nombres.length ? nombres.join(", ") : "--";
+                })()],
                 ["Condiciones",        e.condiciones||"--"],
                 ["Incidencias",        e.incidencias||"Sin novedad"],
                 e.notas ? ["Observaciones", e.notas] : null,
