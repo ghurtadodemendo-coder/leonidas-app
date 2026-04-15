@@ -619,9 +619,12 @@ function Bitacora() {
   const [saving, setSaving]     = useState(false);
 
   // ── Filtros ──
-  const [filtroPatron, setFiltroPatron] = useState("Todos");
-  const [filtroMes, setFiltroMes]       = useState("Todos");
-  const [showFiltros, setShowFiltros]   = useState(false);
+  const [filtroPatron, setFiltroPatron]       = useState("Todos");
+  const [filtroMes, setFiltroMes]             = useState("Todos");
+  const [filtroTripulante, setFiltroTripulante] = useState("Todos");
+  const [showFiltros, setShowFiltros]         = useState(false);
+  const [bitTrip, setBitTrip]                 = useState([]); // relaciones bitacora-tripulacion
+  const [tripulantes, setTripulantes]         = useState([]);
 
   const FORM_INIT = {
     fecha: new Date().toISOString().split("T")[0],
@@ -644,8 +647,14 @@ function Bitacora() {
   async function cargar() {
     try {
       setLoading(true);
-      const data = await db("bitacora","GET",null,"?order=fecha.desc");
+      const [data, bt, trip] = await Promise.all([
+        db("bitacora","GET",null,"?order=fecha.desc,id.desc"),
+        db("bitacora_tripulacion","GET",null,"?select=bitacora_id,tripulante_id"),
+        db("tripulacion","GET",null,"?activo=eq.true&select=id,alias,nombre"),
+      ]);
       setEntradas(data);
+      setBitTrip(bt);
+      setTripulantes(trip);
     } catch(e){ console.error(e); }
     finally { setLoading(false); }
   }
@@ -727,7 +736,12 @@ function Bitacora() {
   const entradasFiltradas = entradas.filter(e => {
     const okPatron = filtroPatron === "Todos" || e.patron === filtroPatron;
     const okMes    = filtroMes    === "Todos" || e.fecha?.startsWith(filtroMes);
-    return okPatron && okMes;
+    const okTrip   = filtroTripulante === "Todos" || (() => {
+      const trip = tripulantes.find(t => (t.alias||t.nombre) === filtroTripulante);
+      if (!trip) return false;
+      return bitTrip.some(bt => bt.bitacora_id === e.id && bt.tripulante_id === trip.id);
+    })();
+    return okPatron && okMes && okTrip;
   });
 
   const sinNovedad = e => !e.incidencias || e.incidencias.trim() === "" || e.incidencias === "Sin novedad";
@@ -741,7 +755,7 @@ function Bitacora() {
               display:"flex", alignItems:"center", gap:5,
               background:"transparent", border:`1px solid ${T.rimHi}`,
               borderRadius:7, padding:"7px 12px", cursor:"pointer",
-              color: showFiltros||filtroPatron!=="Todos"||filtroMes!=="Todos" ? T.brass : T.inkMid,
+              color: showFiltros||filtroPatron!=="Todos"||filtroMes!=="Todos"||filtroTripulante!=="Todos" ? T.brass : T.inkMid,
               fontSize:11, fontFamily:"inherit" }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -763,7 +777,7 @@ function Bitacora() {
               <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
                 fontFamily:"'DM Mono',monospace",marginBottom:5}}>Patrón</div>
               <select value={filtroPatron} onChange={e=>setFiltroPatron(e.target.value)}
-                style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,
+                style={{width:"100%",background:T.bg,border:`0.5px solid ${T.rim}`,
                   borderRadius:7,padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
                 {patrones.map(p=><option key={p}>{p}</option>)}
               </select>
@@ -772,14 +786,24 @@ function Bitacora() {
               <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
                 fontFamily:"'DM Mono',monospace",marginBottom:5}}>Mes</div>
               <select value={filtroMes} onChange={e=>setFiltroMes(e.target.value)}
-                style={{width:"100%",background:T.surfaceUp,border:`1px solid ${T.rimHi}`,
+                style={{width:"100%",background:T.bg,border:`0.5px solid ${T.rim}`,
                   borderRadius:7,padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
                 {meses.map(m=><option key={m}>{m}</option>)}
               </select>
             </div>
           </div>
-          {(filtroPatron!=="Todos"||filtroMes!=="Todos") && (
-            <button onClick={()=>{setFiltroPatron("Todos");setFiltroMes("Todos");}}
+          <div style={{marginTop:10}}>
+            <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+              fontFamily:"'DM Mono',monospace",marginBottom:5}}>Tripulante</div>
+            <select value={filtroTripulante} onChange={e=>setFiltroTripulante(e.target.value)}
+              style={{width:"100%",background:T.bg,border:`0.5px solid ${T.rim}`,
+                borderRadius:7,padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
+              <option>Todos</option>
+              {tripulantes.map(t=><option key={t.id}>{t.alias||t.nombre}</option>)}
+            </select>
+          </div>
+          {(filtroPatron!=="Todos"||filtroMes!=="Todos"||filtroTripulante!=="Todos") && (
+            <button onClick={()=>{setFiltroPatron("Todos");setFiltroMes("Todos");setFiltroTripulante("Todos");}}
               style={{marginTop:10,background:"none",border:"none",color:T.brass,
                 fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:0}}>
               × Limpiar filtros
@@ -875,7 +899,7 @@ function Bitacora() {
         <div style={{fontSize:10,color:T.inkDim,fontFamily:"'DM Mono',monospace",
           marginBottom:12,textAlign:"right"}}>
           {entradasFiltradas.length} entrada{entradasFiltradas.length!==1?"s":""}
-          {(filtroPatron!=="Todos"||filtroMes!=="Todos") ? " (filtradas)" : ""}
+          {(filtroPatron!=="Todos"||filtroMes!=="Todos"||filtroTripulante!=="Todos") ? " (filtradas)" : ""}
         </div>
       )}
 
