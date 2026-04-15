@@ -62,7 +62,7 @@ const NAV = [
   { id:"puertos",       svg:"M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z", label:"Puertos"     },
   { id:"inventario",    svg:"M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4", label:"Inventario"  },
   { id:"documentos",    svg:"M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z", label:"Docs"        },
-  { id:"patrones",      svg:"M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z", label:"Patrones"    },
+  { id:"tripulacion",      svg:"M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z", label:"Tripulación"    },
   { id:"ia",            svg:"M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z", label:"IA"           },
   { id:"clima",         svg:"M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z", label:"Clima"        },
   { id:"calculadora",   svg:"M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z", label:"Ruta"         },
@@ -240,13 +240,12 @@ function FTextarea({ label, value, onChange, rows=2 }) {
 function PatronSelect({ value, onChange }) {
   const [opciones, setOpciones] = useState(["Guille","Varo"]);
   useEffect(()=>{
-    db("patrones","GET",null,"?order=nombre.asc")
+    db("tripulacion","GET",null,"?activo=eq.true&order=nombre.asc")
       .then(rows => {
-        const extras = rows.map(r => r.alias || r.nombre.split(" ")[0]);
-        const todos = ["Guille","Varo",...extras.filter(n=>!["Guille","Varo"].includes(n))];
-        setOpciones([...new Set(todos)]);
+        const aliases = rows.map(r => r.alias || r.nombre).filter(Boolean);
+        setOpciones([...new Set(aliases)]);
       })
-      .catch(()=>{});
+      .catch(()=>{ setOpciones(["Guille","Varo"]); });
   },[]);
   return <FSelect label="Patron" value={value} onChange={onChange} options={opciones}/>;
 }
@@ -630,9 +629,16 @@ function Bitacora() {
     millas: "", horas_motor_inicio: "", horas_motor_fin: "",
     tripulantes: "2", combustible_pct: "100",
     condiciones: "", incidencias: "Sin novedad", notas: "",
+    tripulacion_ids: [],
   };
   const [form, setForm] = useState(FORM_INIT);
   const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
+  const [tripulacionDisp, setTripulacionDisp] = useState([]);
+  useEffect(()=>{
+    db("tripulacion","GET",null,"?activo=eq.true&order=nombre.asc")
+      .then(rows=>setTripulacionDisp(rows))
+      .catch(()=>{});
+  },[]);
 
   async function cargar() {
     try {
@@ -663,12 +669,21 @@ function Bitacora() {
         incidencias: form.incidencias||"Sin novedad",
         notas: form.notas||null,
       };
+      let bitacoraId = editId;
       if (editId) {
         await db(`bitacora?id=eq.${editId}`,"PATCH",payload);
-        setEditId(null);
       } else {
-        await db("bitacora","POST",payload);
+        const res = await db("bitacora","POST",payload);
+        bitacoraId = res[0]?.id;
       }
+      // Guardar tripulacion vinculada
+      if (bitacoraId && form.tripulacion_ids?.length > 0) {
+        if (editId) await db(`bitacora_tripulacion?bitacora_id=eq.${bitacoraId}`,"DELETE");
+        await Promise.all(form.tripulacion_ids.map(tid =>
+          db("bitacora_tripulacion","POST",{ bitacora_id:bitacoraId, tripulante_id:tid })
+        ));
+      }
+      setEditId(null);
       setShowForm(false);
       setForm(FORM_INIT);
       cargar();
@@ -788,7 +803,30 @@ function Bitacora() {
               <FInput label="Puerto llegada *" value={form.llegada} onChange={upd("llegada")}/>
               <FInput label="Hora llegada" type="time" value={form.hora_llegada} onChange={upd("hora_llegada")}/>
               <FInput label="Millas navegadas" type="number" value={form.millas} onChange={upd("millas")}/>
-              <FInput label="Tripulantes" type="number" value={form.tripulantes} onChange={upd("tripulantes")}/>
+              <FInput label="Nº tripulantes" type="number" value={form.tripulantes} onChange={upd("tripulantes")}/>
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                  fontFamily:"'DM Mono',monospace",marginBottom:5}}>Tripulación a bordo</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                  {tripulacionDisp.map(t=>{
+                    const sel = form.tripulacion_ids?.includes(t.id);
+                    return (
+                      <button key={t.id} type="button"
+                        onClick={()=>setForm(v=>({...v,
+                          tripulacion_ids: sel
+                            ? v.tripulacion_ids.filter(id=>id!==t.id)
+                            : [...(v.tripulacion_ids||[]),t.id]
+                        }))}
+                        style={{padding:"5px 11px",borderRadius:20,fontSize:11,cursor:"pointer",
+                          fontFamily:"inherit",border:`1px solid ${sel?T.brass:T.rim}`,
+                          background:sel?T.brassDim:"transparent",
+                          color:sel?T.brass:T.inkMid,fontWeight:sel?600:400}}>
+                        {t.alias||t.nombre}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             <div>
               <FInput label="H. motor inicio" type="number" value={form.horas_motor_inicio} onChange={upd("horas_motor_inicio")}
@@ -1275,6 +1313,12 @@ function Combustible() {
   };
   const [form, setForm] = useState(FORM_INIT);
   const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
+  const [tripulacionDisp, setTripulacionDisp] = useState([]);
+  useEffect(()=>{
+    db("tripulacion","GET",null,"?activo=eq.true&order=nombre.asc")
+      .then(rows=>setTripulacionDisp(rows))
+      .catch(()=>{});
+  },[]);
 
   async function cargar() {
     try {
@@ -1845,84 +1889,131 @@ function Documentos() {
     </div>
   );
 }
-function Patrones() {
-  const [patrones, setPatrones] = useState([]);
-  const [statsMap, setStatsMap] = useState({});
-  const [docsMap, setDocsMap]   = useState({});
-  const [loading, setLoading]   = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [showDocForm, setShowDocForm] = useState(null); // patron id
-  const [saving, setSaving]     = useState(false);
-  const [openCard, setOpenCard] = useState(null);
-  const [form, setForm]         = useState({ nombre:"", alias:"", rol:"Patron", tit:"PER", tel:"" });
-  const [docForm, setDocForm]   = useState({ nombre:"", tipo:"Titulacion", fecha_vencimiento:"" });
-  const fileRef = useRef(null);
+function Tripulacion() {
+  const [tripulantes, setTripulantes] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [openCard, setOpenCard]       = useState(null);
+  const [showForm, setShowForm]       = useState(false);
+  const [editId, setEditId]           = useState(null);
+  const [showDocForm, setShowDocForm] = useState(null);
+  const [saving, setSaving]           = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
-  const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
-  const updD = f => e => setDocForm(v=>({...v,[f]:e.target.value}));
 
-  const PATRONES_BASE = [
-    { id:"va", nombre:"Salvador Alvarez Escobar",        alias:"Varo",  rol:"Patron", tit:"Patron de Yate", tel:"--", av:"VA", hue:T.info },
-    { id:"gu", nombre:"Guillermo J. Hurtado de Mendoza", alias:"Guille",rol:"Patron", tit:"PER",            tel:"--", av:"GU", hue:T.brass },
-  ];
+  const FORM_INIT = { nombre:"", apellidos:"", alias:"", rol:"Invitado", telefono:"", email:"", notas:"" };
+  const DOC_INIT  = { nombre:"", tipo:"DNI", fecha_vencimiento:"" };
+  const ROLES     = ["Patrón","Marinero","Armador","Invitado"];
+  const DOC_TIPOS = ["DNI","Pasaporte","Titulación náutica","Certificado médico","Seguro médico","Otro"];
+
+  const [form, setForm]       = useState(FORM_INIT);
+  const [docForm, setDocForm] = useState(DOC_INIT);
+  const upd  = f => e => setForm(v=>({...v,[f]:e.target.value}));
+  const updD = f => e => setDocForm(v=>({...v,[f]:e.target.value}));
 
   async function cargar() {
     try {
       setLoading(true);
-      const [extras, bits, docs] = await Promise.all([
-        db("patrones","GET",null,"?order=created_at.asc"),
-        db("bitacora","GET",null,"?select=patron,millas"),
-        db("documentos","GET",null,"?patron_id=not.is.null"),
+      const [trip, bits, bTrip, docs] = await Promise.all([
+        db("tripulacion","GET",null,"?order=created_at.asc"),
+        db("bitacora","GET",null,"?select=id,hora_salida,hora_llegada,patron"),
+        db("bitacora_tripulacion","GET",null,"?select=bitacora_id,tripulante_id"),
+        db("documentos","GET",null,"?tripulante_id=not.is.null&select=id,nombre,tipo,fecha_vencimiento,url_archivo,tripulante_id"),
       ]);
-      setPatrones(extras);
 
-      // Build stats map by alias AND nombre
-      const map = {};
+      // Calcular stats por tripulante
+      const statsMap = {};
+      bTrip.forEach(bt => {
+        if (!statsMap[bt.tripulante_id]) statsMap[bt.tripulante_id] = { salidas:0, horas:0 };
+        statsMap[bt.tripulante_id].salidas++;
+        const bit = bits.find(b => b.id === bt.bitacora_id);
+        if (bit?.hora_salida && bit?.hora_llegada) {
+          const [sh,sm] = bit.hora_salida.split(":").map(Number);
+          const [eh,em] = bit.hora_llegada.split(":").map(Number);
+          const mins = (eh*60+em) - (sh*60+sm);
+          if (mins > 0) statsMap[bt.tripulante_id].horas += mins/60;
+        }
+      });
+
+      // Añadir salidas como patrón
       bits.forEach(b => {
-        const p = b.patron;
-        if (!map[p]) map[p] = { salidas:0, millas:0 };
-        map[p].salidas++;
-        map[p].millas += parseFloat(b.millas)||0;
+        const t = trip.find(t => t.alias === b.patron || t.nombre === b.patron);
+        if (t) {
+          if (!statsMap[t.id]) statsMap[t.id] = { salidas:0, horas:0 };
+          // Solo contar si no está ya en bitacora_tripulacion
+          const yaContado = bTrip.some(bt => bt.bitacora_id===b.id && bt.tripulante_id===t.id);
+          if (!yaContado) {
+            statsMap[t.id].salidas++;
+            if (b.hora_salida && b.hora_llegada) {
+              const [sh,sm] = b.hora_salida.split(":").map(Number);
+              const [eh,em] = b.hora_llegada.split(":").map(Number);
+              const mins = (eh*60+em) - (sh*60+sm);
+              if (mins > 0) statsMap[t.id].horas += mins/60;
+            }
+          }
+        }
       });
-      setStatsMap(map);
 
-      // Build docs map by patron_id
-      const dm = {};
+      // Docs por tripulante
+      const docsMap = {};
       docs.forEach(d => {
-        if (!dm[d.patron_id]) dm[d.patron_id] = [];
-        dm[d.patron_id].push(d);
+        if (!docsMap[d.tripulante_id]) docsMap[d.tripulante_id] = [];
+        docsMap[d.tripulante_id].push(d);
       });
-      setDocsMap(dm);
+
+      setTripulantes(trip.map(t => ({
+        ...t,
+        stats: statsMap[t.id] || { salidas:0, horas:0 },
+        docs:  docsMap[t.id]  || [],
+      })));
     } catch(e){ console.error(e); }
     finally { setLoading(false); }
   }
   useEffect(()=>{ cargar(); },[]);
 
+  function avatarColor(rol) {
+    const map = { "Patrón":T.info, "Armador":T.brass, "Marinero":T.ok, "Invitado":T.inkDim };
+    return map[rol] || T.inkDim;
+  }
+
+  function initials(nombre, apellidos) {
+    const parts = [nombre, apellidos].filter(Boolean).join(" ").split(" ");
+    return parts.slice(0,2).map(w=>w[0]).join("").toUpperCase();
+  }
+
   async function guardar() {
     if (!form.nombre) return;
     setSaving(true);
     try {
-      const initials = form.nombre.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
-      await db("patrones","POST",{
-        nombre: form.nombre,
-        rol: form.rol,
-        tit: form.tit,
-        tel: form.tel,
-        av: initials,
-      });
+      if (editId) {
+        await db(`tripulacion?id=eq.${editId}`,"PATCH", form);
+        setEditId(null);
+      } else {
+        await db("tripulacion","POST", form);
+      }
       setShowForm(false);
-      setForm({ nombre:"", alias:"", rol:"Patron", tit:"PER", tel:"" });
+      setForm(FORM_INIT);
       cargar();
     } catch(e){ alert("Error: "+e.message); }
     finally { setSaving(false); }
   }
 
   async function eliminar(id) {
-    if (!window.confirm("Eliminar este patron?")) return;
-    try { await db(`patrones?id=eq.${id}`,"DELETE"); cargar(); } catch(e){}
+    if (!window.confirm("¿Eliminar este tripulante?")) return;
+    try { await db(`tripulacion?id=eq.${id}`,"DELETE"); cargar(); } catch(e){}
   }
 
-  async function subirDoc(patronId) {
+  async function toggleActivo(id, activo) {
+    try { await db(`tripulacion?id=eq.${id}`,"PATCH",{ activo:!activo }); cargar(); } catch(e){}
+  }
+
+  function editar(t) {
+    setForm({ nombre:t.nombre||"", apellidos:t.apellidos||"", alias:t.alias||"",
+      rol:t.rol||"Invitado", telefono:t.telefono||"", email:t.email||"", notas:t.notas||"" });
+    setEditId(t.id);
+    setShowForm(true);
+    setOpenCard(null);
+  }
+
+  async function subirDoc(tripulanteId) {
     if (!docForm.nombre) return;
     setSaving(true);
     try {
@@ -1941,10 +2032,10 @@ function Patrones() {
       await db("documentos","POST",{
         nombre:docForm.nombre, tipo:docForm.tipo,
         fecha_vencimiento:docForm.fecha_vencimiento||null,
-        url_archivo, patron_id:patronId
+        url_archivo, tripulante_id:tripulanteId
       });
       setShowDocForm(null);
-      setDocForm({ nombre:"", tipo:"Titulacion", fecha_vencimiento:"" });
+      setDocForm(DOC_INIT);
       setSelectedFile(null);
       cargar();
     } catch(e){ alert("Error: "+e.message); }
@@ -1952,160 +2043,231 @@ function Patrones() {
   }
 
   async function eliminarDoc(id) {
-    if (!window.confirm("Eliminar documento?")) return;
+    if (!window.confirm("¿Eliminar documento?")) return;
     try { await db(`documentos?id=eq.${id}`,"DELETE"); cargar(); } catch(e){}
   }
 
-  const todos = [
-    ...PATRONES_BASE,
-    ...patrones.map(p=>({ ...p, hue:T.ok }))
-  ];
-
-  const DOC_TIPOS = ["Titulacion","DNI","Pasaporte","Seguro medico","Certificado medico","Otro"];
+  const activos   = tripulantes.filter(t=>t.activo);
+  const inactivos = tripulantes.filter(t=>!t.activo);
 
   return (
     <div>
-      <Hdr eyebrow="Equipo de navegacion" title="Patrones"
-        action={<Btn sm onClick={()=>setShowForm(!showForm)}>{showForm?"Cancelar":"+ Añadir"}</Btn>}/>
+      <Hdr eyebrow="A bordo del Leonidas" title="Tripulación"
+        action={
+          <Btn sm onClick={()=>{ setShowForm(!showForm); setEditId(null); setForm(FORM_INIT); }}>
+            {showForm&&!editId?"Cancelar":"+ Añadir"}
+          </Btn>
+        }/>
 
+      {/* Formulario */}
       {showForm && (
-        <Card style={{marginBottom:14}} pad="16px">
-          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
-            textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nuevo patron</div>
-          <FInput label="Nombre completo *" value={form.nombre} onChange={upd("nombre")}/>
-          <FInput label="Alias en bitacora (ej: Guille)" value={form.alias} onChange={upd("alias")}/>
-          <FInput label="Titulacion" value={form.tit} onChange={upd("tit")}/>
-          <FInput label="Telefono" value={form.tel} onChange={upd("tel")}/>
-          <FSelect label="Rol" value={form.rol} onChange={upd("rol")} options={["Patron","Marinero","Invitado"]}/>
+        <Card style={{marginBottom:16}} pad="16px">
+          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:14,
+            textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>
+            {editId?"Editar tripulante":"Nuevo tripulante"}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <FInput label="Nombre *" value={form.nombre} onChange={upd("nombre")}/>
+            <FInput label="Apellidos" value={form.apellidos} onChange={upd("apellidos")}/>
+            <FInput label="Alias (en bitácora)" value={form.alias} onChange={upd("alias")} placeholder="ej. Guille"/>
+            <FSelect label="Rol" value={form.rol} onChange={upd("rol")} options={ROLES}/>
+            <FInput label="Teléfono" value={form.telefono} onChange={upd("telefono")}/>
+            <FInput label="Email" value={form.email} onChange={upd("email")}/>
+          </div>
+          <FTextarea label="Notas" value={form.notas} onChange={upd("notas")} rows={2}/>
           <div style={{display:"flex",gap:8}}>
-            <Btn onClick={guardar}>{saving?"Guardando...":"Guardar"}</Btn>
-            <Btn variant="ghost" onClick={()=>setShowForm(false)}>Cancelar</Btn>
+            <Btn onClick={guardar}>{saving?"Guardando...":editId?"Actualizar":"Guardar"}</Btn>
+            <Btn variant="ghost" onClick={()=>{setShowForm(false);setEditId(null);setForm(FORM_INIT);}}>Cancelar</Btn>
           </div>
         </Card>
       )}
 
       {loading ? (
         <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
-      ) : todos.map(p => {
-        const key = p.nombre.split(" ")[0];
-        const stats = statsMap[key] || statsMap[p.nombre] || { salidas:0, millas:0 };
-        const docs = p.id === "va" || p.id === "gu" ? [] : (docsMap[p.id] || []);
-        const isOpen = openCard === p.id;
-
-        return (
-          <Card key={p.id} style={{marginBottom:11}}>
-            {/* Header */}
-            <div style={{display:"flex",alignItems:"center",gap:13,marginBottom:13}}>
-              <div style={{width:44,height:44,borderRadius:9,background:p.hue+"18",
-                border:`1px solid ${p.hue}38`,display:"flex",alignItems:"center",
-                justifyContent:"center",fontSize:13,fontWeight:700,color:p.hue,
-                flexShrink:0,fontFamily:"'DM Mono',monospace"}}>{p.av}</div>
-              <div style={{flex:1}}>
-                <div style={{color:T.ink,fontWeight:600,fontSize:17,
-                  fontFamily:"'Cormorant Garamond',serif"}}>{p.nombre}</div>
-                <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,
-                  fontFamily:"'DM Mono',monospace"}}>{p.rol} · {p.tit} · {p.tel}</div>
-              </div>
-              <div style={{display:"flex",gap:6}}>
-                <button onClick={()=>setOpenCard(isOpen?null:p.id)}
-                  style={{background:"none",border:`1px solid ${T.rimHi}`,borderRadius:5,
-                    padding:"4px 8px",color:T.inkDim,fontSize:12,cursor:"pointer"}}>
-                  {isOpen?"−":"+"}
-                </button>
-                {!["va","gu"].includes(p.id) && (
-                  <button onClick={()=>eliminar(p.id)} style={{background:"none",
-                    border:`1px solid ${T.danger}40`,borderRadius:5,padding:"4px 8px",
-                    color:T.danger,fontSize:11,cursor:"pointer"}}>✕</button>
-                )}
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:isOpen?13:0}}>
-              {[["Salidas",stats.salidas],["Millas",stats.millas.toFixed(0)+" mn"]].map(([lbl,val])=>(
-                <div key={lbl} style={{background:T.bg,borderRadius:7,padding:"9px 11px"}}>
-                  <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-                    fontFamily:"'DM Mono',monospace",marginBottom:4}}>{lbl}</div>
-                  <div style={{fontSize:20,fontWeight:600,color:p.hue,
-                    fontFamily:"'Cormorant Garamond',serif"}}>{val}</div>
+      ) : (
+        <>
+          {activos.map(t => {
+            const av    = initials(t.nombre, t.apellidos);
+            const color = avatarColor(t.rol);
+            const isOpen = openCard === t.id;
+            return (
+              <Card key={t.id} style={{marginBottom:10}}>
+                {/* Cabecera */}
+                <div style={{display:"flex",alignItems:"center",gap:13}}>
+                  <div style={{width:46,height:46,borderRadius:10,background:color+"18",
+                    border:`1px solid ${color}35`,display:"flex",alignItems:"center",
+                    justifyContent:"center",fontSize:14,fontWeight:700,color,
+                    flexShrink:0,fontFamily:"'DM Mono',monospace"}}>{av}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{color:T.ink,fontWeight:600,fontSize:17,
+                      fontFamily:"'Cormorant Garamond',serif",lineHeight:1.2}}>
+                      {t.nombre} {t.apellidos}
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
+                      <span style={{background:color+"15",border:`1px solid ${color}30`,
+                        borderRadius:4,padding:"1px 7px",fontSize:9.5,color,
+                        fontFamily:"'DM Mono',monospace",fontWeight:600,textTransform:"uppercase",
+                        letterSpacing:0.8}}>{t.rol}</span>
+                      {t.alias && <span style={{color:T.inkDim,fontSize:10,
+                        fontFamily:"'DM Mono',monospace"}}>alias: {t.alias}</span>}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <button onClick={()=>setOpenCard(isOpen?null:t.id)}
+                      style={{background:"none",border:`0.5px solid ${T.rim}`,
+                        borderRadius:6,padding:"5px 10px",color:T.inkDim,
+                        fontSize:12,cursor:"pointer"}}>
+                      {isOpen?"−":"+"}
+                    </button>
+                  </div>
                 </div>
+
+                {/* Stats */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:12}}>
+                  {[
+                    ["Salidas", t.stats.salidas],
+                    ["Horas nav.", t.stats.horas > 0 ? t.stats.horas.toFixed(1)+"h" : "0h"],
+                  ].map(([lbl,val])=>(
+                    <div key={lbl} style={{background:T.bg,borderRadius:7,padding:"9px 12px"}}>
+                      <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                        fontFamily:"'DM Mono',monospace",marginBottom:4}}>{lbl}</div>
+                      <div style={{fontSize:20,fontWeight:600,color,
+                        fontFamily:"'Cormorant Garamond',serif"}}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Detalle expandible */}
+                {isOpen && (
+                  <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${T.line}`}}>
+                    {/* Info */}
+                    {(t.telefono||t.email||t.notas) && (
+                      <div style={{marginBottom:14}}>
+                        {t.telefono && <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0"}}>
+                          <span style={{color:T.inkDim,fontSize:12}}>Teléfono</span>
+                          <span style={{color:T.ink,fontSize:12,fontWeight:500}}>{t.telefono}</span>
+                        </div>}
+                        {t.email && <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderTop:`1px solid ${T.line}`}}>
+                          <span style={{color:T.inkDim,fontSize:12}}>Email</span>
+                          <span style={{color:T.ink,fontSize:12,fontWeight:500}}>{t.email}</span>
+                        </div>}
+                        {t.notas && <div style={{padding:"6px 0",borderTop:`1px solid ${T.line}`}}>
+                          <span style={{color:T.inkDim,fontSize:12}}>{t.notas}</span>
+                        </div>}
+                      </div>
+                    )}
+
+                    {/* Documentos */}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                      <div style={{fontSize:9.5,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                        fontFamily:"'DM Mono',monospace"}}>Documentos</div>
+                      <button onClick={()=>setShowDocForm(showDocForm===t.id?null:t.id)}
+                        style={{background:"none",border:`0.5px solid ${T.rim}`,borderRadius:5,
+                          padding:"3px 9px",color:T.brass,fontSize:11,cursor:"pointer",fontWeight:600}}>
+                        + Añadir
+                      </button>
+                    </div>
+
+                    {showDocForm===t.id && (
+                      <div style={{background:T.bg,borderRadius:8,padding:"12px",marginBottom:12}}>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                          <FInput label="Nombre *" value={docForm.nombre} onChange={updD("nombre")}/>
+                          <FSelect label="Tipo" value={docForm.tipo} onChange={updD("tipo")} options={DOC_TIPOS}/>
+                        </div>
+                        <FInput label="Fecha vencimiento" type="date" value={docForm.fecha_vencimiento} onChange={updD("fecha_vencimiento")}/>
+                        <div style={{marginBottom:10}}>
+                          <label style={{display:"block",width:"100%",background:T.surface,
+                            border:`1px dashed ${T.rim}`,borderRadius:7,padding:"10px",
+                            color:selectedFile?T.brass:T.inkDim,fontSize:12,cursor:"pointer",
+                            fontFamily:"inherit",textAlign:"center",boxSizing:"border-box"}}>
+                            {selectedFile?`📎 ${selectedFile.name}`:"Seleccionar archivo"}
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={e=>setSelectedFile(e.target.files[0]||null)}
+                              style={{display:"none"}}/>
+                          </label>
+                        </div>
+                        <div style={{display:"flex",gap:8}}>
+                          <Btn sm onClick={()=>subirDoc(t.id)}>{saving?"Guardando...":"Guardar"}</Btn>
+                          <Btn sm variant="ghost" onClick={()=>{setShowDocForm(null);setSelectedFile(null);}}>Cancelar</Btn>
+                        </div>
+                      </div>
+                    )}
+
+                    {t.docs.length===0 ? (
+                      <div style={{color:T.inkDim,fontSize:12,fontStyle:"italic",marginBottom:12}}>Sin documentos añadidos.</div>
+                    ) : t.docs.map(d=>(
+                      <div key={d.id} style={{display:"flex",justifyContent:"space-between",
+                        alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${T.line}`}}>
+                        <div>
+                          <div style={{color:T.ink,fontSize:13}}>{d.nombre}</div>
+                          <div style={{color:T.inkDim,fontSize:9.5,fontFamily:"'DM Mono',monospace"}}>
+                            {d.tipo}{d.fecha_vencimiento?` · Vence ${d.fecha_vencimiento}`:""}
+                          </div>
+                        </div>
+                        <div style={{display:"flex",gap:6}}>
+                          {d.url_archivo && (
+                            <a href={d.url_archivo} target="_blank" rel="noopener noreferrer"
+                              style={{background:T.brassDim,border:`1px solid ${T.brass}35`,
+                                borderRadius:5,padding:"3px 8px",color:T.brass,
+                                fontSize:11,textDecoration:"none",fontWeight:600}}>Ver</a>
+                          )}
+                          <button onClick={()=>eliminarDoc(d.id)} style={{background:"none",
+                            border:`1px solid ${T.danger}40`,borderRadius:5,padding:"3px 7px",
+                            color:T.danger,fontSize:11,cursor:"pointer"}}>✕</button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Acciones */}
+                    <div style={{display:"flex",gap:8,marginTop:14}}>
+                      <button onClick={()=>editar(t)} style={{flex:1,background:T.bg,
+                        border:`0.5px solid ${T.rim}`,borderRadius:7,padding:"8px",
+                        color:T.inkMid,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                        ✏️ Editar
+                      </button>
+                      <button onClick={()=>toggleActivo(t.id,t.activo)} style={{flex:1,background:"none",
+                        border:`1px solid ${T.warn}40`,borderRadius:7,padding:"8px",
+                        color:T.warn,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                        Dar de baja
+                      </button>
+                      <button onClick={()=>eliminar(t.id)} style={{background:"none",
+                        border:`1px solid ${T.danger}40`,borderRadius:7,padding:"8px 12px",
+                        color:T.danger,fontSize:12,cursor:"pointer"}}>✕</button>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+
+          {/* Inactivos */}
+          {inactivos.length > 0 && (
+            <div style={{marginTop:24}}>
+              <div style={{fontSize:9.5,color:T.inkDim,letterSpacing:2,textTransform:"uppercase",
+                fontFamily:"'DM Mono',monospace",marginBottom:10}}>Dados de baja</div>
+              {inactivos.map(t=>(
+                <Card key={t.id} style={{marginBottom:8,opacity:0.6}} pad="12px 16px">
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div>
+                      <div style={{color:T.inkMid,fontSize:14}}>{t.nombre} {t.apellidos}</div>
+                      <div style={{color:T.inkDim,fontSize:10,fontFamily:"'DM Mono',monospace"}}>{t.rol}</div>
+                    </div>
+                    <button onClick={()=>toggleActivo(t.id,t.activo)}
+                      style={{background:"none",border:`0.5px solid ${T.rim}`,borderRadius:5,
+                        padding:"4px 10px",color:T.ok,fontSize:11,cursor:"pointer"}}>
+                      Reactivar
+                    </button>
+                  </div>
+                </Card>
               ))}
             </div>
-
-            {/* Documentos expandidos */}
-            {isOpen && (
-              <div style={{borderTop:`1px solid ${T.line}`,paddingTop:12}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <div style={{fontSize:9.5,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-                    fontFamily:"'DM Mono',monospace"}}>Documentos</div>
-                  {!["va","gu"].includes(p.id) && (
-                    <button onClick={()=>setShowDocForm(showDocForm===p.id?null:p.id)}
-                      style={{background:"none",border:`1px solid ${T.rimHi}`,borderRadius:5,
-                        padding:"3px 8px",color:T.brass,fontSize:11,cursor:"pointer"}}>
-                      + Añadir
-                    </button>
-                  )}
-                </div>
-
-                {showDocForm === p.id && (
-                  <div style={{background:T.bg,borderRadius:8,padding:"12px",marginBottom:10}}>
-                    <FInput label="Nombre del documento *" value={docForm.nombre} onChange={updD("nombre")}/>
-                    <FSelect label="Tipo" value={docForm.tipo} onChange={updD("tipo")} options={DOC_TIPOS}/>
-                    <FInput label="Fecha vencimiento" type="date" value={docForm.fecha_vencimiento} onChange={updD("fecha_vencimiento")}/>
-                    <div style={{marginBottom:10}}>
-                      <label style={{
-                        display:"block",width:"100%",background:T.surfaceUp,
-                        border:`1px dashed ${T.rimHi}`,borderRadius:7,padding:"10px",
-                        color:selectedFile?T.brass:T.inkDim,fontSize:12,
-                        cursor:"pointer",fontFamily:"inherit",textAlign:"center",
-                        boxSizing:"border-box"}}>
-                        {selectedFile?`📎 ${selectedFile.name}`:"Seleccionar archivo"}
-                        <input type="file" accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={e=>setSelectedFile(e.target.files[0]||null)}
-                          style={{display:"none"}}/>
-                      </label>
-                    </div>
-                    <div style={{display:"flex",gap:8}}>
-                      <Btn sm onClick={()=>subirDoc(p.id)}>{saving?"Guardando...":"Guardar"}</Btn>
-                      <Btn sm variant="ghost" onClick={()=>{setShowDocForm(null);setSelectedFile(null);}}>Cancelar</Btn>
-                    </div>
-                  </div>
-                )}
-
-                {docs.length === 0 ? (
-                  <div style={{color:T.inkDim,fontSize:12,fontStyle:"italic"}}>
-                    Sin documentos. Pulsa "+ Añadir".
-                  </div>
-                ) : docs.map(d=>(
-                  <div key={d.id} style={{display:"flex",justifyContent:"space-between",
-                    alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${T.line}`}}>
-                    <div>
-                      <div style={{color:T.ink,fontSize:13}}>{d.nombre}</div>
-                      <div style={{color:T.inkDim,fontSize:9.5,fontFamily:"'DM Mono',monospace"}}>
-                        {d.tipo}{d.fecha_vencimiento?` · Vence ${d.fecha_vencimiento}`:""}
-                      </div>
-                    </div>
-                    <div style={{display:"flex",gap:6}}>
-                      {d.url_archivo && (
-                        <a href={d.url_archivo} target="_blank" rel="noopener noreferrer"
-                          style={{background:T.brassDim,border:`1px solid ${T.brass}35`,
-                            borderRadius:5,padding:"3px 8px",color:T.brass,
-                            fontSize:11,textDecoration:"none"}}>Ver</a>
-                      )}
-                      <button onClick={()=>eliminarDoc(d.id)} style={{background:"none",
-                        border:`1px solid ${T.danger}40`,borderRadius:5,padding:"3px 6px",
-                        color:T.danger,fontSize:11,cursor:"pointer"}}>✕</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        );
-      })}
+          )}
+        </>
+      )}
     </div>
   );
 }
+
 // ── ASISTENTE IA ──────────────────────────────────────────────────────────────
 const SYS = `Eres el asistente náutico de a bordo del "Leonidas", un Sunseeker Portofino 53 del año 2007. Matrícula: 7ª PM-1-231-25. Base habitual: Puerto de Caleta de Vélez (Málaga). Reformado en electrónica y confort.
 
@@ -3431,15 +3593,7 @@ function SidebarContent({ navTo, screen, onClose, showClose }) {
         ))}
       </div>
 
-      {/* Footer */}
-      <div style={{ padding:"14px 18px", borderTop:`1px solid ${T.sidebarLine}`, flexShrink:0 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <div style={{ width:6, height:6, borderRadius:"50%", background:T.ok,
-            boxShadow:`0 0 6px ${T.ok}` }}/>
-          <span style={{ color:T.sidebarDim, fontSize:10,
-            fontFamily:"'DM Mono',monospace" }}>En puerto · Caleta de Vélez</span>
-        </div>
-      </div>
+
     </>
   );
 }
@@ -3455,7 +3609,7 @@ const MENU = [
   { section:"Barco", items:[
     { id:"bitacora",     label:"Bitácora",      svg:NAV[2].svg },
     { id:"puertos",      label:"Puertos",       svg:NAV[5].svg },
-    { id:"patrones",     label:"Patrones",      svg:NAV[6].svg },
+    { id:"tripulacion",     label:"Tripulación",      svg:NAV[6].svg },
     { id:"ficha",        label:"Ficha técnica", svg:NAV[7].svg },
   ]},
   { section:"Gestión", items:[
@@ -3477,7 +3631,7 @@ const SCREENS = {
   fondeo:       Fondeo,
   bitacora:     Bitacora,
   puertos:      Puertos,
-  patrones:     Patrones,
+  tripulacion:  Tripulacion,
   ficha:        Ficha,
   mantenimiento:Mantenimiento,
   combustible:  Combustible,
@@ -3567,11 +3721,7 @@ export default function App() {
             <div style={{ fontSize:8.5, color:T.inkDim, letterSpacing:2,
               textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginTop:2 }}>Leonidas</div>
           </div>
-          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-            <div style={{ width:5, height:5, borderRadius:"50%", background:T.ok,
-              boxShadow:`0 0 7px ${T.ok}` }}/>
-            <span style={{ fontSize:9.5, color:T.inkDim, fontFamily:"'DM Mono',monospace" }}>Porto</span>
-          </div>
+
         </div>
 
         {/* CONTENT */}
