@@ -627,15 +627,17 @@ function Bitacora() {
   const [bitTrip, setBitTrip]                 = useState([]);
   const [tripulantes, setTripulantes]         = useState([]);
 
-  const FORM_INIT = {
+  const getFormInit = (entradas) => ({
     fecha: new Date().toISOString().split("T")[0],
     hora_salida: "", hora_llegada: "",
     patron: "Guille", salida: "Caleta de Vélez", llegada: "",
-    millas: "", horas_motor_inicio: "", horas_motor_fin: "",
-    tripulantes: "2", combustible_pct: "100",
+    horas_motor_inicio: entradas.length > 0 ? String(entradas[0].horas_motor_fin||entradas[0].horas_motor_inicio||"") : "",
+    horas_motor_fin: "",
+    combustible_pct: "100",
     condiciones: "", incidencias: "Sin novedad", notas: "",
     tripulacion_ids: [],
-  };
+  });
+  const FORM_INIT = getFormInit([]);
   const [form, setForm] = useState(FORM_INIT);
   const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
   const [tripulacionDisp, setTripulacionDisp] = useState([]);
@@ -739,9 +741,17 @@ function Bitacora() {
       const okPatron = filtroPatron === "Todos" || e.patron === filtroPatron;
       const okMes    = filtroMes    === "Todos" || e.fecha?.startsWith(filtroMes);
       const okTrip   = filtroTripulante === "Todos" || (() => {
-        const trip = tripulantes.find(t => (t.alias||t.nombre) === filtroTripulante);
+        // Match by alias OR nombre
+        const trip = tripulantes.find(t =>
+          (t.alias && t.alias === filtroTripulante) ||
+          t.nombre === filtroTripulante ||
+          `${t.nombre} ${t.apellidos||""}`.trim() === filtroTripulante
+        );
         if (!trip) return false;
-        return bitTrip.some(bt => bt.bitacora_id === e.id && bt.tripulante_id === trip.id);
+        return bitTrip.some(bt =>
+          String(bt.bitacora_id) === String(e.id) &&
+          String(bt.tripulante_id) === String(trip.id)
+        );
       })();
       return okPatron && okMes && okTrip;
     })
@@ -770,7 +780,7 @@ function Bitacora() {
               </svg>
               Filtrar
             </button>
-            <Btn sm onClick={()=>{ setShowForm(!showForm); setEditId(null); setForm(FORM_INIT); }}>
+            <Btn sm onClick={()=>{ setShowForm(!showForm); setEditId(null); setForm(getFormInit(entradas)); }}>
               {showForm&&!editId?"Cancelar":"+ Nueva"}
             </Btn>
           </div>
@@ -876,7 +886,7 @@ function Bitacora() {
             </div>
             <div>
               <FInput label="H. motor inicio" type="number" value={form.horas_motor_inicio} onChange={upd("horas_motor_inicio")}
-                placeholder={entradas.length > 0 ? String(entradas[0].horas_motor_fin||"") : "774"}/>
+                placeholder={entradas.length > 0 ? String(entradas[0].horas_motor_fin||entradas[0].horas_motor_inicio||"774") : "774"}/>
               <FInput label="H. motor fin" type="number" value={form.horas_motor_fin} onChange={upd("horas_motor_fin")}/>
               <FInput label="Condiciones" value={form.condiciones} onChange={upd("condiciones")} placeholder="NE 10kn, mar llana"/>
               {/* Combustible en % */}
@@ -984,10 +994,10 @@ function Bitacora() {
 
                 ["Combustible",        e.combustible_cargado!=null ? e.combustible_cargado+"%" : "--"],
                 ["Tripulación", (() => {
-                  const ids = bitTrip.filter(bt=>bt.bitacora_id===e.id).map(bt=>bt.tripulante_id);
+                  const ids = bitTrip.filter(bt=>String(bt.bitacora_id)===String(e.id)).map(bt=>String(bt.tripulante_id));
                   if (!ids.length) return "--";
                   const nombres = ids.map(id=>{
-                    const t = tripulantes.find(t=>t.id===id);
+                    const t = tripulantes.find(t=>String(t.id)===id);
                     return t ? (t.alias||t.nombre) : null;
                   }).filter(Boolean);
                   return nombres.length ? nombres.join(", ") : "--";
