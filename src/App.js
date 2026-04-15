@@ -513,14 +513,15 @@ function Dashboard({ setScreen }) {
         <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:2, textTransform:"uppercase",
           fontFamily:"'DM Mono',monospace", marginBottom:10 }}>Última entrada · Bitácora</div>
         {ultimaBitacora ? (
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-            <div>
+          <div onClick={()=>setScreen("bitacora")}
+            style={{ cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+            <div style={{flex:1}}>
               <div style={{ color:T.ink, fontWeight:600, fontSize:17,
                 fontFamily:"'Cormorant Garamond',serif" }}>{ultimaBitacora.salida} → {ultimaBitacora.llegada}</div>
               <div style={{ color:T.inkDim, fontSize:10, marginTop:3,
-                fontFamily:"'DM Mono',monospace" }}>{ultimaBitacora.fecha} · {ultimaBitacora.patron} · {ultimaBitacora.millas} mn</div>
+                fontFamily:"'DM Mono',monospace" }}>{ultimaBitacora.fecha} · {ultimaBitacora.patron}</div>
             </div>
-            <Signal estado={ultimaBitacora.incidencias==="Sin novedad"?"ok":"warn"}/>
+            <span style={{color:T.inkDim, fontSize:22, fontWeight:300, alignSelf:"center"}}>›</span>
           </div>
         ) : (
           <div style={{ color:T.inkDim, fontSize:13, fontStyle:"italic" }}>
