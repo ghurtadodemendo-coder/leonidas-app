@@ -26,30 +26,30 @@ async function db(table, method="GET", body=null, query="") {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const T = {
-  // Contenido claro
-  bg:       "#F8F5F0",
+  // Brandbook Ship Log — #0B1F3A + #B08D57 + #F7F6F3
+  bg:       "#F7F6F3",
   surface:  "#FFFFFF",
-  surfaceUp:"#F0EDE8",
-  rim:      "#E8E4DE",
-  rimHi:    "rgba(0,0,0,0.06)",
-  ink:      "#1A1A18",
-  inkMid:   "#4A4A44",
-  inkDim:   "#9A9488",
-  brass:    "#8C6A2E",
-  brassLt:  "#A07C38",
-  brassDim: "rgba(140,106,46,0.12)",
+  surfaceUp:"#EDF0F5",
+  rim:      "#D5DAE5",
+  rimHi:    "rgba(11,31,58,0.08)",
+  ink:      "#0B1F3A",
+  inkMid:   "#3A5070",
+  inkDim:   "#8A9BB5",
+  brass:    "#B08D57",
+  brassLt:  "#C9A96E",
+  brassDim: "rgba(176,141,87,0.12)",
   ok:       "#2A7A52",
   warn:     "#B06A18",
   danger:   "#A83428",
-  info:     "#2660A0",
-  line:     "rgba(0,0,0,0.06)",
-  lineHi:   "rgba(0,0,0,0.1)",
-  // Sidebar oscuro
-  sidebarBg:    "#0D1B2A",
-  sidebarSurf:  "#1A2B3C",
+  info:     "#1B4F8A",
+  line:     "rgba(11,31,58,0.07)",
+  lineHi:   "rgba(11,31,58,0.13)",
+  // Sidebar marino
+  sidebarBg:    "#0B1F3A",
+  sidebarSurf:  "#162D50",
   sidebarLine:  "rgba(255,255,255,0.08)",
-  sidebarInk:   "rgba(255,255,255,0.55)",
-  sidebarDim:   "rgba(255,255,255,0.3)",
+  sidebarInk:   "rgba(255,255,255,0.90)",
+  sidebarDim:   "rgba(255,255,255,0.45)",
 };
 
 const NAV = [
@@ -266,15 +266,26 @@ function Btn({ children, onClick, variant="primary", sm }) {
 // ── SCREENS ───────────────────────────────────────────────────────────────────
 
 
-// ── APP LOGO ──────────────────────────────────────────────────────────────────
+// ── APP LOGO — Brújula brandbook Ship Log ─────────────────────────────────────
 function AppLogo({ size = 32 }) {
   return (
-    <img
-      src="https://wfgcffmgzqvxmtybdvse.supabase.co/storage/v1/object/public/assets/WhatsApp%20Image%202026-04-05%20at%2021.37.22.jpeg"
-      alt="ShipLog"
-      style={{ width:size, height:size, borderRadius:size*0.22,
-        objectFit:"cover", flexShrink:0 }}
-    />
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Fondo redondeado */}
+      <rect width="100" height="100" rx="22" fill="#0B1F3A"/>
+      {/* Círculo exterior */}
+      <circle cx="50" cy="50" r="34" stroke="white" strokeWidth="2.5" fill="none"/>
+      {/* Marcas N/S/E/O */}
+      <line x1="50" y1="14" x2="50" y2="20" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="50" y1="80" x2="50" y2="86" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="14" y1="50" x2="20" y2="50" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="80" y1="50" x2="86" y2="50" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+      {/* Aguja Norte — dorada */}
+      <polygon points="50,20 44,52 50,48 56,52" fill="#B08D57"/>
+      {/* Aguja Sur — blanca */}
+      <polygon points="50,80 44,48 50,52 56,48" fill="rgba(255,255,255,0.5)"/>
+      {/* Punto central */}
+      <circle cx="50" cy="50" r="4" fill="#B08D57"/>
+    </svg>
   );
 }
 
