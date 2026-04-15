@@ -1577,64 +1577,300 @@ function Combustible() {
 }
 
 function Seguridad() {
+  const [tab, setTab]     = useState("equipos");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const FORM_INIT = { equipo:"", caducidad:"", ubicacion:"", estado:"ok", notas:"" };
+  const [form, setForm] = useState(FORM_INIT);
+  const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
 
   async function cargar() {
     try {
       setLoading(true);
-      const data = await db("seguridad","GET",null,"?order=estado.desc,equipo.asc");
-      setItems(data);
+      const d = await db("seguridad","GET",null,"?order=estado.desc,caducidad.asc.nullslast,equipo.asc");
+      setItems(d);
     } catch(e){} finally { setLoading(false); }
   }
   useEffect(()=>{ cargar(); },[]);
 
-  const vencidos = items.filter(i=>i.estado==="danger").length;
-  const proximos = items.filter(i=>i.estado==="warn").length;
+  async function guardar() {
+    if (!form.equipo) return;
+    setSaving(true);
+    try {
+      const payload = { ...form, caducidad: form.caducidad||null };
+      if (editItem) { await db(`seguridad?id=eq.${editItem}`,"PATCH",payload); setEditItem(null); }
+      else { await db("seguridad","POST",payload); }
+      setShowForm(false); setForm(FORM_INIT); cargar();
+    } catch(e){ alert("Error: "+e.message); } finally { setSaving(false); }
+  }
+
+  async function cambiarEstado(id, estado) {
+    try { await db(`seguridad?id=eq.${id}`,"PATCH",{ estado }); cargar(); }
+    catch(e){}
+  }
+
+  async function eliminar(id) {
+    if (!window.confirm("¿Eliminar este equipo?")) return;
+    try { await db(`seguridad?id=eq.${id}`,"DELETE"); cargar(); } catch(e){}
+  }
+
+  function editar(item) {
+    setForm({ equipo:item.equipo||"", caducidad:item.caducidad||"",
+      ubicacion:item.ubicacion||"", estado:item.estado||"ok", notas:item.notas||"" });
+    setEditItem(item.id); setShowForm(true);
+  }
+
+  // Calcular estado por caducidad automáticamente
+  function estadoReal(item) {
+    if (item.estado === "danger") return "danger";
+    if (!item.caducidad) return item.estado||"ok";
+    const hoy = new Date();
+    const cad = new Date(item.caducidad);
+    const dias = Math.floor((cad - hoy) / (1000*60*60*24));
+    if (dias < 0)  return "danger"; // caducado
+    if (dias < 60) return "warn";   // caduca en menos de 60 días
+    return item.estado||"ok";
+  }
+
+  function diasParaCaducar(caducidad) {
+    if (!caducidad) return null;
+    const dias = Math.floor((new Date(caducidad) - new Date()) / (1000*60*60*24));
+    if (dias < 0) return "CADUCADO";
+    if (dias === 0) return "Caduca hoy";
+    if (dias < 60) return `${dias}d`;
+    return null;
+  }
+
+  const ESTADOS = ["ok","warn","danger"];
+  const ESTADO_LABEL = { ok:"OK", warn:"Revisar", danger:"Urgente" };
+  const ESTADO_COLOR = { ok:T.ok, warn:T.warn, danger:T.danger };
+
+  // Proximamente = caducan en 60 días o ya caducados
+  const proximos = items.filter(i => estadoReal(i) !== "ok");
+  const obligatorios = items.filter(i => !i.notas?.startsWith("Recomendado"));
+  const recomendados = items.filter(i => i.notas?.startsWith("Recomendado"));
+
+  const CONTACTOS = [
+    { label:"Salvamento Marítimo",      tel:"900 202 202",     color:T.danger },
+    { label:"Capitanía Marítima Málaga",tel:"+34 952 121 234", color:T.info   },
+    { label:"Puerto Caleta de Vélez",   tel:"+34 952 551 418", color:T.info   },
+    { label:"Guardia Civil Mar",        tel:"900 202 202",     color:T.warn   },
+    { label:"Seguro náutico",           tel:"—",               color:T.inkMid },
+    { label:"Taller náutico confianza", tel:"—",               color:T.inkMid },
+  ];
+
+  const TABS = [
+    { id:"equipos",   label:"Equipos" },
+    { id:"caducidades", label:`Alertas${proximos.length>0?" ("+proximos.length+")":""}` },
+    { id:"contactos", label:"Contactos" },
+  ];
 
   return (
     <div>
-      <Hdr eyebrow="Equipos y emergencias" title="Seguridad"/>
-      {(vencidos>0||proximos>0) && (
-        <div style={{background:T.danger+"10",border:`1px solid ${T.danger}28`,borderRadius:8,padding:"11px 15px",marginBottom:16}}>
-          <div style={{color:T.danger,fontSize:12,fontWeight:600}}>
-            {vencidos>0 && `${vencidos} equipo${vencidos>1?"s":""} vencido${vencidos>1?"s":""}. `}
-            {proximos>0 && `${proximos} equipo${proximos>1?"s":""} vence pronto.`}
+      <Hdr eyebrow="Equipos y emergencias" title="Seguridad"
+        action={tab==="equipos" && <Btn sm onClick={()=>{ setShowForm(!showForm); setEditItem(null); setForm(FORM_INIT); }}>
+          {showForm&&!editItem?"Cancelar":"+ Añadir"}
+        </Btn>}/>
+
+      {/* Tabs */}
+      <div style={{display:"flex",background:T.bg,borderRadius:7,padding:3,gap:3,
+        marginBottom:18,border:`1px solid ${T.rimHi}`}}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{
+            flex:1, padding:"8px 4px", borderRadius:5, border:"none", cursor:"pointer",
+            background:tab===t.id?T.surface:"transparent",
+            color:tab===t.id?T.ink:T.inkDim, fontSize:11.5,
+            fontWeight:tab===t.id?600:400, fontFamily:"inherit",
+            boxShadow:tab===t.id?"0 1px 3px rgba(0,0,0,0.12)":"none",
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* ── TAB EQUIPOS ── */}
+      {tab==="equipos" && (
+        <div>
+          {showForm && (
+            <Card style={{marginBottom:14}} pad="16px">
+              <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
+                textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>
+                {editItem?"Editar equipo":"Nuevo equipo"}
+              </div>
+              <FInput label="Equipo *" value={form.equipo} onChange={upd("equipo")}/>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <FInput label="Caducidad" type="date" value={form.caducidad} onChange={upd("caducidad")}/>
+                <FInput label="Ubicación" value={form.ubicacion} onChange={upd("ubicacion")}/>
+              </div>
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
+                  fontFamily:"'DM Mono',monospace",marginBottom:5}}>Estado</div>
+                <div style={{display:"flex",gap:6}}>
+                  {ESTADOS.map(e=>(
+                    <button key={e} onClick={()=>setForm(f=>({...f,estado:e}))} style={{
+                      flex:1, padding:"8px", borderRadius:6, cursor:"pointer", fontSize:11,
+                      fontFamily:"inherit", fontWeight:form.estado===e?700:400,
+                      border:`1px solid ${form.estado===e?ESTADO_COLOR[e]:T.rimHi}`,
+                      background:form.estado===e?ESTADO_COLOR[e]+"15":"transparent",
+                      color:form.estado===e?ESTADO_COLOR[e]:T.inkDim,
+                    }}>{ESTADO_LABEL[e]}</button>
+                  ))}
+                </div>
+              </div>
+              <FTextarea label="Notas (empieza por 'Recomendado' si no es obligatorio)" value={form.notas} onChange={upd("notas")}/>
+              <div style={{display:"flex",gap:8}}>
+                <Btn onClick={guardar}>{saving?"Guardando...":editItem?"Actualizar":"Guardar"}</Btn>
+                <Btn variant="ghost" onClick={()=>{setShowForm(false);setEditItem(null);}}>Cancelar</Btn>
+              </div>
+            </Card>
+          )}
+
+          {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card> : (
+            <div>
+              {/* Obligatorios */}
+              <div style={{fontSize:9.5,color:T.brass,letterSpacing:2,textTransform:"uppercase",
+                fontFamily:"'DM Mono',monospace",marginBottom:9}}>Obligatorios · RD 339/2021</div>
+              {obligatorios.map(item=>{
+                const est = estadoReal(item);
+                const dias = diasParaCaducar(item.caducidad);
+                return (
+                  <Card key={item.id} style={{marginBottom:7}} pad="12px 16px">
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div style={{flex:1,marginRight:8}}>
+                        <div style={{color:T.ink,fontWeight:500,fontSize:13}}>{item.equipo}</div>
+                        <div style={{color:T.inkDim,fontSize:9.5,marginTop:2,fontFamily:"'DM Mono',monospace"}}>
+                          {item.ubicacion||"--"}
+                          {item.caducidad ? ` · Vence ${item.caducidad}` : ""}
+                          {dias ? <span style={{color:ESTADO_COLOR[est],fontWeight:700}}> · {dias}</span> : ""}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                        <Signal estado={est}/>
+                        <button onClick={()=>editar(item)} style={{background:"none",
+                          border:`1px solid ${T.rimHi}`,borderRadius:5,padding:"3px 6px",
+                          color:T.inkDim,fontSize:10,cursor:"pointer"}}>✏️</button>
+                        <button onClick={()=>eliminar(item.id)} style={{background:"none",
+                          border:`1px solid ${T.danger}40`,borderRadius:5,padding:"3px 6px",
+                          color:T.danger,fontSize:10,cursor:"pointer"}}>✕</button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+
+              {/* Recomendados */}
+              {recomendados.length > 0 && (
+                <div>
+                  <div style={{fontSize:9.5,color:T.inkDim,letterSpacing:2,textTransform:"uppercase",
+                    fontFamily:"'DM Mono',monospace",margin:"18px 0 9px"}}>Recomendados</div>
+                  {recomendados.map(item=>{
+                    const est = estadoReal(item);
+                    return (
+                      <Card key={item.id} style={{marginBottom:7}} pad="12px 16px">
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <div style={{flex:1,marginRight:8}}>
+                            <div style={{color:T.ink,fontWeight:500,fontSize:13}}>{item.equipo}</div>
+                            <div style={{color:T.inkDim,fontSize:9.5,marginTop:2,fontFamily:"'DM Mono',monospace"}}>
+                              {item.ubicacion||"--"}
+                              {item.caducidad ? ` · Vence ${item.caducidad}` : ""}
+                            </div>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:6}}>
+                            <Signal estado={est}/>
+                            <button onClick={()=>editar(item)} style={{background:"none",
+                              border:`1px solid ${T.rimHi}`,borderRadius:5,padding:"3px 6px",
+                              color:T.inkDim,fontSize:10,cursor:"pointer"}}>✏️</button>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── TAB CADUCIDADES ── */}
+      {tab==="caducidades" && (
+        <div>
+          {proximos.length === 0 ? (
+            <Card>
+              <div style={{textAlign:"center",padding:"20px 0"}}>
+                <div style={{fontSize:28,marginBottom:8}}>✅</div>
+                <div style={{color:T.ok,fontWeight:600,fontSize:14}}>Todo en orden</div>
+                <div style={{color:T.inkDim,fontSize:12,marginTop:4}}>Ningún equipo caduca en los próximos 60 días</div>
+              </div>
+            </Card>
+          ) : (
+            proximos.sort((a,b)=>{
+              const da = a.caducidad ? new Date(a.caducidad) : new Date("2099-01-01");
+              const db2 = b.caducidad ? new Date(b.caducidad) : new Date("2099-01-01");
+              return da - db2;
+            }).map(item=>{
+              const est = estadoReal(item);
+              const dias = diasParaCaducar(item.caducidad);
+              return (
+                <Card key={item.id} style={{marginBottom:9,
+                  borderLeft:`3px solid ${ESTADO_COLOR[est]}`}} pad="14px 16px">
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div style={{flex:1}}>
+                      <div style={{color:T.ink,fontWeight:600,fontSize:13}}>{item.equipo}</div>
+                      <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>
+                        {item.ubicacion||"--"} · Vence {item.caducidad||"sin fecha"}
+                      </div>
+                      {item.notas && <div style={{color:T.inkDim,fontSize:11,marginTop:5,lineHeight:1.4}}>{item.notas}</div>}
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
+                      <div style={{color:ESTADO_COLOR[est],fontWeight:700,fontSize:12,
+                        fontFamily:"'DM Mono',monospace"}}>{dias}</div>
+                      <button onClick={()=>cambiarEstado(item.id,"ok")} style={{
+                        marginTop:8,background:T.ok+"15",border:`1px solid ${T.ok}40`,
+                        borderRadius:5,padding:"4px 10px",color:T.ok,fontSize:10,
+                        cursor:"pointer",fontFamily:"inherit"}}>Renovado ✓</button>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* ── TAB CONTACTOS ── */}
+      {tab==="contactos" && (
+        <div>
+          <Card pad="0 18px" style={{marginBottom:18}}>
+            {CONTACTOS.map((c,i)=>(
+              <div key={c.label}>{i>0&&<Divider/>}
+                <div style={{display:"flex",justifyContent:"space-between",
+                  alignItems:"center",padding:"13px 0"}}>
+                  <span style={{color:T.inkMid,fontSize:13}}>{c.label}</span>
+                  <a href={`tel:${c.tel}`} style={{
+                    color:c.color,fontSize:13,fontWeight:600,
+                    fontFamily:"'DM Mono',monospace",textDecoration:"none"}}>
+                    {c.tel}
+                  </a>
+                </div>
+              </div>
+            ))}
+          </Card>
+          <div style={{background:T.danger+"10",border:`1px solid ${T.danger}25`,
+            borderRadius:8,padding:"14px 16px"}}>
+            <div style={{color:T.danger,fontWeight:700,fontSize:13,marginBottom:6}}>
+              🚨 En caso de emergencia
+            </div>
+            <div style={{color:T.inkMid,fontSize:12,lineHeight:1.6}}>
+              1. Activa el DSC del VHF (canal 16) con Mayday<br/>
+              2. Activa la EPIRB si hay riesgo de hundimiento<br/>
+              3. Llama al 900 202 202 (Salvamento Marítimo)<br/>
+              4. Lanza bengalas en grupos de 2 con intervalo
+            </div>
           </div>
         </div>
       )}
-      {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
-      : items.map(e=>(
-        <Card key={e.id} style={{marginBottom:7}} pad="12px 16px">
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{flex:1}}>
-              <div style={{color:T.ink,fontWeight:500,fontSize:13}}>{e.equipo}</div>
-              <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,fontFamily:"'DM Mono',monospace"}}>
-                {e.ubicacion}{e.caducidad?` · Vence ${e.caducidad}`:" · Sin caducidad"}
-              </div>
-            </div>
-            <Signal estado={e.estado||"ok"}/>
-          </div>
-        </Card>
-      ))}
-
-      <div style={{fontSize:9.5,color:T.inkDim,letterSpacing:2,textTransform:"uppercase",
-        fontFamily:"'DM Mono',monospace",margin:"22px 0 11px"}}>Contactos de emergencia</div>
-      <Card pad="0 18px">
-        {[
-          ["Salvamento Marítimo","900 202 202",T.danger],
-          ["Capitanía Marítima Málaga","+34 952 121 234",T.info],
-          ["Puerto Caleta de Vélez","+34 952 551 418",T.info],
-          ["Seguro náutico","+34 900 300 400",T.inkMid],
-        ].map(([k,v,c],i)=>(
-          <div key={k}>{i>0&&<Divider/>}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 0"}}>
-              <span style={{color:T.inkMid,fontSize:12.5}}>{k}</span>
-              <span style={{color:c,fontSize:12,fontWeight:600,fontFamily:"'DM Mono',monospace"}}>{v}</span>
-            </div>
-          </div>
-        ))}
-      </Card>
     </div>
   );
 }
