@@ -660,10 +660,10 @@ function Bitacora() {
         hora_llegada: form.hora_llegada||null,
         patron: form.patron,
         salida: form.salida, llegada: form.llegada,
-        millas: parseFloat(form.millas)||0,
+
         horas_motor_inicio: parseFloat(form.horas_motor_inicio)||null,
         horas_motor_fin: parseFloat(form.horas_motor_fin)||null,
-        tripulantes: parseInt(form.tripulantes)||1,
+
         combustible_cargado: parseFloat(form.combustible_pct)||null,
         condiciones: form.condiciones,
         incidencias: form.incidencias||"Sin novedad",
@@ -802,8 +802,7 @@ function Bitacora() {
               <FInput label="Hora salida" type="time" value={form.hora_salida} onChange={upd("hora_salida")}/>
               <FInput label="Puerto llegada *" value={form.llegada} onChange={upd("llegada")}/>
               <FInput label="Hora llegada" type="time" value={form.hora_llegada} onChange={upd("hora_llegada")}/>
-              <FInput label="Millas navegadas" type="number" value={form.millas} onChange={upd("millas")}/>
-              <FInput label="Nº tripulantes" type="number" value={form.tripulantes} onChange={upd("tripulantes")}/>
+
               <div style={{marginBottom:10}}>
                 <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
                   fontFamily:"'DM Mono',monospace",marginBottom:5}}>Tripulación a bordo</div>
@@ -903,7 +902,7 @@ function Bitacora() {
                 <div style={{color:T.inkDim,fontSize:10,marginTop:3,
                   fontFamily:"'DM Mono',monospace"}}>
                   {e.hora_salida ? `${e.hora_salida} → ${e.hora_llegada||"?"}` : e.fecha}
-                  {e.millas ? ` · ${e.millas} mn` : ""}
+
                   {e.horas_motor_inicio && e.horas_motor_fin
                     ? ` · ${(parseFloat(e.horas_motor_fin)-parseFloat(e.horas_motor_inicio)).toFixed(1)}h motor` : ""}
                 </div>
@@ -925,7 +924,7 @@ function Bitacora() {
                 ["Patrón",             e.patron||"--"],
                 ["Salida",             e.hora_salida ? `${e.salida} · ${e.hora_salida}` : e.salida||"--"],
                 ["Llegada",            e.hora_llegada ? `${e.llegada} · ${e.hora_llegada}` : e.llegada||"--"],
-                ["Millas navegadas",   e.millas ? `${e.millas} mn` : "--"],
+
                 ["Duración",           e.hora_salida && e.hora_llegada ? (() => {
                   const [sh,sm] = e.hora_salida.split(":").map(Number);
                   const [eh,em] = e.hora_llegada.split(":").map(Number);
@@ -935,7 +934,7 @@ function Bitacora() {
                 })() : "--"],
                 ["H. motor",           e.horas_motor_inicio
                   ? `${e.horas_motor_inicio}h → ${e.horas_motor_fin||"?"}h (${e.horas_motor_fin&&e.horas_motor_inicio ? (parseFloat(e.horas_motor_fin)-parseFloat(e.horas_motor_inicio)).toFixed(1)+"h" : "--"})` : "--"],
-                ["Tripulantes",        e.tripulantes||"--"],
+
                 ["Combustible",        e.combustible_cargado!=null ? e.combustible_cargado+"%" : "--"],
                 ["Condiciones",        e.condiciones||"--"],
                 ["Incidencias",        e.incidencias||"Sin novedad"],
@@ -2275,53 +2274,92 @@ DATOS TÉCNICOS:
 - Motores: 2× MAN D28 MCR, 588 kW (≈800 CV) cada uno
 - Horas motor actuales: 774 h
 - Eslora: 16.15 m · Manga: 4.42 m · Calado: 1.25 m
-- Zona habilitada: 2ª Categoría (estimado)
-- Electrónica reformada: Garmin chartplotter, AIS, piloto automático nuevo, sistema de sonido
-
-NOTAS SOBRE EL SUNSEEKER PORTOFINO 53:
-- Barco con planing hull de alta velocidad, diseño de crucero de lujo
-- Los motores MAN D2848 requieren mantenimiento riguroso: cambio de aceite cada 250h o anual, filtros de combustible cada 500h, impelentes anualmente
-- Sistema de refrigeración por agua de mar -- impelentes críticos
-- Doble hélice -- revisar ánodos y bocinas regularmente
-- Con 774h los motores están en rodaje medio -- buen momento para revisar correas, manguitos y juntas
+- Zona habilitada: 2ª Categoría
+- Electrónica: Garmin chartplotter, AIS, piloto automático, sistema de sonido
 
 PATRONES:
 - Salvador Álvarez Escobar "Varo" · Patrón de Yate
-- Guillermo José Hurtado de Mendoza Florido "Guille" · PER · propietario registrado (familia)
+- Guillermo José Hurtado de Mendoza "Guille" · Armador · PER
 
-La app está en fase inicial. Seguro pendiente de añadir.
+Cuando te manden una imagen: analízala en detalle. Si es una pieza o componente del barco, identifícala, di qué es, su estado aparente y qué hacer. Si es una avería o problema visible, diagnostica y recomienda acción. Si es un producto (aceite, filtro, repuesto), confirma si es compatible con el Leonidas.
 
-Responde en español. Sé específico, cita datos reales del barco. Texto plano sin asteriscos.`;
+Responde en español. Sé específico y cita datos reales del barco cuando sea relevante. Texto plano sin asteriscos ni markdown.`;
 
 function AsistenteIA() {
-  const [msgs, setMsgs] = useState([{
-    role:"assistant",
-    text:"Soy el asistente de a bordo del Leonidas. Conozco su historial técnico completo. ¿En qué puedo ayudarte?"
-  }]);
-  const [input, setInput] = useState("");
+  const [msgs, setMsgs]     = useState([{role:"assistant", text:"Soy el asistente de a bordo del Leonidas. Puedo ayudarte con consultas técnicas y también analizar fotos de piezas, averías o productos. ¿En qué puedo ayudarte?", img:null}]);
+  const [input, setInput]   = useState("");
   const [loading, setLoading] = useState(false);
+  const [imagen, setImagen] = useState(null); // { base64, mediaType, preview }
   const ref = useRef(null);
 
-  const sugs = ["¿Qué mantenimiento urge más?","¿Qué puede ser el ruido en la caja de cambios?","Dame checklist de salida","¿Cuándo toca cambiar el aceite?"];
+  const sugs = ["¿Qué mantenimiento urge más?","Dame checklist de salida","¿Cuándo toca cambiar el aceite?","Analiza esta pieza"];
+
+  async function fileToBase64(file) {
+    return new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload = () => res(reader.result.split(",")[1]);
+      reader.onerror = rej;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleImageSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const base64 = await fileToBase64(file);
+    const preview = URL.createObjectURL(file);
+    setImagen({ base64, mediaType: file.type, preview, name: file.name });
+  }
 
   async function send() {
-    if (!input.trim()||loading) return;
-    const text = input.trim(); setInput("");
-    const next = [...msgs,{role:"user",text}];
-    setMsgs(next); setLoading(true);
+    if ((!input.trim() && !imagen) || loading) return;
+    const text    = input.trim() || "Analiza esta imagen";
+    const imgData = imagen;
+    setInput("");
+    setImagen(null);
+
+    const userMsg = { role:"user", text, img: imgData?.preview || null };
+    const next = [...msgs, userMsg];
+    setMsgs(next);
+    setLoading(true);
+
     try {
-      const res = await fetch("/api/claude",{
+      // Build message content
+      const userContent = [];
+      if (imgData) {
+        userContent.push({
+          type: "image",
+          source: { type:"base64", media_type: imgData.mediaType, data: imgData.base64 }
+        });
+      }
+      userContent.push({ type:"text", text });
+
+      // Build messages array for API
+      const apiMsgs = next.map((m, i) => {
+        if (i === next.length - 1) {
+          // Last message (current user msg) with possible image
+          return { role: "user", content: userContent };
+        }
+        return { role: m.role, content: m.text };
+      });
+
+      const res = await fetch("/api/claude", {
         method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000,
-          system:SYS, messages:next.map(m=>({role:m.role,content:m.text})) })
+        body: JSON.stringify({
+          model:"claude-sonnet-4-20250514", max_tokens:1000,
+          system: SYS,
+          messages: apiMsgs
+        })
       });
       const d = await res.json();
       const reply = d?.content?.[0]?.text
         || d?.content?.find?.(b=>b.type==="text")?.text
         || (d?.error ? "Error API: "+d.error.message : null)
         || "Sin respuesta.";
-      setMsgs(m=>[...m,{role:"assistant",text:reply}]);
-    } catch(e) { setMsgs(m=>[...m,{role:"assistant",text:"Error: "+e.message}]); }
+      setMsgs(m=>[...m,{role:"assistant",text:reply,img:null}]);
+    } catch(e) {
+      setMsgs(m=>[...m,{role:"assistant",text:"Error: "+e.message,img:null}]);
+    }
     setLoading(false);
   }
 
@@ -2330,68 +2368,109 @@ function AsistenteIA() {
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"calc(100vh - 148px)" }}>
       <Hdr eyebrow="Asistente de a bordo" title="IA Náutica"/>
+
+      {/* Chat */}
       <div style={{ flex:1, overflowY:"auto", marginBottom:11 }}>
         {msgs.map((m,i)=>(
           <div key={i} style={{ display:"flex",
             justifyContent:m.role==="user"?"flex-end":"flex-start",
             marginBottom:11, gap:9 }}>
             {m.role==="assistant"&&(
-              <div style={{ width:28, height:28, borderRadius:7, background:T.brassDim,
-                border:`1px solid ${T.brass}40`, display:"flex", alignItems:"center",
-                justifyContent:"center", color:T.brass, fontSize:13, flexShrink:0, marginTop:2 }}>◈</div>
+              <div style={{ width:28,height:28,borderRadius:7,background:T.brassDim,
+                border:`1px solid ${T.brass}40`,display:"flex",alignItems:"center",
+                justifyContent:"center",color:T.brass,fontSize:13,flexShrink:0,marginTop:2}}>◈</div>
             )}
-            <div style={{ maxWidth:"80%", padding:"11px 15px",
-              borderRadius:m.role==="user"?"10px 3px 10px 10px":"3px 10px 10px 10px",
-              background:m.role==="user"?T.brass:T.surface,
-              border:m.role==="user"?"none":`1px solid ${T.rimHi}`,
-              color:m.role==="user"?"#0C0F14":T.inkMid,
-              fontSize:13, lineHeight:1.6, whiteSpace:"pre-wrap",
-              fontWeight:m.role==="user"?600:400 }}>{m.text}</div>
+            <div style={{ maxWidth:"80%" }}>
+              {m.img && (
+                <div style={{ marginBottom:6 }}>
+                  <img src={m.img} alt="adjunto"
+                    style={{ maxWidth:"100%", maxHeight:180, borderRadius:8,
+                      border:`1px solid ${T.rim}`, objectFit:"cover", display:"block" }}/>
+                </div>
+              )}
+              <div style={{ padding:"11px 15px",
+                borderRadius:m.role==="user"?"10px 3px 10px 10px":"3px 10px 10px 10px",
+                background:m.role==="user"?T.brass:T.surface,
+                border:m.role==="user"?"none":`0.5px solid ${T.rim}`,
+                color:m.role==="user"?"#fff":T.inkMid,
+                fontSize:13, lineHeight:1.6, whiteSpace:"pre-wrap",
+                fontWeight:m.role==="user"?500:400 }}>{m.text}</div>
+            </div>
           </div>
         ))}
         {loading&&(
-          <div style={{ display:"flex", gap:9, alignItems:"flex-start", marginBottom:11 }}>
-            <div style={{ width:28, height:28, borderRadius:7, background:T.brassDim,
-              border:`1px solid ${T.brass}40`, display:"flex", alignItems:"center",
-              justifyContent:"center", color:T.brass, fontSize:13, flexShrink:0 }}>◈</div>
-            <div style={{ background:T.surface, border:`1px solid ${T.rimHi}`,
-              borderRadius:"3px 10px 10px 10px", padding:"13px 17px", display:"flex", gap:5 }}>
+          <div style={{ display:"flex",gap:9,alignItems:"flex-start",marginBottom:11 }}>
+            <div style={{ width:28,height:28,borderRadius:7,background:T.brassDim,
+              border:`1px solid ${T.brass}40`,display:"flex",alignItems:"center",
+              justifyContent:"center",color:T.brass,fontSize:13,flexShrink:0}}>◈</div>
+            <div style={{ background:T.surface,border:`0.5px solid ${T.rim}`,
+              borderRadius:"3px 10px 10px 10px",padding:"13px 17px",display:"flex",gap:5}}>
               {[0,1,2].map(j=>(
-                <div key={j} style={{ width:5, height:5, borderRadius:"50%", background:T.brass,
-                  opacity:0.3, animation:"blink 1.2s infinite", animationDelay:`${j*0.2}s` }}/>
+                <div key={j} style={{ width:5,height:5,borderRadius:"50%",background:T.brass,
+                  opacity:0.3,animation:"blink 1.2s infinite",animationDelay:`${j*0.2}s`}}/>
               ))}
             </div>
           </div>
         )}
         <div ref={ref}/>
       </div>
+
+      {/* Sugerencias */}
       {msgs.length===1&&(
         <div style={{ marginBottom:11 }}>
-          <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:1.5,
-            textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:8 }}>Sugerencias</div>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+          <div style={{ fontSize:9.5,color:T.inkDim,letterSpacing:1.5,
+            textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Sugerencias</div>
+          <div style={{ display:"flex",flexWrap:"wrap",gap:6}}>
             {sugs.map((s,i)=>(
               <button key={i} onClick={()=>setInput(s)} style={{
-                background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
-                borderRadius:20, padding:"6px 13px", color:T.inkMid,
-                fontSize:11, cursor:"pointer", fontFamily:"inherit" }}>{s}</button>
+                background:T.surfaceUp,border:`0.5px solid ${T.rim}`,
+                borderRadius:20,padding:"6px 13px",color:T.inkMid,
+                fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{s}</button>
             ))}
           </div>
         </div>
       )}
-      <div style={{ display:"flex", gap:9 }}>
+
+      {/* Preview imagen adjunta */}
+      {imagen && (
+        <div style={{ marginBottom:8,display:"flex",alignItems:"center",gap:10,
+          background:T.bg,borderRadius:8,padding:"8px 12px",
+          border:`0.5px solid ${T.rim}`}}>
+          <img src={imagen.preview} alt="preview"
+            style={{ width:44,height:44,borderRadius:6,objectFit:"cover",
+              border:`1px solid ${T.rim}`}}/>
+          <div style={{ flex:1 }}>
+            <div style={{ color:T.ink,fontSize:12,fontWeight:500 }}>{imagen.name}</div>
+            <div style={{ color:T.inkDim,fontSize:10,fontFamily:"'DM Mono',monospace"}}>Lista para enviar</div>
+          </div>
+          <button onClick={()=>setImagen(null)} style={{ background:"none",border:"none",
+            color:T.danger,fontSize:16,cursor:"pointer"}}>✕</button>
+        </div>
+      )}
+
+      {/* Input */}
+      <div style={{ display:"flex",gap:8,alignItems:"flex-end" }}>
+        {/* Botón foto */}
+        <label style={{ width:43,height:43,borderRadius:9,border:`0.5px solid ${T.rim}`,
+          background:imagen?T.brassDim:T.surface,display:"flex",alignItems:"center",
+          justifyContent:"center",cursor:"pointer",flexShrink:0,fontSize:18}}>
+          📷
+          <input type="file" accept="image/*" capture="environment"
+            onChange={handleImageSelect} style={{display:"none"}}/>
+        </label>
         <input value={input} onChange={e=>setInput(e.target.value)}
-          onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Consulta sobre el barco..."
-          style={{ flex:1, background:T.surface, border:`1px solid ${T.rimHi}`,
-            borderRadius:9, padding:"12px 15px", color:T.ink, fontSize:13,
-            outline:"none", fontFamily:"inherit" }}/>
-        <button onClick={send} disabled={loading||!input.trim()} style={{
-          width:43, height:43, borderRadius:9, border:"none",
-          background:input.trim()?T.brass:T.rimHi,
-          color:input.trim()?"#0C0F14":T.inkDim,
-          fontSize:18, cursor:input.trim()?"pointer":"default",
-          flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center",
-          fontWeight:700 }}>›</button>
+          onKeyDown={e=>e.key==="Enter"&&send()}
+          placeholder={imagen?"Añade un comentario o envía la foto...":"Consulta sobre el barco..."}
+          style={{ flex:1,background:T.surface,border:`0.5px solid ${T.rim}`,
+            borderRadius:9,padding:"12px 15px",color:T.ink,fontSize:13,
+            outline:"none",fontFamily:"inherit"}}/>
+        <button onClick={send} disabled={loading||(!input.trim()&&!imagen)} style={{
+          width:43,height:43,borderRadius:9,border:"none",
+          background:(input.trim()||imagen)?T.brass:T.rim,
+          color:(input.trim()||imagen)?"#fff":T.inkDim,
+          fontSize:18,cursor:(input.trim()||imagen)?"pointer":"default",
+          flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
+          fontWeight:700}}>›</button>
       </div>
     </div>
   );
