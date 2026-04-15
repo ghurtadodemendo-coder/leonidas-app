@@ -26,11 +26,12 @@ async function db(table, method="GET", body=null, query="") {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const T = {
-  bg:       "#F4F1EC",
-  surface:  "#FDFAF6",
-  surfaceUp:"#EEE9DF",
-  rim:      "#DDD8CF",
-  rimHi:    "rgba(0,0,0,0.07)",
+  // Contenido claro
+  bg:       "#F8F5F0",
+  surface:  "#FFFFFF",
+  surfaceUp:"#F0EDE8",
+  rim:      "#E8E4DE",
+  rimHi:    "rgba(0,0,0,0.06)",
   ink:      "#1A1A18",
   inkMid:   "#4A4A44",
   inkDim:   "#9A9488",
@@ -41,8 +42,14 @@ const T = {
   warn:     "#B06A18",
   danger:   "#A83428",
   info:     "#2660A0",
-  line:     "rgba(0,0,0,0.07)",
-  lineHi:   "rgba(0,0,0,0.12)",
+  line:     "rgba(0,0,0,0.06)",
+  lineHi:   "rgba(0,0,0,0.1)",
+  // Sidebar oscuro
+  sidebarBg:    "#0D1B2A",
+  sidebarSurf:  "#1A2B3C",
+  sidebarLine:  "rgba(255,255,255,0.08)",
+  sidebarInk:   "rgba(255,255,255,0.55)",
+  sidebarDim:   "rgba(255,255,255,0.3)",
 };
 
 const NAV = [
@@ -149,9 +156,9 @@ function Signal({ estado }) {
 
 function Card({ children, style={}, pad="16px 18px" }) {
   return (
-    <div style={{ background:T.surface, border:`1px solid ${T.rimHi}`,
+    <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
       borderRadius:10, padding:pad,
-      boxShadow:"0 1px 4px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.05)",
+      boxShadow:"0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
       ...style }}>
       {children}
     </div>
@@ -160,12 +167,12 @@ function Card({ children, style={}, pad="16px 18px" }) {
 
 function Hdr({ eyebrow, title, action }) {
   return (
-    <div style={{ marginBottom:22, display:"flex", justifyContent:"space-between", alignItems:"flex-end" }}>
+    <div style={{ marginBottom:24, display:"flex", justifyContent:"space-between", alignItems:"flex-end" }}>
       <div>
         <div style={{ fontSize:9.5, color:T.brass, letterSpacing:2.5, textTransform:"uppercase",
-          fontFamily:"'DM Mono',monospace", marginBottom:5 }}>{eyebrow}</div>
-        <h2 style={{ margin:0, fontSize:26, color:T.ink,
-          fontFamily:"'Cormorant Garamond',serif", fontWeight:600, lineHeight:1 }}>{title}</h2>
+          fontFamily:"'DM Mono',monospace", marginBottom:6 }}>{eyebrow}</div>
+        <h2 style={{ margin:0, fontSize:28, color:T.ink,
+          fontFamily:"'Cormorant Garamond',serif", fontWeight:600, lineHeight:1, letterSpacing:-0.3 }}>{title}</h2>
       </div>
       {action}
     </div>
@@ -187,13 +194,14 @@ function Row({ label, value, accent }) {
 // ── FORM PRIMITIVES (defined globally to prevent re-render/deselect bug) ─────
 function FInput({ label, value, onChange, type="text", placeholder="" }) {
   return (
-    <div style={{ marginBottom:10 }}>
+    <div style={{ marginBottom:11 }}>
       {label && <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
         fontFamily:"'DM Mono',monospace", marginBottom:5 }}>{label}</div>}
       <input type={type} value={value} onChange={onChange} placeholder={placeholder}
-        style={{ width:"100%", background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
+        style={{ width:"100%", background:T.bg, border:`0.5px solid ${T.rim}`,
           borderRadius:7, padding:"10px 12px", color:T.ink, fontSize:14,
-          fontFamily:"inherit", outline:"none" }}/>
+          fontFamily:"inherit", outline:"none",
+          boxShadow:"inset 0 1px 2px rgba(0,0,0,0.04)" }}/>
     </div>
   );
 }
@@ -249,8 +257,8 @@ function Btn({ children, onClick, variant="primary", sm }) {
     fontSize:sm?11:12.5, fontWeight:700, fontFamily:"inherit", letterSpacing:0.4,
     padding: sm?"7px 14px":"11px 18px" };
   const styles = {
-    primary: { background:T.brass, color:"#0C0F14", boxShadow:`0 0 16px ${T.brass}28` },
-    ghost:   { background:"transparent", color:T.inkMid, border:`1px solid ${T.rimHi}` },
+    primary: { background:T.brass, color:"#fff", boxShadow:`0 2px 8px rgba(140,106,46,0.3)` },
+    ghost:   { background:"transparent", color:T.inkMid, border:`0.5px solid ${T.rim}` },
   };
   return <button onClick={onClick} style={{...base,...styles[variant]}}>{children}</button>;
 }
@@ -295,10 +303,10 @@ function DashboardWeather({ setScreen }) {
   const sc = wx.sem.level==="ok"?T.ok:wx.sem.level==="warn"?T.warn:T.danger;
   return (
     <div onClick={()=>setScreen("clima")} style={{
-      background: sc+"12", border:`1px solid ${sc}35`,
-      borderRadius:10, padding:"12px 16px", marginBottom:16,
+      background: sc+"15", border:`1px solid ${sc}40`,
+      borderRadius:10, padding:"13px 18px", marginBottom:16,
       display:"flex", alignItems:"center", justifyContent:"space-between",
-      cursor:"pointer" }}>
+      cursor:"pointer", boxShadow:`0 1px 4px ${sc}20` }}>
       <div style={{ display:"flex", alignItems:"center", gap:12 }}>
         <div style={{ width:9, height:9, borderRadius:"50%", background:sc,
           boxShadow:`0 0 8px ${sc}`, flexShrink:0 }}/>
@@ -356,6 +364,8 @@ function Dashboard({ setScreen }) {
 
   const [combustibleAlert, setCombustibleAlert] = useState(null);
   const [mantAlert, setMantAlert] = useState(null);
+  const [averiasAlert, setAveriasAlert] = useState([]);
+  const [docsAlert, setDocsAlert] = useState([]);
 
   useEffect(()=>{
     async function checkMantenimiento() {
@@ -391,6 +401,28 @@ function Dashboard({ setScreen }) {
     }
     checkMantenimiento();
 
+    async function checkAverias() {
+      try {
+        const a = await db("averias","GET",null,"?estado=in.(pendiente,en_taller)&order=fecha.desc");
+        setAveriasAlert(a);
+      } catch(e){}
+    }
+    checkAverias();
+
+    async function checkDocs() {
+      try {
+        const docs = await db("documentos","GET",null,"?select=nombre,fecha_vencimiento&fecha_vencimiento=not.is.null");
+        const hoy = new Date();
+        const proximos = docs.filter(d => {
+          if (!d.fecha_vencimiento) return false;
+          const dias = Math.round((new Date(d.fecha_vencimiento) - hoy) / 86400000);
+          return dias >= 0 && dias <= 30;
+        });
+        setDocsAlert(proximos);
+      } catch(e){}
+    }
+    checkDocs();
+
     async function checkCombustible() {
       try {
         // Check latest bitacora entry for fuel level
@@ -415,13 +447,15 @@ function Dashboard({ setScreen }) {
   },[]);
 
   const alerts = [
+    // Combustible
     combustibleAlert !== null ? { msg:`⛽ Combustible bajo · ${combustibleAlert}%`, sub:"Repostar antes de la proxima salida", c:T.danger, to:"combustible" } : null,
-    mantAlert?.nivel==="danger" ? { msg:`🔧 ${mantAlert.texto}`, sub:"Revisar modulo de mantenimiento", c:T.danger, to:"mantenimiento" } : null,
+    // Mantenimiento dinamico
+    mantAlert?.nivel==="danger" ? { msg:`🔧 ${mantAlert.texto}`, sub:"Accede a Mantenimiento para revisar", c:T.danger, to:"mantenimiento" } : null,
     mantAlert?.nivel==="warn"   ? { msg:`🔧 ${mantAlert.texto}`, sub:"Revision proxima recomendada", c:T.warn, to:"mantenimiento" } : null,
-    { msg:"Seguro de responsabilidad civil",       sub:"Verificar vigencia y añadir datos",    c:T.warn, to:"documentos" },
-    { msg:"ITV · Cert. Navegabilidad 04/12/2025", sub:"Verificar próxima fecha de revisión",  c:T.info, to:"documentos" },
-    { msg:"Historial de mantenimiento vacío",     sub:"Añadir fechas de últimas revisiones",  c:T.info, to:"mantenimiento" },
-    { msg:"Aceite motores · revisar a 800h",      sub:"Actual 774h · intervalo 250h MAN",     c:T.info, to:"mantenimiento" },
+    // Averias pendientes
+    ...averiasAlert.map(a => ({ msg:`⚠ Averia: ${a.descripcion}`, sub:`Registrada el ${a.fecha} · ${a.estado==="en_taller"?"En taller":"Pendiente"}`, c:T.danger, to:"mantenimiento" })),
+    // Documentos proximos a vencer
+    ...docsAlert.map(d => ({ msg:`📄 ${d.nombre} vence pronto`, sub:`Vencimiento: ${d.fecha_vencimiento}`, c:T.warn, to:"documentos" })),
   ].filter(Boolean);
 
   return (
@@ -447,10 +481,10 @@ function Dashboard({ setScreen }) {
           { l:"Último repostaje", v:stats.ultimoRepo,        a:stats.ultimoRepo!=="Sin datos"?T.ink:T.inkDim },
           { l:"Alertas activas",  v:alerts.length+"",        a:T.warn },
         ].map((k,i) => (
-          <Card key={i} pad="13px 15px">
+          <Card key={i} pad="14px 16px">
             <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5,
-              textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:5 }}>{k.l}</div>
-            <div style={{ fontSize:22, fontWeight:600, color:k.a,
+              textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:7 }}>{k.l}</div>
+            <div style={{ fontSize:26, fontWeight:600, color:k.a,
               fontFamily:"'Cormorant Garamond',serif", lineHeight:1 }}>{k.v}</div>
           </Card>
         ))}
@@ -464,13 +498,13 @@ function Dashboard({ setScreen }) {
             style={{ cursor:a.to?"pointer":"default" }}>
             {i>0 && <Divider/>}
             <div style={{ display:"flex", alignItems:"center", gap:12, padding:"9px 0" }}>
-              <div style={{ width:2.5, height:34, borderRadius:2, background:a.c, flexShrink:0 }}/>
+              <div style={{ width:3, height:38, borderRadius:2, background:a.c, flexShrink:0 }}/>
               <div style={{flex:1}}>
                 <div style={{ color:T.ink, fontSize:12.5, fontWeight:500 }}>{a.msg}</div>
                 <div style={{ color:T.inkDim, fontSize:10, marginTop:2,
                   fontFamily:"'DM Mono',monospace" }}>{a.sub}</div>
               </div>
-              {a.to && <span style={{color:T.inkDim,fontSize:16}}>›</span>}
+              {a.to && <span style={{color:T.inkDim,fontSize:18,fontWeight:300}}>›</span>}
             </div>
           </div>
         ))}
@@ -3354,20 +3388,20 @@ function SidebarContent({ navTo, screen, onClose, showClose }) {
   return (
     <>
       {/* Header */}
-      <div style={{ padding:"16px 18px 14px", borderBottom:`1px solid ${T.line}`,
+      <div style={{ padding:"18px 18px 16px", borderBottom:`1px solid ${T.sidebarLine}`,
         display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <AppLogo size={28}/>
+          <AppLogo size={30}/>
           <div>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16,
-              fontWeight:600, color:T.ink, lineHeight:1 }}>ShipLog</div>
-            <div style={{ fontSize:8, color:T.inkDim, letterSpacing:2.5,
-              textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginTop:2 }}>Leonidas</div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17,
+              fontWeight:600, color:"#fff", lineHeight:1 }}>ShipLog</div>
+            <div style={{ fontSize:8, color:T.sidebarDim, letterSpacing:2.5,
+              textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginTop:3 }}>Leonidas</div>
           </div>
         </div>
         {showClose && (
           <button onClick={onClose} style={{ background:"none", border:"none",
-            cursor:"pointer", color:T.inkDim, fontSize:18, lineHeight:1, padding:"2px 4px" }}>✕</button>
+            cursor:"pointer", color:T.sidebarInk, fontSize:18, lineHeight:1, padding:"2px 4px" }}>✕</button>
         )}
       </div>
 
@@ -3375,7 +3409,7 @@ function SidebarContent({ navTo, screen, onClose, showClose }) {
       <div style={{ flex:1, padding:"6px 0 12px", overflowY:"auto" }}>
         {MENU.map(section=>(
           <div key={section.section} style={{ marginBottom:2 }}>
-            <div style={{ fontSize:7.5, color:T.inkDim+"99", letterSpacing:2.5,
+            <div style={{ fontSize:8, color:T.sidebarDim, letterSpacing:2.5,
               textTransform:"uppercase", fontFamily:"'DM Mono',monospace",
               padding:"10px 18px 4px" }}>{section.section}</div>
             {section.items.map(item=>{
@@ -3384,11 +3418,11 @@ function SidebarContent({ navTo, screen, onClose, showClose }) {
                 <button key={item.id} onClick={()=>navTo(item.id)} style={{
                   width:"100%", display:"flex", alignItems:"center", gap:10,
                   padding:"9px 18px", border:"none", cursor:"pointer", textAlign:"left",
-                  background: active ? T.brass+"15" : "transparent",
+                  background: active ? "rgba(140,106,46,0.18)" : "transparent",
                   borderLeft: active ? `2px solid ${T.brass}` : "2px solid transparent",
                   borderRight:"none", borderTop:"none", borderBottom:"none" }}>
-                  <Icon d={item.svg} color={active?T.brass:T.inkDim} size={14} sw={active?2:1.5}/>
-                  <span style={{ color:active?T.brassLt:T.inkMid, fontSize:13,
+                  <Icon d={item.svg} color={active?T.brassLt:T.sidebarInk} size={14} sw={active?2:1.5}/>
+                  <span style={{ color:active?T.brassLt:"rgba(255,255,255,0.6)", fontSize:13,
                     fontWeight:active?600:400, letterSpacing:0.1 }}>{item.label}</span>
                 </button>
               );
@@ -3398,11 +3432,11 @@ function SidebarContent({ navTo, screen, onClose, showClose }) {
       </div>
 
       {/* Footer */}
-      <div style={{ padding:"14px 18px", borderTop:`1px solid ${T.line}`, flexShrink:0 }}>
+      <div style={{ padding:"14px 18px", borderTop:`1px solid ${T.sidebarLine}`, flexShrink:0 }}>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
           <div style={{ width:6, height:6, borderRadius:"50%", background:T.ok,
             boxShadow:`0 0 6px ${T.ok}` }}/>
-          <span style={{ color:T.inkDim, fontSize:10,
+          <span style={{ color:T.sidebarDim, fontSize:10,
             fontFamily:"'DM Mono',monospace" }}>En puerto · Caleta de Vélez</span>
         </div>
       </div>
@@ -3498,32 +3532,33 @@ export default function App() {
         <div style={{ position:"fixed", inset:0, zIndex:200, display:"flex" }}>
           <div onClick={()=>setSideOpen(false)} style={{ position:"absolute", inset:0,
             background:"rgba(0,0,0,0.65)", animation:"fadeIn 0.2s ease" }}/>
-          <div style={{ position:"relative", width:272, height:"100%", background:T.surface,
-            borderRight:`1px solid ${T.rimHi}`, overflowY:"auto",
+          <div style={{ position:"relative", width:272, height:"100%", background:T.sidebarBg,
+            borderRight:"none", overflowY:"auto",
             animation:"slideIn 0.25s ease", zIndex:1, display:"flex", flexDirection:"column",
-            boxShadow:"4px 0 24px rgba(0,0,0,0.3)" }}>
+            boxShadow:"4px 0 32px rgba(0,0,0,0.5)" }}>
             <SidebarContent navTo={navTo} screen={screen} onClose={()=>setSideOpen(false)} showClose={true}/>
           </div>
         </div>
       )}
 
       {/* SIDEBAR FIJO (tablet/desktop) */}
-      <div className="app-sidebar-desktop" style={{ width:240, height:"100dvh", background:T.surface,
-        borderRight:`1px solid ${T.line}`, flexDirection:"column", flexShrink:0, overflowY:"auto" }}>
+      <div className="app-sidebar-desktop" style={{ width:240, height:"100dvh", background:T.sidebarBg,
+        borderRight:"none", flexDirection:"column", flexShrink:0, overflowY:"auto" }}>
         <SidebarContent navTo={navTo} screen={screen} onClose={()=>{}} showClose={false}/>
       </div>
 
       {/* MAIN */}
       <div className="app-content" style={{ background:T.bg }}>
         {/* HEADER */}
-        <div style={{ position:"sticky", top:0, zIndex:100, background:T.bg,
-          borderBottom:`1px solid ${T.line}`, padding:"13px 18px",
-          display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
+        <div style={{ position:"sticky", top:0, zIndex:100, background:T.surface,
+          borderBottom:`0.5px solid ${T.rim}`, padding:"13px 20px",
+          display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0,
+          boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
           <button className="app-header-hamburger" onClick={()=>setSideOpen(true)}
-            style={{ background:"none", border:"none", cursor:"pointer",
-              flexDirection:"column", gap:4.5, padding:"4px 2px" }}>
+            style={{ background:"none", border:`0.5px solid ${T.rim}`, cursor:"pointer",
+              flexDirection:"column", gap:4.5, padding:"8px 9px", borderRadius:7 }}>
             {[0,1,2].map(i=>(
-              <div key={i} style={{ width:20, height:1.5, background:T.inkMid, borderRadius:1 }}/>
+              <div key={i} style={{ width:18, height:1.5, background:T.inkMid, borderRadius:1 }}/>
             ))}
           </button>
           <div style={{ textAlign:"center" }}>
