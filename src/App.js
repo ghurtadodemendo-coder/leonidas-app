@@ -57,15 +57,16 @@ const NAV = [
   { id:"ficha",         svg:"M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", label:"Barco"       },
   { id:"bitacora",      svg:"M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253", label:"Bitácora"    },
   { id:"mantenimiento", svg:"M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z", label:"Mant."       },
-  { id:"combustible",   svg:"M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3", label:"Combustible" },
-  { id:"seguridad",     svg:"M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", label:"Seguridad"   },
-  { id:"puertos",       svg:"M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z", label:"Puertos"     },
-  { id:"inventario",    svg:"M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4", label:"Inventario"  },
-  { id:"documentos",    svg:"M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z", label:"Docs"        },
-  { id:"tripulacion",      svg:"M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z", label:"Tripulación"    },
+  { id:"combustible",   svg:"M4 14s0-4 5-4 5 4 5 4 M9 10V5a2 2 0 114 0v5 M8 21h8 M12 17v4", label:"Combustible" },
+  { id:"seguridad",     svg:"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z", label:"Seguridad"   },
+  { id:"puertos",       svg:"M13 2L3 14h9l-1 8 10-12h-9l1-8z", label:"Puertos"     },
+  { id:"inventario",    svg:"M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2 M9 5a2 2 0 002 2h2a2 2 0 002-2 M9 5a2 2 0 012-2h2a2 2 0 012 2 M9 12h6 M9 16h4", label:"Inventario"  },
+  { id:"documentos",    svg:"M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z M12 3v6h6", label:"Docs"        },
+  { id:"tripulacion",   svg:"M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 11a4 4 0 100-8 4 4 0 000 8z M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75", label:"Tripulación"  },
   { id:"ia",            svg:"M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z", label:"IA"           },
-  { id:"clima",         svg:"M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z", label:"Clima"        },
-  { id:"calculadora",   svg:"M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z", label:"Ruta"         },
+  { id:"clima",         svg:"M12 3v1 M12 20v1 M4.22 4.22l.7.7 M18.36 18.36l.7.7 M1 12h1 M21 12h1 M4.22 19.78l.7-.7 M18.36 5.64l.7-.7 M12 6a6 6 0 100 12 6 6 0 000-12z", label:"Clima"        },
+  { id:"calculadora",   svg:"M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z M8 7h2 M14 7h2 M8 11h2 M14 11h2 M8 15h2 M14 15h4", label:"Ruta"         },
+  { id:"fondeo",        svg:"M12 2a3 3 0 100 6 3 3 0 000-6z M12 8v14 M5 11s2 2 7 2 7-2 7-2", label:"Fondeo"       },
 ];
 
 const BOAT = {
@@ -3746,28 +3747,29 @@ function SidebarContent({ navTo, screen, onClose, showClose }) {
 }
 
 // ── NAVIGATION CONFIG ─────────────────────────────────────────────────────────
+const NAV_MAP = Object.fromEntries(NAV.map(n=>[n.id, n.svg]));
 const MENU = [
   { section:"Navegación", items:[
-    { id:"dashboard",    label:"Panel",        svg:NAV[0].svg },
-    { id:"clima",        label:"Clima",         svg:NAV[1].svg },
-    { id:"calculadora",  label:"Calculadora",   svg:NAV[11].svg },
-    { id:"fondeo",       label:"Fondeo",        svg:NAV[12].svg },
+    { id:"dashboard",    label:"Panel",        svg:NAV_MAP["dashboard"]    },
+    { id:"clima",        label:"Clima",         svg:NAV_MAP["clima"]        },
+    { id:"calculadora",  label:"Calculadora",   svg:NAV_MAP["calculadora"]  },
+    { id:"fondeo",       label:"Fondeo",        svg:NAV_MAP["fondeo"]       },
   ]},
   { section:"Barco", items:[
-    { id:"bitacora",     label:"Bitácora",      svg:NAV[2].svg },
-    { id:"puertos",      label:"Puertos",       svg:NAV[5].svg },
-    { id:"tripulacion",     label:"Tripulación",      svg:NAV[6].svg },
-    { id:"ficha",        label:"Ficha técnica", svg:NAV[7].svg },
+    { id:"bitacora",     label:"Bitácora",      svg:NAV_MAP["bitacora"]     },
+    { id:"puertos",      label:"Puertos",       svg:NAV_MAP["puertos"]      },
+    { id:"tripulacion",  label:"Tripulación",   svg:NAV_MAP["tripulacion"]  },
+    { id:"ficha",        label:"Ficha técnica", svg:NAV_MAP["ficha"]        },
   ]},
   { section:"Gestión", items:[
-    { id:"mantenimiento",label:"Mantenimiento", svg:NAV[3].svg },
-    { id:"combustible",  label:"Combustible",   svg:NAV[4].svg },
-    { id:"inventario",   label:"Inventario",    svg:NAV[8].svg },
-    { id:"seguridad",    label:"Seguridad",     svg:NAV[9].svg },
-    { id:"documentos",   label:"Documentos",    svg:NAV[10].svg },
+    { id:"mantenimiento",label:"Mantenimiento", svg:NAV_MAP["mantenimiento"]},
+    { id:"combustible",  label:"Combustible",   svg:NAV_MAP["combustible"]  },
+    { id:"inventario",   label:"Inventario",    svg:NAV_MAP["inventario"]   },
+    { id:"seguridad",    label:"Seguridad",     svg:NAV_MAP["seguridad"]    },
+    { id:"documentos",   label:"Documentos",    svg:NAV_MAP["documentos"]   },
   ]},
   { section:"IA", items:[
-    { id:"ia",           label:"Asistente IA",  svg:NAV[10].svg },
+    { id:"ia",           label:"Asistente IA",  svg:NAV_MAP["ia"]           },
   ]},
 ];
 
