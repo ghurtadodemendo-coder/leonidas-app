@@ -2854,64 +2854,155 @@ function Tripulacion() {
                     )}
 
                     {/* Documentos */}
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                      <div style={{fontSize:12,color:T.inkDim}}>Documentos</div>
-                      <button onClick={()=>setShowDocForm(showDocForm===t.id?null:t.id)}
-                        style={{background:"none",border:`0.5px solid ${T.rim}`,borderRadius:5,
-                          padding:"3px 9px",color:T.brass,fontSize:11,cursor:"pointer",fontWeight:600}}>
-                        + Añadir
-                      </button>
+                    {/* Header documentos */}
+                    <div style={{display:"flex",justifyContent:"space-between",
+                      alignItems:"center",marginBottom:10}}>
+                      <div style={{fontSize:12,fontWeight:500,color:T.inkDim}}>
+                        Documentos
+                        {t.docs.length > 0 &&
+                          <span style={{marginLeft:6,fontSize:11,color:T.inkDim,fontWeight:400}}>
+                            ({t.docs.length})
+                          </span>
+                        }
+                      </div>
+                      {t.docs.length > 0 && (
+                        <button onClick={()=>setShowDocForm(showDocForm===t.id?null:t.id)}
+                          style={{background:"none",border:`0.5px solid ${T.rim}`,
+                            borderRadius:8,padding:"5px 12px",color:T.ink,
+                            fontSize:12,cursor:"pointer",fontWeight:500,
+                            display:"flex",alignItems:"center",gap:5}}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                          </svg>
+                          Añadir
+                        </button>
+                      )}
                     </div>
 
+                    {/* Formulario subida — visible si showDocForm activo */}
                     {showDocForm===t.id && (
-                      <div style={{background:T.bg,borderRadius:10,padding:"12px",marginBottom:12}}>
+                      <div style={{background:T.surfaceUp,borderRadius:12,
+                        padding:"14px",marginBottom:12,
+                        border:`0.5px solid ${T.rim}`}}>
+                        <div style={{fontSize:13,fontWeight:500,color:T.ink,marginBottom:12}}>
+                          Nuevo documento
+                        </div>
                         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                           <FInput label="Nombre *" value={docForm.nombre} onChange={updD("nombre")}/>
                           <FSelect label="Tipo" value={docForm.tipo} onChange={updD("tipo")} options={DOC_TIPOS}/>
                         </div>
-                        <FInput label="Fecha vencimiento" type="date" value={docForm.fecha_vencimiento} onChange={updD("fecha_vencimiento")}/>
-                        <div style={{marginBottom:10}}>
-                          <label style={{display:"block",width:"100%",background:T.surface,
-                            border:`1px dashed ${T.rim}`,borderRadius:10,padding:"10px",
-                            color:selectedFile?T.brass:T.inkDim,fontSize:12,cursor:"pointer",
-                            fontFamily:"inherit",textAlign:"center",boxSizing:"border-box"}}>
-                            {selectedFile?`📎 ${selectedFile.name}`:"Seleccionar archivo"}
-                            <input type="file" accept=".pdf,.jpg,.jpeg,.png"
-                              onChange={e=>setSelectedFile(e.target.files[0]||null)}
-                              style={{display:"none"}}/>
-                          </label>
-                        </div>
+                        <FInput label="Fecha vencimiento" type="date"
+                          value={docForm.fecha_vencimiento} onChange={updD("fecha_vencimiento")}/>
+                        {/* Zona de subida de archivo — prominente */}
+                        <label style={{display:"flex",flexDirection:"column",
+                          alignItems:"center",justifyContent:"center",gap:8,
+                          width:"100%",background:selectedFile?T.brassDim:T.surface,
+                          border:`1.5px dashed ${selectedFile?T.brass:T.rim}`,
+                          borderRadius:12,padding:"16px 12px",
+                          color:selectedFile?T.brass:T.inkDim,
+                          fontSize:13,cursor:"pointer",fontFamily:"inherit",
+                          textAlign:"center",boxSizing:"border-box",
+                          marginBottom:12,transition:"all 0.15s"}}>
+                          {selectedFile ? (
+                            <>
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                              </svg>
+                              <span style={{fontWeight:500}}>{selectedFile.name}</span>
+                              <span style={{fontSize:11,color:T.brassLt}}>Toca para cambiar</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                              </svg>
+                              <span style={{fontWeight:500,color:T.ink}}>Subir archivo</span>
+                              <span style={{fontSize:11}}>PDF, imagen · Toca para seleccionar</span>
+                            </>
+                          )}
+                          <input type="file" accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={e=>setSelectedFile(e.target.files[0]||null)}
+                            style={{display:"none"}}/>
+                        </label>
                         <div style={{display:"flex",gap:8}}>
-                          <Btn sm onClick={()=>subirDoc(t.id)}>{saving?"Guardando...":"Guardar"}</Btn>
-                          <Btn sm variant="ghost" onClick={()=>{setShowDocForm(null);setSelectedFile(null);}}>Cancelar</Btn>
+                          <Btn sm onClick={()=>subirDoc(t.id)}>
+                            {saving?"Guardando...":"Guardar documento"}
+                          </Btn>
+                          <Btn sm variant="ghost"
+                            onClick={()=>{setShowDocForm(null);setSelectedFile(null);}}>
+                            Cancelar
+                          </Btn>
                         </div>
                       </div>
                     )}
 
-                    {t.docs.length===0 ? (
-                      <div style={{color:T.inkDim,fontSize:12,fontStyle:"italic",marginBottom:12}}>Sin documentos añadidos.</div>
-                    ) : t.docs.map(d=>(
-                      <div key={d.id} style={{display:"flex",justifyContent:"space-between",
-                        alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${T.line}`}}>
-                        <div>
-                          <div style={{color:T.ink,fontSize:14}}>{d.nombre}</div>
-                          <div style={{color:T.inkDim,fontSize:12}}>
-                            {d.tipo}{d.fecha_vencimiento?` · Vence ${d.fecha_vencimiento}`:""}
+                    {/* Lista de documentos existentes */}
+                    {t.docs.length > 0 ? (
+                      <div style={{marginBottom:8}}>
+                        {t.docs.map((d,di)=>(
+                          <div key={d.id} style={{
+                            display:"flex",alignItems:"center",
+                            justifyContent:"space-between",
+                            padding:"10px 0",
+                            borderBottom: di<t.docs.length-1
+                              ? `0.5px solid ${T.rim}` : "none"}}>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:13,fontWeight:500,
+                                color:T.ink,marginBottom:1}}>{d.nombre}</div>
+                              <div style={{fontSize:11,color:T.inkDim}}>
+                                {d.tipo}
+                                {d.fecha_vencimiento?` · Vence ${d.fecha_vencimiento}`:""}
+                              </div>
+                            </div>
+                            <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:10}}>
+                              {d.url_archivo && (
+                                <a href={d.url_archivo} target="_blank" rel="noopener noreferrer"
+                                  style={{background:T.brassDim,
+                                    border:`0.5px solid ${T.brass}40`,
+                                    borderRadius:8,padding:"5px 10px",color:T.brass,
+                                    fontSize:12,textDecoration:"none",fontWeight:500}}>
+                                  Ver
+                                </a>
+                              )}
+                              <button onClick={()=>eliminarDoc(d.id)}
+                                style={{background:"none",
+                                  border:`0.5px solid ${T.danger}40`,
+                                  borderRadius:8,padding:"5px 8px",
+                                  color:T.danger,fontSize:12,cursor:"pointer"}}>✕</button>
+                            </div>
                           </div>
-                        </div>
-                        <div style={{display:"flex",gap:6}}>
-                          {d.url_archivo && (
-                            <a href={d.url_archivo} target="_blank" rel="noopener noreferrer"
-                              style={{background:T.brassDim,border:`1px solid ${T.brass}35`,
-                                borderRadius:5,padding:"3px 8px",color:T.brass,
-                                fontSize:11,textDecoration:"none",fontWeight:600}}>Ver</a>
-                          )}
-                          <button onClick={()=>eliminarDoc(d.id)} style={{background:"none",
-                            border:`1px solid ${T.danger}40`,borderRadius:5,padding:"3px 7px",
-                            color:T.danger,fontSize:11,cursor:"pointer"}}>✕</button>
-                        </div>
+                        ))}
                       </div>
-                    ))}
+                    ) : showDocForm !== t.id ? (
+                      /* Sin documentos y formulario cerrado → CTA prominente */
+                      <button
+                        onClick={()=>setShowDocForm(t.id)}
+                        style={{width:"100%",background:T.surfaceUp,
+                          border:`1.5px dashed ${T.rim}`,borderRadius:12,
+                          padding:"16px",cursor:"pointer",fontFamily:"inherit",
+                          display:"flex",flexDirection:"column",
+                          alignItems:"center",gap:8,marginBottom:4}}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                          stroke={T.inkDim} strokeWidth="1.5" strokeLinecap="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="17 8 12 3 7 8"/>
+                          <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <span style={{fontSize:13,fontWeight:500,color:T.ink}}>
+                          Subir documentos
+                        </span>
+                        <span style={{fontSize:11,color:T.inkDim}}>
+                          DNI, titulación, certificados…
+                        </span>
+                      </button>
+                    ) : null}
 
                     {/* Acciones */}
                     <div style={{display:"flex",gap:8,marginTop:14}}>
