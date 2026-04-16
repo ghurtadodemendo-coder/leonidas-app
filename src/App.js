@@ -183,7 +183,7 @@ function Row({ label, value, accent }) {
     <div style={{ display:"flex", justifyContent:"space-between",
       alignItems:"center", padding:"11px 0" }}>
       <span style={{ color:T.inkDim, fontSize:13 }}>{label}</span>
-      <span style={{ color:accent||T.ink, fontSize:13, fontWeight:500,
+      <span style={{ color:accent||T.ink, fontSize:14, fontWeight:500,
         textAlign:"right", maxWidth:"60%" }}>{value}</span>
     </div>
   );
@@ -533,12 +533,11 @@ function Dashboard({ setScreen }) {
     <div>
       {/* ── HEADER ── */}
       <div style={{ marginBottom:22 }}>
-        <div style={{ fontSize:13, color:T.inkDim, marginBottom:6 }}>
+        <div style={{ fontSize:14, color:T.inkDim, marginBottom:6 }}>
           Sunseeker Portofino 53 · Caleta de Vélez
         </div>
         <div style={{ fontSize:34, fontWeight:500, color:T.ink,
-          letterSpacing:-0.8, lineHeight:1,
-          fontFamily:"'Cormorant Garamond',serif" }}>
+          letterSpacing:-0.8, lineHeight:1 }}>
           Leonidas
         </div>
       </div>
@@ -589,7 +588,7 @@ function Dashboard({ setScreen }) {
               <div style={{ width:2, height:36, background:a.c,
                 borderRadius:1, flexShrink:0 }}/>
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:13, fontWeight:500, color:T.ink,
+                <div style={{ fontSize:14, fontWeight:500, color:T.ink,
                   marginBottom:2 }}>{a.msg}</div>
                 <div style={{ fontSize:11, color:T.inkDim }}>{a.sub}</div>
               </div>
@@ -627,7 +626,7 @@ function Dashboard({ setScreen }) {
                 </div>
               </>
             ) : (
-              <div style={{ fontSize:13, color:T.inkDim, fontStyle:"italic" }}>
+              <div style={{ fontSize:14, color:T.inkDim, fontStyle:"italic" }}>
                 Sin salidas registradas aún
               </div>
             )}
@@ -652,7 +651,7 @@ function Dashboard({ setScreen }) {
                 cursor:"pointer", textAlign:"left",
                 display:"flex", alignItems:"center", gap:10 }}>
               {q.icon}
-              <span style={{ fontSize:13, fontWeight:500,
+              <span style={{ fontSize:14, fontWeight:500,
                 color: q.primary ? "#fff" : T.ink }}>
                 {q.label}
               </span>
@@ -696,8 +695,7 @@ function Ficha() {
           </div>
         ))}
       </Card>
-      <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:2, textTransform:"uppercase",
-        fontFamily:"'DM Mono',monospace", marginBottom:11 }}>Documentación vigente</div>
+      <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:10 }}>Documentación vigente</div>
       {[
         { l:"Seguro",       v:BOAT.seguro, vence:BOAT.seguroVence, e:"warn" },
         { l:"ITV Náutica",  v:BOAT.itv,    vence:BOAT.itvVence,    e:"ok"   },
@@ -706,12 +704,11 @@ function Ficha() {
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
             <div>
               <div style={{ color:T.ink, fontWeight:600, fontSize:14 }}>{d.l}</div>
-              <div style={{ color:T.inkDim, fontSize:10, marginTop:3, fontFamily:"'DM Mono',monospace" }}>{d.v}</div>
+              <div style={{ color:T.inkDim, fontSize:12, color:T.inkDim, marginTop:2 }}>{d.v}</div>
             </div>
             <div style={{ textAlign:"right" }}>
               <Signal estado={d.e}/>
-              <div style={{ color:T.inkDim, fontSize:9.5, marginTop:5,
-                fontFamily:"'DM Mono',monospace" }}>Vence {d.vence}</div>
+              <div style={{ color:T.inkDim, fontSize:12, marginTop:5 }}>Vence {d.vence}</div>
             </div>
           </div>
         </Card>
@@ -880,8 +877,8 @@ function Bitacora() {
           <div style={{display:"flex",gap:7}}>
             <button onClick={()=>setShowFiltros(!showFiltros)} style={{
               display:"flex", alignItems:"center", gap:5,
-              background:"transparent", border:`1px solid ${T.rimHi}`,
-              borderRadius:7, padding:"7px 12px", cursor:"pointer",
+              background:"transparent", border:`0.5px solid ${T.rimHi}`,
+              borderRadius:10, padding:"7px 12px", cursor:"pointer",
               color: showFiltros||filtroPatron!=="Todos"||filtroMes!=="Todos"||filtroTripulante!=="Todos" ? T.brass : T.inkMid,
               fontSize:11, fontFamily:"inherit" }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -901,38 +898,31 @@ function Bitacora() {
         <Card style={{marginBottom:14}} pad="14px 16px">
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <div>
-              <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-                fontFamily:"'DM Mono',monospace",marginBottom:5}}>Patrón</div>
+              <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:5}}>Patrón</div>
               <select value={filtroPatron} onChange={e=>setFiltroPatron(e.target.value)}
-                style={{width:"100%",background:T.bg,border:`0.5px solid ${T.rim}`,
-                  borderRadius:7,padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
+                style={{width:"100%",background:T.surfaceUp,border:`0.5px solid ${T.rim}`,borderRadius:10,padding:"11px 13px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}>
                 {patrones.map(p=><option key={p}>{p}</option>)}
               </select>
             </div>
             <div>
-              <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-                fontFamily:"'DM Mono',monospace",marginBottom:5}}>Mes</div>
+              <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:5}}>Mes</div>
               <select value={filtroMes} onChange={e=>setFiltroMes(e.target.value)}
-                style={{width:"100%",background:T.bg,border:`0.5px solid ${T.rim}`,
-                  borderRadius:7,padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
+                style={{width:"100%",background:T.surfaceUp,border:`0.5px solid ${T.rim}`,borderRadius:10,padding:"11px 13px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}>
                 {meses.map(m=><option key={m}>{m}</option>)}
               </select>
             </div>
           </div>
           <div style={{marginTop:10}}>
-            <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-              fontFamily:"'DM Mono',monospace",marginBottom:5}}>Tripulante</div>
+            <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:5}}>Tripulante</div>
             <select value={filtroTripulante} onChange={e=>setFiltroTripulante(e.target.value)}
-              style={{width:"100%",background:T.bg,border:`0.5px solid ${T.rim}`,
-                borderRadius:7,padding:"9px 12px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none"}}>
+              style={{width:"100%",background:T.surfaceUp,border:`0.5px solid ${T.rim}`,borderRadius:10,padding:"11px 13px",color:T.ink,fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}>
               <option>Todos</option>
               {tripulantes.map(t=><option key={t.id}>{t.alias||t.nombre}</option>)}
             </select>
           </div>
           {/* Orden */}
           <div style={{marginTop:10}}>
-            <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-              fontFamily:"'DM Mono',monospace",marginBottom:5}}>Orden</div>
+            <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:5}}>Orden</div>
             <div style={{display:"flex",gap:6}}>
               {[["desc","Más recientes primero"],["asc","Más antiguas primero"]].map(([val,lbl])=>(
                 <button key={val} onClick={()=>setOrden(val)} style={{
@@ -958,7 +948,7 @@ function Bitacora() {
       {showForm && (
         <Card style={{marginBottom:16}} pad="16px">
           <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:14,
-            textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>
+            }}>
             {editId ? "Editar entrada" : "Nueva entrada"}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -971,8 +961,7 @@ function Bitacora() {
               <FInput label="Hora llegada" type="time" value={form.hora_llegada} onChange={upd("hora_llegada")}/>
 
               <div style={{marginBottom:10}}>
-                <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-                  fontFamily:"'DM Mono',monospace",marginBottom:5}}>Tripulación a bordo</div>
+                <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:5}}>Tripulación a bordo</div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                   {tripulacionDisp.map(t=>{
                     const sel = form.tripulacion_ids?.includes(t.id);
@@ -1001,8 +990,7 @@ function Bitacora() {
               <FInput label="Condiciones" value={form.condiciones} onChange={upd("condiciones")} placeholder="NE 10kn, mar llana"/>
               {/* Combustible en % */}
               <div style={{marginBottom:10}}>
-                <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-                  fontFamily:"'DM Mono',monospace",marginBottom:5}}>
+                <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:5}}>
                   Combustible aprox.
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1011,14 +999,12 @@ function Bitacora() {
                     onChange={upd("combustible_pct")}
                     style={{flex:1,accentColor:T.brass}}/>
                   <span style={{fontSize:14,fontWeight:700,color:
-                    parseInt(form.combustible_pct)<40?T.danger:T.ink,
-                    fontFamily:"'Cormorant Garamond',serif",minWidth:36,textAlign:"right"}}>
+                    parseInt(form.combustible_pct)<40?T.danger:T.ink,minWidth:36,textAlign:"right"}}>
                     {form.combustible_pct}%
                   </span>
                 </div>
                 {parseInt(form.combustible_pct) < 40 && (
-                  <div style={{fontSize:10,color:T.danger,marginTop:4,
-                    fontFamily:"'DM Mono',monospace"}}>
+                  <div style={{fontSize:10,color:T.danger,marginTop:4}}>
                     ⚠ Combustible bajo -- repostar antes de salir
                   </div>
                 )}
@@ -1038,7 +1024,7 @@ function Bitacora() {
 
       {/* ── CONTADOR ── */}
       {entradasFiltradas.length > 0 && (
-        <div style={{fontSize:10,color:T.inkDim,fontFamily:"'DM Mono',monospace",
+        <div style={{fontSize:10,color:T.inkDim,
           marginBottom:12,textAlign:"right"}}>
           {entradasFiltradas.length} entrada{entradasFiltradas.length!==1?"s":""}
           {(filtroPatron!=="Todos"||filtroMes!=="Todos"||filtroTripulante!=="Todos") ? " (filtradas)" : ""}
@@ -1047,10 +1033,10 @@ function Bitacora() {
 
       {/* ── LISTA ── */}
       {loading ? (
-        <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+        <Card><div style={{color:T.inkDim,fontSize:14,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
       ) : entradasFiltradas.length === 0 ? (
         <Card>
-          <div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>
+          <div style={{color:T.inkDim,fontSize:14,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>
             {entradas.length === 0
               ? "Aún no hay entradas. Pulsa + Nueva para registrar la primera salida."
               : "No hay entradas con los filtros aplicados."}
@@ -1062,12 +1048,9 @@ function Bitacora() {
           <div onClick={()=>setOpen(open===e.id?null:e.id)} style={{cursor:"pointer"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div>
-                <div style={{fontSize:9.5,color:T.brass,letterSpacing:1.5,
-                  fontFamily:"'DM Mono',monospace",marginBottom:4}}>{e.fecha} · {e.patron}</div>
-                <div style={{color:T.ink,fontWeight:600,fontSize:17,
-                  fontFamily:"'Cormorant Garamond',serif"}}>{e.salida} → {e.llegada}</div>
-                <div style={{color:T.inkDim,fontSize:10,marginTop:3,
-                  fontFamily:"'DM Mono',monospace"}}>
+                <div style={{fontSize:11,color:T.inkDim,marginBottom:4}}>{e.fecha} · {e.patron}</div>
+                <div style={{color:T.ink,fontWeight:600,fontSize:17}}>{e.salida} → {e.llegada}</div>
+                <div style={{color:T.inkDim,fontSize:10,marginTop:3}}>
                   {e.hora_salida ? `${e.hora_salida} → ${e.hora_llegada||"?"}` : e.fecha}
 
                   {e.horas_motor_inicio && e.horas_motor_fin
@@ -1076,8 +1059,7 @@ function Bitacora() {
               </div>
               <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8}}>
                 {!sinNovedad(e) && (
-                  <span style={{fontSize:9.5,color:T.warn,fontFamily:"'DM Mono',monospace",
-                    letterSpacing:0.5}}>incidencia</span>
+                  <span style={{fontSize:11,color:T.warn,fontWeight:500}}>incidencia</span>
                 )}
                 <span style={{color:T.inkDim,fontSize:16,lineHeight:1}}>{open===e.id?"−":"+"}</span>
               </div>
@@ -1125,12 +1107,12 @@ function Bitacora() {
               <div style={{display:"flex",gap:8,marginTop:12,paddingTop:10,
                 borderTop:`1px solid ${T.line}`}}>
                 <button onClick={()=>editar(e)}
-                  style={{flex:1,background:T.surfaceUp,border:`1px solid ${T.rimHi}`,
-                    borderRadius:7,padding:"8px",color:T.inkMid,fontSize:12,
+                  style={{flex:1,background:T.surfaceUp,border:`0.5px solid ${T.rimHi}`,
+                    borderRadius:10,padding:"8px",color:T.inkMid,fontSize:12,
                     cursor:"pointer",fontFamily:"inherit"}}>✏️ Editar</button>
                 <button onClick={()=>eliminar(e.id)}
                   style={{flex:1,background:"none",border:`1px solid ${T.danger}40`,
-                    borderRadius:7,padding:"8px",color:T.danger,fontSize:12,
+                    borderRadius:10,padding:"8px",color:T.danger,fontSize:12,
                     cursor:"pointer",fontFamily:"inherit"}}>✕ Eliminar</button>
               </div>
             </div>
@@ -1276,30 +1258,26 @@ function Mantenimiento() {
       {/* Resumen alertas */}
       {alertas.length > 0 && (
         <div style={{background:T.danger+"10",border:`1px solid ${T.danger}28`,
-          borderRadius:8,padding:"11px 15px",marginBottom:16}}>
+          borderRadius:10,padding:"11px 15px",marginBottom:16}}>
           <div style={{color:T.danger,fontSize:12,fontWeight:600,marginBottom:4}}>
             {alertas.filter(t=>calcEstado(t).nivel==="danger").length} tareas vencidas ·{" "}
             {alertas.filter(t=>calcEstado(t).nivel==="warn").length} proximas
           </div>
-          <div style={{color:T.inkDim,fontSize:10,fontFamily:"'DM Mono',monospace"}}>
+          <div style={{color:T.inkDim,fontSize:10}}>
             Horas motor actuales: {horasActuales.toFixed(1)}h
           </div>
         </div>
       )}
 
       {/* Tabs */}
-      <div style={{display:"flex",background:T.bg,borderRadius:7,padding:3,
-        gap:3,marginBottom:18,border:`1px solid ${T.rimHi}`}}>
+      <div style={{display:"flex",gap:0,marginBottom:18,borderBottom:`0.5px solid ${T.rim}`}}>
         {[["tareas","Tareas"],["averias","Averias"]].map(([id,lbl])=>(
           <button key={id} onClick={()=>setTab(id)} style={{
-            flex:1,padding:"8px",borderRadius:5,border:"none",cursor:"pointer",
-            background:tab===id?T.surface:"transparent",
-            color:tab===id?T.ink:T.inkDim,fontSize:11.5,fontWeight:tab===id?600:400,
-            fontFamily:"inherit",boxShadow:tab===id?"0 1px 3px rgba(0,0,0,0.15)":"none"}}>
+            flex:1,padding:"10px 8px",border:"none",cursor:"pointer",background:"transparent",color:tab===id?T.ink:T.inkDim,fontSize:11.5,fontWeight:tab===id?500:400,fontFamily:"inherit",borderBottom:tab===id?`1.5px solid ${T.ink}`:"1.5px solid transparent"}}>
             {lbl}
             {id==="averias" && averias.filter(a=>a.estado==="pendiente").length > 0 && (
-              <span style={{marginLeft:6,background:T.danger,color:"#fff",borderRadius:8,
-                padding:"1px 5px",fontSize:9,fontWeight:700}}>
+              <span style={{marginLeft:6,background:T.danger,color:"#fff",borderRadius:10,
+                padding:"1px 5px",fontSize:11,fontWeight:600}}>
                 {averias.filter(a=>a.estado==="pendiente").length}
               </span>
             )}
@@ -1309,11 +1287,10 @@ function Mantenimiento() {
 
       {/* ══ TAREAS ══ */}
       {tab==="tareas" && (
-        loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+        loading ? <Card><div style={{color:T.inkDim,fontSize:14,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
         : tareasPorCat.map(({cat, items})=>(
           <div key={cat} style={{marginBottom:20}}>
-            <div style={{fontSize:9.5,color:T.brass,letterSpacing:2,textTransform:"uppercase",
-              fontFamily:"'DM Mono',monospace",marginBottom:10}}>{cat}</div>
+            <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:10}}>{cat}</div>
             {items.map(t => {
               const est = calcEstado(t);
               const bc = est.nivel==="danger"?T.danger:est.nivel==="warn"?T.warn:T.ok;
@@ -1323,7 +1300,7 @@ function Mantenimiento() {
                   {isEditing ? (
                     <div>
                       <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
-                        textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>
+                        }}>
                         Registrar revision
                       </div>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -1344,16 +1321,14 @@ function Mantenimiento() {
                     <div>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                         <div style={{flex:1}}>
-                          <div style={{color:T.ink,fontWeight:600,fontSize:13.5}}>{t.tipo}</div>
-                          <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,
-                            fontFamily:"'DM Mono',monospace"}}>
+                          <div style={{color:T.ink,fontWeight:600,fontSize:14}}>{t.tipo}</div>
+                          <div style={{color:T.inkDim,fontSize:12,marginTop:3}}>
                             {t.fecha_ultima ? `Ultima revision: ${t.fecha_ultima}` : "Sin revisiones registradas"}
                             {t.horas_intervalo ? ` · Cada ${t.horas_intervalo}h` : ""}
                           </div>
                         </div>
                         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                          <span style={{color:bc,fontSize:10,fontWeight:600,
-                            fontFamily:"'DM Mono',monospace"}}>{est.texto}</span>
+                          <span style={{color:bc,fontSize:10,fontWeight:600}}>{est.texto}</span>
                           <div style={{display:"flex",gap:5}}>
                             <button onClick={()=>{
                               setEditId(t.id);
@@ -1385,12 +1360,12 @@ function Mantenimiento() {
                               background:bc,borderRadius:3,transition:"width 0.4s"}}/>
                           </div>
                           <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}>
-                            <span style={{fontSize:9,color:T.inkDim,fontFamily:"'DM Mono',monospace"}}>
+                            <span style={{fontSize:11,color:T.inkDim}}>
                               {t.horas_intervalo ? `Cada ${t.horas_intervalo}h` : ""}
                               {t.horas_intervalo && t.intervalo_dias ? " · " : ""}
                               {t.intervalo_dias ? `${t.intervalo_dias}d` : ""}
                             </span>
-                            <span style={{fontSize:9,color:bc,fontFamily:"'DM Mono',monospace",fontWeight:600}}>
+                            <span style={{fontSize:11,color:bc,fontWeight:500}}>
                               {est.texto}
                             </span>
                           </div>
@@ -1417,7 +1392,7 @@ function Mantenimiento() {
           {showAveriaForm && (
             <Card style={{marginBottom:14}} pad="16px">
               <div style={{fontSize:11,color:T.danger,fontWeight:700,marginBottom:12,
-                textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nueva averia</div>
+                }}>Nueva averia</div>
               <FInput label="Descripcion *" value={formAveria.descripcion} onChange={updA("descripcion")}/>
               <FInput label="Fecha" type="date" value={formAveria.fecha} onChange={updA("fecha")}/>
               <FInput label="Notas / diagnostico" value={formAveria.notas} onChange={updA("notas")}/>
@@ -1429,8 +1404,8 @@ function Mantenimiento() {
             </Card>
           )}
 
-          {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
-          : averias.length===0 ? <Card><div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>Sin averias registradas.</div></Card>
+          {loading ? <Card><div style={{color:T.inkDim,fontSize:14,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+          : averias.length===0 ? <Card><div style={{color:T.inkDim,fontSize:14,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>Sin averias registradas.</div></Card>
           : averias.map(a=>{
             const colors = { pendiente:T.danger, en_taller:T.warn, resuelto:T.ok };
             const c = colors[a.estado]||T.inkDim;
@@ -1438,12 +1413,10 @@ function Mantenimiento() {
               <Card key={a.id} style={{marginBottom:9,borderLeft:`3px solid ${c}`}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div style={{flex:1,paddingRight:12}}>
-                    <div style={{color:T.ink,fontWeight:600,fontSize:13.5}}>{a.descripcion}</div>
-                    <div style={{color:T.inkDim,fontSize:10,marginTop:3,
-                      fontFamily:"'DM Mono',monospace"}}>{a.fecha} · {a.patron}</div>
+                    <div style={{color:T.ink,fontWeight:600,fontSize:14}}>{a.descripcion}</div>
+                    <div style={{color:T.inkDim,fontSize:10,marginTop:3}}>{a.fecha} · {a.patron}</div>
                     {a.notas&&<div style={{color:T.inkMid,fontSize:12,marginTop:6}}>{a.notas}</div>}
-                    {a.coste>0&&<div style={{color:T.brassLt,fontSize:12,marginTop:4,
-                      fontFamily:"'DM Mono',monospace"}}>{a.coste}EUR</div>}
+                    {a.coste>0&&<div style={{color:T.brassLt,fontSize:12,marginTop:4}}>{a.coste}EUR</div>}
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end"}}>
                     <Signal estado={a.estado||"pendiente"}/>
@@ -1451,14 +1424,14 @@ function Mantenimiento() {
                       {a.estado==="pendiente" && (
                         <button onClick={()=>cambiarEstadoAveria(a.id,"en_taller")}
                           style={{background:T.warn+"20",border:`1px solid ${T.warn}40`,
-                            borderRadius:4,padding:"2px 6px",color:T.warn,fontSize:9,cursor:"pointer"}}>
+                            borderRadius:4,padding:"2px 6px",color:T.warn,fontSize:11,cursor:"pointer"}}>
                           En taller
                         </button>
                       )}
                       {a.estado!=="resuelto" && (
                         <button onClick={()=>cambiarEstadoAveria(a.id,"resuelto")}
                           style={{background:T.ok+"20",border:`1px solid ${T.ok}40`,
-                            borderRadius:4,padding:"2px 6px",color:T.ok,fontSize:9,cursor:"pointer"}}>
+                            borderRadius:4,padding:"2px 6px",color:T.ok,fontSize:11,cursor:"pointer"}}>
                           Resuelto
                         </button>
                       )}
@@ -1571,23 +1544,18 @@ function Combustible() {
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:16}}>
         <Card pad="13px 15px">
-          <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-            fontFamily:"'DM Mono',monospace",marginBottom:5}}>Total litros</div>
-          <div style={{fontSize:24,color:T.ink,fontWeight:600,
-            fontFamily:"'Cormorant Garamond',serif"}}>{totalL.toFixed(0)} L</div>
+          <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:5}}>Total litros</div>
+          <div style={{fontSize:24,color:T.ink,fontWeight:600}}>{totalL.toFixed(0)} L</div>
         </Card>
         <Card pad="13px 15px">
-          <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-            fontFamily:"'DM Mono',monospace",marginBottom:5}}>Gasto total</div>
-          <div style={{fontSize:24,color:T.brassLt,fontWeight:600,
-            fontFamily:"'Cormorant Garamond',serif"}}>{totalE.toFixed(0)} €</div>
+          <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:5}}>Gasto total</div>
+          <div style={{fontSize:24,color:T.brassLt,fontWeight:600}}>{totalE.toFixed(0)} €</div>
         </Card>
       </div>
 
       {nivelActual !== null && (
         <Card style={{marginBottom:16}} pad="14px 18px">
-          <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-            fontFamily:"'DM Mono',monospace",marginBottom:8}}>Nivel actual estimado</div>
+          <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8}}>Nivel actual estimado</div>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <div style={{flex:1,background:T.surfaceUp,borderRadius:4,height:8,overflow:"hidden"}}>
               <div style={{
@@ -1597,13 +1565,12 @@ function Combustible() {
               }}/>
             </div>
             <span style={{fontSize:18,fontWeight:700,minWidth:44,textAlign:"right",
-              fontFamily:"'Cormorant Garamond',serif",
               color: nivelActual < 40 ? T.danger : nivelActual < 60 ? T.warn : T.ok}}>
               {nivelActual}%
             </span>
           </div>
           {nivelActual < 40 && (
-            <div style={{color:T.danger,fontSize:11,marginTop:6,fontFamily:"'DM Mono',monospace"}}>
+            <div style={{color:T.danger,fontSize:11,marginTop:6}}>
               Nivel bajo -- repostar antes de la proxima salida
             </div>
           )}
@@ -1613,7 +1580,7 @@ function Combustible() {
       {showForm && (
         <Card style={{marginBottom:14}} pad="16px">
           <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
-            textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>
+            }}>
             {editItem ? "Editar repostaje" : "Nuevo repostaje"}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -1629,8 +1596,7 @@ function Combustible() {
             </div>
           </div>
           <div style={{marginBottom:12}}>
-            <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-              fontFamily:"'DM Mono',monospace",marginBottom:6}}>
+            <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:6}}>
               Nivel del deposito tras repostar
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1639,7 +1605,6 @@ function Combustible() {
                 onChange={upd("nivel_tras_repostaje")}
                 style={{flex:1, accentColor:T.brass}}/>
               <span style={{fontSize:16,fontWeight:700,minWidth:44,textAlign:"right",
-                fontFamily:"'Cormorant Garamond',serif",
                 color: parseInt(form.nivel_tras_repostaje)<40 ? T.danger : T.ok}}>
                 {form.nivel_tras_repostaje}%
               </span>
@@ -1653,28 +1618,26 @@ function Combustible() {
       )}
 
       {loading ? (
-        <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+        <Card><div style={{color:T.inkDim,fontSize:14,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
       ) : repostajes.length===0 ? (
-        <Card><div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>
+        <Card><div style={{color:T.inkDim,fontSize:14,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>
           Sin repostajes registrados.
         </div></Card>
       ) : repostajes.map(r=>(
         <Card key={r.id} style={{marginBottom:9}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div style={{flex:1}}>
-              <div style={{color:T.ink,fontWeight:600,fontSize:16,
-                fontFamily:"'Cormorant Garamond',serif"}}>{r.puerto||"--"}</div>
-              <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>
+              <div style={{color:T.ink,fontWeight:600,fontSize:16}}>{r.puerto||"--"}</div>
+              <div style={{color:T.inkDim,fontSize:10,marginTop:3}}>
                 {r.fecha} · {r.patron} · {r.litros}L
                 {r.precio_litro ? ` · ${r.precio_litro}EUR/L` : ""}
               </div>
-              {r.notas&&<div style={{color:T.inkDim,fontSize:10,marginTop:2,fontFamily:"'DM Mono',monospace"}}>{r.notas}</div>}
+              {r.notas&&<div style={{color:T.inkDim,fontSize:10,marginTop:2}}>{r.notas}</div>}
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              {r.importe&&<div style={{fontSize:16,fontWeight:600,color:T.brassLt,
-                fontFamily:"'Cormorant Garamond',serif"}}>{parseFloat(r.importe).toFixed(2)}EUR</div>}
-              <button onClick={()=>editar(r)} style={{background:"none",border:`1px solid ${T.rimHi}`,
-                borderRadius:5,padding:"3px 7px",color:T.inkDim,fontSize:11,cursor:"pointer"}}>edit</button>
+              {r.importe&&<div style={{fontSize:16,fontWeight:600,color:T.brassLt}}>{parseFloat(r.importe).toFixed(2)}EUR</div>}
+              <button onClick={()=>editar(r)} style={{background:"none",border:`0.5px solid ${T.rimHi}`,
+                borderRadius:5,padding:"3px 7px",color:T.inkDim,fontSize:11,cursor:"pointer"}}>Editar</button>
               <button onClick={()=>eliminar(r.id)} style={{background:"none",border:`1px solid ${T.danger}40`,
                 borderRadius:5,padding:"3px 7px",color:T.danger,fontSize:11,cursor:"pointer"}}>x</button>
             </div>
@@ -1785,15 +1748,15 @@ function Seguridad() {
         </Btn>}/>
 
       {/* Tabs */}
-      <div style={{display:"flex",background:T.bg,borderRadius:7,padding:3,gap:3,
-        marginBottom:18,border:`1px solid ${T.rimHi}`}}>
+      <div style={{display:"flex",background:T.bg,borderRadius:10,padding:3,gap:3,
+        marginBottom:18,border:`0.5px solid ${T.rimHi}`}}>
         {TABS.map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)} style={{
             flex:1, padding:"8px 4px", borderRadius:5, border:"none", cursor:"pointer",
             background:tab===t.id?T.surface:"transparent",
             color:tab===t.id?T.ink:T.inkDim, fontSize:11.5,
             fontWeight:tab===t.id?600:400, fontFamily:"inherit",
-            boxShadow:tab===t.id?"0 1px 3px rgba(0,0,0,0.12)":"none",
+            boxShadow:"none",
           }}>{t.label}</button>
         ))}
       </div>
@@ -1804,7 +1767,7 @@ function Seguridad() {
           {showForm && (
             <Card style={{marginBottom:14}} pad="16px">
               <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
-                textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>
+                }}>
                 {editItem?"Editar equipo":"Nuevo equipo"}
               </div>
               <FInput label="Equipo *" value={form.equipo} onChange={upd("equipo")}/>
@@ -1813,8 +1776,7 @@ function Seguridad() {
                 <FInput label="Ubicación" value={form.ubicacion} onChange={upd("ubicacion")}/>
               </div>
               <div style={{marginBottom:10}}>
-                <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-                  fontFamily:"'DM Mono',monospace",marginBottom:5}}>Estado</div>
+                <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:5}}>Estado</div>
                 <div style={{display:"flex",gap:6}}>
                   {ESTADOS.map(e=>(
                     <button key={e} onClick={()=>setForm(f=>({...f,estado:e}))} style={{
@@ -1835,11 +1797,10 @@ function Seguridad() {
             </Card>
           )}
 
-          {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card> : (
+          {loading ? <Card><div style={{color:T.inkDim,fontSize:14,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card> : (
             <div>
               {/* Obligatorios */}
-              <div style={{fontSize:9.5,color:T.brass,letterSpacing:2,textTransform:"uppercase",
-                fontFamily:"'DM Mono',monospace",marginBottom:9}}>Obligatorios · RD 339/2021</div>
+              <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:9}}>Obligatorios · RD 339/2021</div>
               {obligatorios.map(item=>{
                 const est = estadoReal(item);
                 const dias = diasParaCaducar(item.caducidad);
@@ -1847,8 +1808,8 @@ function Seguridad() {
                   <Card key={item.id} style={{marginBottom:7}} pad="12px 16px">
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <div style={{flex:1,marginRight:8}}>
-                        <div style={{color:T.ink,fontWeight:500,fontSize:13}}>{item.equipo}</div>
-                        <div style={{color:T.inkDim,fontSize:9.5,marginTop:2,fontFamily:"'DM Mono',monospace"}}>
+                        <div style={{color:T.ink,fontWeight:500,fontSize:14}}>{item.equipo}</div>
+                        <div style={{color:T.inkDim,fontSize:12,marginTop:2}}>
                           {item.ubicacion||"--"}
                           {item.caducidad ? ` · Vence ${item.caducidad}` : ""}
                           {dias ? <span style={{color:ESTADO_COLOR[est],fontWeight:700}}> · {dias}</span> : ""}
@@ -1857,7 +1818,7 @@ function Seguridad() {
                       <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                         <Signal estado={est}/>
                         <button onClick={()=>editar(item)} style={{background:"none",
-                          border:`1px solid ${T.rimHi}`,borderRadius:5,padding:"3px 6px",
+                          border:`0.5px solid ${T.rimHi}`,borderRadius:5,padding:"3px 6px",
                           color:T.inkDim,fontSize:10,cursor:"pointer"}}>✏️</button>
                         <button onClick={()=>eliminar(item.id)} style={{background:"none",
                           border:`1px solid ${T.danger}40`,borderRadius:5,padding:"3px 6px",
@@ -1871,16 +1832,15 @@ function Seguridad() {
               {/* Recomendados */}
               {recomendados.length > 0 && (
                 <div>
-                  <div style={{fontSize:9.5,color:T.inkDim,letterSpacing:2,textTransform:"uppercase",
-                    fontFamily:"'DM Mono',monospace",margin:"18px 0 9px"}}>Recomendados</div>
+                  <div style={{fontSize:12,color:T.inkDim,margin:"18px 0 9px"}}>Recomendados</div>
                   {recomendados.map(item=>{
                     const est = estadoReal(item);
                     return (
                       <Card key={item.id} style={{marginBottom:7}} pad="12px 16px">
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                           <div style={{flex:1,marginRight:8}}>
-                            <div style={{color:T.ink,fontWeight:500,fontSize:13}}>{item.equipo}</div>
-                            <div style={{color:T.inkDim,fontSize:9.5,marginTop:2,fontFamily:"'DM Mono',monospace"}}>
+                            <div style={{color:T.ink,fontWeight:500,fontSize:14}}>{item.equipo}</div>
+                            <div style={{color:T.inkDim,fontSize:12,marginTop:2}}>
                               {item.ubicacion||"--"}
                               {item.caducidad ? ` · Vence ${item.caducidad}` : ""}
                             </div>
@@ -1888,7 +1848,7 @@ function Seguridad() {
                           <div style={{display:"flex",alignItems:"center",gap:6}}>
                             <Signal estado={est}/>
                             <button onClick={()=>editar(item)} style={{background:"none",
-                              border:`1px solid ${T.rimHi}`,borderRadius:5,padding:"3px 6px",
+                              border:`0.5px solid ${T.rimHi}`,borderRadius:5,padding:"3px 6px",
                               color:T.inkDim,fontSize:10,cursor:"pointer"}}>✏️</button>
                           </div>
                         </div>
@@ -1908,7 +1868,7 @@ function Seguridad() {
           {proximos.length === 0 ? (
             <Card>
               <div style={{textAlign:"center",padding:"20px 0"}}>
-                <div style={{fontSize:28,marginBottom:8}}>✅</div>
+                <div style={{fontSize:22,marginBottom:8}}>✅</div>
                 <div style={{color:T.ok,fontWeight:600,fontSize:14}}>Todo en orden</div>
                 <div style={{color:T.inkDim,fontSize:12,marginTop:4}}>Ningún equipo caduca en los próximos 60 días</div>
               </div>
@@ -1926,15 +1886,14 @@ function Seguridad() {
                   borderLeft:`3px solid ${ESTADO_COLOR[est]}`}} pad="14px 16px">
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{flex:1}}>
-                      <div style={{color:T.ink,fontWeight:600,fontSize:13}}>{item.equipo}</div>
-                      <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>
+                      <div style={{color:T.ink,fontWeight:600,fontSize:14}}>{item.equipo}</div>
+                      <div style={{color:T.inkDim,fontSize:10,marginTop:3}}>
                         {item.ubicacion||"--"} · Vence {item.caducidad||"sin fecha"}
                       </div>
                       {item.notas && <div style={{color:T.inkDim,fontSize:11,marginTop:5,lineHeight:1.4}}>{item.notas}</div>}
                     </div>
                     <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
-                      <div style={{color:ESTADO_COLOR[est],fontWeight:700,fontSize:12,
-                        fontFamily:"'DM Mono',monospace"}}>{dias}</div>
+                      <div style={{color:ESTADO_COLOR[est],fontWeight:700,fontSize:12}}>{dias}</div>
                       <button onClick={()=>cambiarEstado(item.id,"ok")} style={{
                         marginTop:8,background:T.ok+"15",border:`1px solid ${T.ok}40`,
                         borderRadius:5,padding:"4px 10px",color:T.ok,fontSize:10,
@@ -1956,10 +1915,9 @@ function Seguridad() {
               <div key={c.label}>{i>0&&<Divider/>}
                 <div style={{display:"flex",justifyContent:"space-between",
                   alignItems:"center",padding:"13px 0"}}>
-                  <span style={{color:T.inkMid,fontSize:13}}>{c.label}</span>
+                  <span style={{color:T.inkMid,fontSize:14}}>{c.label}</span>
                   <a href={`tel:${c.tel}`} style={{
-                    color:c.color,fontSize:13,fontWeight:600,
-                    fontFamily:"'DM Mono',monospace",textDecoration:"none"}}>
+                    color:c.color,fontSize:14,fontWeight:600,textDecoration:"none"}}>
                     {c.tel}
                   </a>
                 </div>
@@ -1967,8 +1925,8 @@ function Seguridad() {
             ))}
           </Card>
           <div style={{background:T.danger+"10",border:`1px solid ${T.danger}25`,
-            borderRadius:8,padding:"14px 16px"}}>
-            <div style={{color:T.danger,fontWeight:700,fontSize:13,marginBottom:6}}>
+            borderRadius:10,padding:"14px 16px"}}>
+            <div style={{color:T.danger,fontWeight:700,fontSize:14,marginBottom:6}}>
               🚨 En caso de emergencia
             </div>
             <div style={{color:T.inkMid,fontSize:12,lineHeight:1.6}}>
@@ -2029,7 +1987,7 @@ function Puertos() {
 
       {showForm && (
         <Card style={{marginBottom:14}} pad="16px">
-          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>{editItem?"Editar puerto":"Nuevo puerto"}</div>
+          <div style={{fontSize:11,fontSize:14,fontWeight:500,color:T.ink,marginBottom:14}}>{editItem?"Editar puerto":"Nuevo puerto"}</div>
           <FInput label="Nombre *" value={form.nombre} onChange={upd("nombre")}/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             <div>
@@ -2050,24 +2008,24 @@ function Puertos() {
         </Card>
       )}
 
-      {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+      {loading ? <Card><div style={{color:T.inkDim,fontSize:14,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
       : puertos.map(p=>(
         <Card key={p.id} style={{marginBottom:11}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
             <div style={{flex:1}}>
-              <div style={{fontSize:9.5,color:p.tipo==="Base"?T.brass:T.info,letterSpacing:1.5,fontFamily:"'DM Mono',monospace",marginBottom:4}}>{p.tipo?.toUpperCase()}</div>
-              <div style={{color:T.ink,fontWeight:600,fontSize:17,fontFamily:"'Cormorant Garamond',serif"}}>{p.nombre}</div>
-              <div style={{color:T.inkDim,fontSize:10,marginTop:3,fontFamily:"'DM Mono',monospace"}}>{p.telefono||"--"}</div>
+              <div style={{fontSize:12,color:p.tipo==="Base"?T.brass:T.info,marginBottom:4}}>{p.tipo?.toUpperCase()}</div>
+              <div style={{color:T.ink,fontWeight:600,fontSize:17}}>{p.nombre}</div>
+              <div style={{color:T.inkDim,fontSize:10,marginTop:3}}>{p.telefono||"--"}</div>
             </div>
             <div style={{textAlign:"right"}}>
-              <div style={{color:T.brassLt,fontSize:17,fontWeight:600,fontFamily:"'Cormorant Garamond',serif"}}>{p.precio||0}€<span style={{fontSize:10,color:T.inkDim}}>{p.tipo==="Base"?"/mes":"/noche"}</span></div>
-              <div style={{color:T.inkDim,fontSize:10,marginTop:2,fontFamily:"'DM Mono',monospace"}}>★ {p.valoracion||"--"}</div>
+              <div style={{color:T.brassLt,fontSize:17,fontWeight:600}}>{p.precio||0}€<span style={{fontSize:10,color:T.inkDim}}>{p.tipo==="Base"?"/mes":"/noche"}</span></div>
+              <div style={{color:T.inkDim,fontSize:10,marginTop:2}}>★ {p.valoracion||"--"}</div>
             </div>
           </div>
-          {p.amarre&&<div style={{display:"inline-flex",background:T.brassDim,border:`1px solid ${T.brass}35`,borderRadius:4,padding:"2px 8px",color:T.brassLt,fontSize:9.5,fontFamily:"'DM Mono',monospace",marginBottom:7}}>Amarre {p.amarre}</div>}
+          {p.amarre&&<div style={{display:"inline-flex",background:T.brassDim,border:`1px solid ${T.brass}35`,borderRadius:4,padding:"2px 8px",color:T.brassLt,fontSize:12,marginBottom:7}}>Amarre {p.amarre}</div>}
           {p.notas&&<div style={{color:T.inkDim,fontSize:12,lineHeight:1.4,marginBottom:8}}>{p.notas}</div>}
           <div style={{display:"flex",gap:7}}>
-            <button onClick={()=>editar(p)} style={{background:"none",border:`1px solid ${T.rimHi}`,borderRadius:5,padding:"4px 10px",color:T.inkDim,fontSize:11,cursor:"pointer"}}>✏️ Editar</button>
+            <button onClick={()=>editar(p)} style={{background:"none",border:`0.5px solid ${T.rimHi}`,borderRadius:5,padding:"4px 10px",color:T.inkDim,fontSize:11,cursor:"pointer"}}>✏️ Editar</button>
             <button onClick={()=>eliminar(p.id)} style={{background:"none",border:`1px solid ${T.danger}40`,borderRadius:5,padding:"4px 10px",color:T.danger,fontSize:11,cursor:"pointer"}}>✕ Eliminar</button>
           </div>
         </Card>
@@ -2132,13 +2090,13 @@ function Inventario() {
       <Hdr title="Inventario"
         action={<Btn sm onClick={()=>{ setShowForm(!showForm); setEditItem(null); }}>{showForm&&!editItem?"Cancelar":"+ Añadir"}</Btn>}/>
 
-      {issues>0 && <div style={{background:T.warn+"10",border:`1px solid ${T.warn}28`,borderRadius:8,padding:"11px 15px",marginBottom:14}}>
+      {issues>0 && <div style={{background:T.warn+"10",border:`1px solid ${T.warn}28`,borderRadius:10,padding:"11px 15px",marginBottom:14}}>
         <div style={{color:T.warn,fontSize:12,fontWeight:600}}>{issues} artículos con stock bajo o agotado</div>
       </div>}
 
       {showForm && (
         <Card style={{marginBottom:14}} pad="16px">
-          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>{editItem?"Editar artículo":"Nuevo artículo"}</div>
+          <div style={{fontSize:11,fontSize:14,fontWeight:500,color:T.ink,marginBottom:14}}>{editItem?"Editar artículo":"Nuevo artículo"}</div>
           <FSelect label="Categoría" value={form.categoria} onChange={upd("categoria")} options={CATS}/>
           <FInput label="Artículo *" value={form.articulo} onChange={upd("articulo")}/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -2153,25 +2111,25 @@ function Inventario() {
         </Card>
       )}
 
-      {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+      {loading ? <Card><div style={{color:T.inkDim,fontSize:14,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
       : cats.map(cat=>(
         <div key={cat} style={{marginBottom:18}}>
-          <div style={{fontSize:9.5,color:T.brass,letterSpacing:2,textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:9}}>{cat}</div>
+          <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:9}}>{cat}</div>
           {items.filter(i=>i.categoria===cat).map(item=>(
             <Card key={item.id} style={{marginBottom:6}} pad="11px 15px">
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{flex:1,minWidth:0,marginRight:8}}>
-                  <div style={{color:T.ink,fontSize:13,fontWeight:500}}>{item.articulo}</div>
-                  <div style={{color:T.inkDim,fontSize:9.5,marginTop:2,fontFamily:"'DM Mono',monospace"}}>Mín: {item.minimo} ud.</div>
+                  <div style={{color:T.ink,fontSize:14,fontWeight:500}}>{item.articulo}</div>
+                  <div style={{color:T.inkDim,fontSize:12,marginTop:2}}>Mín: {item.minimo} ud.</div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
                   <button onClick={()=>cambiarQty(item.id,item.cantidad-1)}
-                    style={{width:26,height:26,borderRadius:5,border:`1px solid ${T.rimHi}`,background:T.surfaceUp,color:T.ink,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                    style={{width:26,height:26,borderRadius:5,border:`0.5px solid ${T.rimHi}`,background:T.surfaceUp,color:T.ink,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
                   <span style={{color:item.cantidad===0?T.danger:item.cantidad<=item.minimo?T.warn:T.ok,
-                    fontSize:17,fontWeight:700,fontFamily:"'Cormorant Garamond',serif",minWidth:22,textAlign:"center"}}>{item.cantidad}</span>
+                    fontSize:17,fontWeight:700,minWidth:22,textAlign:"center"}}>{item.cantidad}</span>
                   <button onClick={()=>cambiarQty(item.id,item.cantidad+1)}
-                    style={{width:26,height:26,borderRadius:5,border:`1px solid ${T.rimHi}`,background:T.surfaceUp,color:T.ink,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
-                  <button onClick={()=>editar(item)} style={{background:"none",border:`1px solid ${T.rimHi}`,borderRadius:5,padding:"3px 6px",color:T.inkDim,fontSize:10,cursor:"pointer",marginLeft:3}}>✏️</button>
+                    style={{width:26,height:26,borderRadius:5,border:`0.5px solid ${T.rimHi}`,background:T.surfaceUp,color:T.ink,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                  <button onClick={()=>editar(item)} style={{background:"none",border:`0.5px solid ${T.rimHi}`,borderRadius:5,padding:"3px 6px",color:T.inkDim,fontSize:10,cursor:"pointer",marginLeft:3}}>✏️</button>
                   <button onClick={()=>eliminar(item.id)} style={{background:"none",border:`1px solid ${T.danger}40`,borderRadius:5,padding:"3px 6px",color:T.danger,fontSize:10,cursor:"pointer"}}>✕</button>
                 </div>
               </div>
@@ -2240,7 +2198,7 @@ function Documentos() {
 
       {showForm && (
         <Card style={{marginBottom:14}} pad="16px">
-          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>Nuevo documento</div>
+          <div style={{fontSize:11,fontSize:14,fontWeight:500,color:T.ink,marginBottom:14}}>Nuevo documento</div>
           <FInput label="Nombre *" value={form.nombre} onChange={upd("nombre")}/>
           <FSelect label="Tipo" value={form.tipo} onChange={upd("tipo")} options={TIPOS}/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -2251,14 +2209,14 @@ function Documentos() {
 
           {/* File picker */}
           <div style={{marginBottom:12}}>
-            <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:6}}>Archivo (PDF, imagen)</div>
+            <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:6}}>Archivo (PDF, imagen)</div>
             <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
               onChange={e=>setSelectedFile(e.target.files[0]||null)}
               style={{display:"none"}}/>
             <button onClick={()=>fileRef.current?.click()} style={{
               width:"100%",background:T.surfaceUp,border:`1px dashed ${T.rimHi}`,
-              borderRadius:7,padding:"12px",color:selectedFile?T.brass:T.inkDim,
-              fontSize:13,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+              borderRadius:10,padding:"12px",color:selectedFile?T.brass:T.inkDim,
+              fontSize:14,cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
               {selectedFile ? `📎 ${selectedFile.name}` : "Toca para seleccionar archivo"}
             </button>
           </div>
@@ -2270,10 +2228,10 @@ function Documentos() {
         </Card>
       )}
 
-      {loading ? <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+      {loading ? <Card><div style={{color:T.inkDim,fontSize:14,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
       : docs.length===0 ? (
         <Card>
-          <div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>
+          <div style={{color:T.inkDim,fontSize:14,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>
             Sin documentos. Pulsa "+ Subir" para añadir.
           </div>
         </Card>
@@ -2281,8 +2239,8 @@ function Documentos() {
         <Card key={d.id} style={{marginBottom:7}} pad="12px 16px">
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div style={{flex:1}}>
-              <div style={{color:T.ink,fontWeight:500,fontSize:13}}>{d.nombre}</div>
-              <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,fontFamily:"'DM Mono',monospace"}}>
+              <div style={{color:T.ink,fontWeight:500,fontSize:14}}>{d.nombre}</div>
+              <div style={{color:T.inkDim,fontSize:12,marginTop:3}}>
                 {d.tipo}{d.fecha_emision?` · ${d.fecha_emision}`:""}{d.fecha_vencimiento?` · Vence: ${d.fecha_vencimiento}`:""}
               </div>
             </div>
@@ -2462,7 +2420,7 @@ function CompartirDocsDrawer({ tripulantes, onClose }) {
           {/* select all */}
           <button onClick={selectAll}
             style={{ background:"none", border:"none", color:T.brass,
-              fontSize:13, fontWeight:500, cursor:"pointer",
+              fontSize:14, fontWeight:500, cursor:"pointer",
               padding:"0 0 12px", fontFamily:"inherit" }}>
             Seleccionar todos
           </button>
@@ -2815,7 +2773,7 @@ function Tripulacion() {
       {showForm && (
         <Card style={{marginBottom:16}} pad="16px">
           <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:14,
-            textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>
+            }}>
             {editId?"Editar tripulante":"Nuevo tripulante"}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -2835,7 +2793,7 @@ function Tripulacion() {
       )}
 
       {loading ? (
-        <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+        <Card><div style={{color:T.inkDim,fontSize:14,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
       ) : (
         <>
           {activos.map(t => {
@@ -2849,19 +2807,15 @@ function Tripulacion() {
                   <div style={{width:46,height:46,borderRadius:10,background:color+"18",
                     border:`1px solid ${color}35`,display:"flex",alignItems:"center",
                     justifyContent:"center",fontSize:14,fontWeight:700,color,
-                    flexShrink:0,fontFamily:"'DM Mono',monospace"}}>{av}</div>
+                    flexShrink:0}}>{av}</div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{color:T.ink,fontWeight:600,fontSize:17,
-                      fontFamily:"'Cormorant Garamond',serif",lineHeight:1.2}}>
+                    <div style={{color:T.ink,fontWeight:600,fontSize:17,lineHeight:1.2}}>
                       {t.nombre} {t.apellidos}
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
                       <span style={{background:color+"15",border:`1px solid ${color}30`,
-                        borderRadius:4,padding:"1px 7px",fontSize:9.5,color,
-                        fontFamily:"'DM Mono',monospace",fontWeight:600,textTransform:"uppercase",
-                        letterSpacing:0.8}}>{t.rol}</span>
-                      {t.alias && <span style={{color:T.inkDim,fontSize:10,
-                        fontFamily:"'DM Mono',monospace"}}>alias: {t.alias}</span>}
+                        borderRadius:4,padding:"1px 7px",fontSize:12,color,fontWeight:500}}>{t.rol}</span>
+                      {t.alias && <span style={{color:T.inkDim,fontSize:10}}>alias: {t.alias}</span>}
                     </div>
                   </div>
                   <div style={{display:"flex",gap:6,alignItems:"center"}}>
@@ -2880,11 +2834,9 @@ function Tripulacion() {
                     ["Salidas", t.stats.salidas],
                     ["Horas nav.", t.stats.horas > 0 ? t.stats.horas.toFixed(1)+"h" : "0h"],
                   ].map(([lbl,val])=>(
-                    <div key={lbl} style={{background:T.bg,borderRadius:7,padding:"9px 12px"}}>
-                      <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-                        fontFamily:"'DM Mono',monospace",marginBottom:4}}>{lbl}</div>
-                      <div style={{fontSize:20,fontWeight:600,color,
-                        fontFamily:"'Cormorant Garamond',serif"}}>{val}</div>
+                    <div key={lbl} style={{background:T.bg,borderRadius:10,padding:"9px 12px"}}>
+                      <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:4}}>{lbl}</div>
+                      <div style={{fontSize:20,fontWeight:600,color}}>{val}</div>
                     </div>
                   ))}
                 </div>
@@ -2911,8 +2863,7 @@ function Tripulacion() {
 
                     {/* Documentos */}
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                      <div style={{fontSize:9.5,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-                        fontFamily:"'DM Mono',monospace"}}>Documentos</div>
+                      <div style={{fontSize:12,color:T.inkDim}}>Documentos</div>
                       <button onClick={()=>setShowDocForm(showDocForm===t.id?null:t.id)}
                         style={{background:"none",border:`0.5px solid ${T.rim}`,borderRadius:5,
                           padding:"3px 9px",color:T.brass,fontSize:11,cursor:"pointer",fontWeight:600}}>
@@ -2921,7 +2872,7 @@ function Tripulacion() {
                     </div>
 
                     {showDocForm===t.id && (
-                      <div style={{background:T.bg,borderRadius:8,padding:"12px",marginBottom:12}}>
+                      <div style={{background:T.bg,borderRadius:10,padding:"12px",marginBottom:12}}>
                         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                           <FInput label="Nombre *" value={docForm.nombre} onChange={updD("nombre")}/>
                           <FSelect label="Tipo" value={docForm.tipo} onChange={updD("tipo")} options={DOC_TIPOS}/>
@@ -2929,7 +2880,7 @@ function Tripulacion() {
                         <FInput label="Fecha vencimiento" type="date" value={docForm.fecha_vencimiento} onChange={updD("fecha_vencimiento")}/>
                         <div style={{marginBottom:10}}>
                           <label style={{display:"block",width:"100%",background:T.surface,
-                            border:`1px dashed ${T.rim}`,borderRadius:7,padding:"10px",
+                            border:`1px dashed ${T.rim}`,borderRadius:10,padding:"10px",
                             color:selectedFile?T.brass:T.inkDim,fontSize:12,cursor:"pointer",
                             fontFamily:"inherit",textAlign:"center",boxSizing:"border-box"}}>
                             {selectedFile?`📎 ${selectedFile.name}`:"Seleccionar archivo"}
@@ -2951,8 +2902,8 @@ function Tripulacion() {
                       <div key={d.id} style={{display:"flex",justifyContent:"space-between",
                         alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${T.line}`}}>
                         <div>
-                          <div style={{color:T.ink,fontSize:13}}>{d.nombre}</div>
-                          <div style={{color:T.inkDim,fontSize:9.5,fontFamily:"'DM Mono',monospace"}}>
+                          <div style={{color:T.ink,fontSize:14}}>{d.nombre}</div>
+                          <div style={{color:T.inkDim,fontSize:12}}>
                             {d.tipo}{d.fecha_vencimiento?` · Vence ${d.fecha_vencimiento}`:""}
                           </div>
                         </div>
@@ -2973,17 +2924,17 @@ function Tripulacion() {
                     {/* Acciones */}
                     <div style={{display:"flex",gap:8,marginTop:14}}>
                       <button onClick={()=>editar(t)} style={{flex:1,background:T.bg,
-                        border:`0.5px solid ${T.rim}`,borderRadius:7,padding:"8px",
+                        border:`0.5px solid ${T.rim}`,borderRadius:10,padding:"8px",
                         color:T.inkMid,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                         ✏️ Editar
                       </button>
                       <button onClick={()=>toggleActivo(t.id,t.activo)} style={{flex:1,background:"none",
-                        border:`1px solid ${T.warn}40`,borderRadius:7,padding:"8px",
+                        border:`1px solid ${T.warn}40`,borderRadius:10,padding:"8px",
                         color:T.warn,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
                         Dar de baja
                       </button>
                       <button onClick={()=>eliminar(t.id)} style={{background:"none",
-                        border:`1px solid ${T.danger}40`,borderRadius:7,padding:"8px 12px",
+                        border:`1px solid ${T.danger}40`,borderRadius:10,padding:"8px 12px",
                         color:T.danger,fontSize:12,cursor:"pointer"}}>✕</button>
                     </div>
                   </div>
@@ -2995,14 +2946,13 @@ function Tripulacion() {
           {/* Inactivos */}
           {inactivos.length > 0 && (
             <div style={{marginTop:24}}>
-              <div style={{fontSize:9.5,color:T.inkDim,letterSpacing:2,textTransform:"uppercase",
-                fontFamily:"'DM Mono',monospace",marginBottom:10}}>Dados de baja</div>
+              <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:10}}>Dados de baja</div>
               {inactivos.map(t=>(
                 <Card key={t.id} style={{marginBottom:8,opacity:0.6}} pad="12px 16px">
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div>
                       <div style={{color:T.inkMid,fontSize:14}}>{t.nombre} {t.apellidos}</div>
-                      <div style={{color:T.inkDim,fontSize:10,fontFamily:"'DM Mono',monospace"}}>{t.rol}</div>
+                      <div style={{color:T.inkDim,fontSize:10}}>{t.rol}</div>
                     </div>
                     <button onClick={()=>toggleActivo(t.id,t.activo)}
                       style={{background:"none",border:`0.5px solid ${T.rim}`,borderRadius:5,
@@ -3129,16 +3079,16 @@ function AsistenteIA() {
             justifyContent:m.role==="user"?"flex-end":"flex-start",
             marginBottom:11, gap:9 }}>
             {m.role==="assistant"&&(
-              <div style={{ width:28,height:28,borderRadius:7,background:T.brassDim,
+              <div style={{ width:28,height:28,borderRadius:10,background:T.brassDim,
                 border:`1px solid ${T.brass}40`,display:"flex",alignItems:"center",
-                justifyContent:"center",color:T.brass,fontSize:13,flexShrink:0,marginTop:2}}>◈</div>
+                justifyContent:"center",color:T.brass,fontSize:14,flexShrink:0,marginTop:2}}>◈</div>
             )}
             <div style={{ maxWidth:"80%" }}>
               {m.img && (
                 <div style={{ marginBottom:6 }}>
                   <img src={m.img} alt="adjunto"
-                    style={{ maxWidth:"100%", maxHeight:180, borderRadius:8,
-                      border:`1px solid ${T.rim}`, objectFit:"cover", display:"block" }}/>
+                    style={{ maxWidth:"100%", maxHeight:180, borderRadius:10,
+                      border:`0.5px solid ${T.rim}`, objectFit:"cover", display:"block" }}/>
                 </div>
               )}
               <div style={{ padding:"11px 15px",
@@ -3146,16 +3096,16 @@ function AsistenteIA() {
                 background:m.role==="user"?T.brass:T.surface,
                 border:m.role==="user"?"none":`0.5px solid ${T.rim}`,
                 color:m.role==="user"?"#fff":T.inkMid,
-                fontSize:13, lineHeight:1.6, whiteSpace:"pre-wrap",
+                fontSize:14, lineHeight:1.6, whiteSpace:"pre-wrap",
                 fontWeight:m.role==="user"?500:400 }}>{m.text}</div>
             </div>
           </div>
         ))}
         {loading&&(
           <div style={{ display:"flex",gap:9,alignItems:"flex-start",marginBottom:11 }}>
-            <div style={{ width:28,height:28,borderRadius:7,background:T.brassDim,
+            <div style={{ width:28,height:28,borderRadius:10,background:T.brassDim,
               border:`1px solid ${T.brass}40`,display:"flex",alignItems:"center",
-              justifyContent:"center",color:T.brass,fontSize:13,flexShrink:0}}>◈</div>
+              justifyContent:"center",color:T.brass,fontSize:14,flexShrink:0}}>◈</div>
             <div style={{ background:T.surface,border:`0.5px solid ${T.rim}`,
               borderRadius:"3px 10px 10px 10px",padding:"13px 17px",display:"flex",gap:5}}>
               {[0,1,2].map(j=>(
@@ -3171,8 +3121,7 @@ function AsistenteIA() {
       {/* Sugerencias */}
       {msgs.length===1&&(
         <div style={{ marginBottom:11 }}>
-          <div style={{ fontSize:9.5,color:T.inkDim,letterSpacing:1.5,
-            textTransform:"uppercase",fontFamily:"'DM Mono',monospace",marginBottom:8}}>Sugerencias</div>
+          <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8}}>Sugerencias</div>
           <div style={{ display:"flex",flexWrap:"wrap",gap:6}}>
             {sugs.map((s,i)=>(
               <button key={i} onClick={()=>setInput(s)} style={{
@@ -3187,14 +3136,14 @@ function AsistenteIA() {
       {/* Preview imagen adjunta */}
       {imagen && (
         <div style={{ marginBottom:8,display:"flex",alignItems:"center",gap:10,
-          background:T.bg,borderRadius:8,padding:"8px 12px",
+          background:T.bg,borderRadius:10,padding:"8px 12px",
           border:`0.5px solid ${T.rim}`}}>
           <img src={imagen.preview} alt="preview"
             style={{ width:44,height:44,borderRadius:6,objectFit:"cover",
-              border:`1px solid ${T.rim}`}}/>
+              border:`0.5px solid ${T.rim}`}}/>
           <div style={{ flex:1 }}>
             <div style={{ color:T.ink,fontSize:12,fontWeight:500 }}>{imagen.name}</div>
-            <div style={{ color:T.inkDim,fontSize:10,fontFamily:"'DM Mono',monospace"}}>Lista para enviar</div>
+            <div style={{ color:T.inkDim,fontSize:10}}>Lista para enviar</div>
           </div>
           <button onClick={()=>setImagen(null)} style={{ background:"none",border:"none",
             color:T.danger,fontSize:16,cursor:"pointer"}}>✕</button>
@@ -3215,7 +3164,7 @@ function AsistenteIA() {
           onKeyDown={e=>e.key==="Enter"&&send()}
           placeholder={imagen?"Añade un comentario o envía la foto...":"Consulta sobre el barco..."}
           style={{ flex:1,background:T.surface,border:`0.5px solid ${T.rim}`,
-            borderRadius:9,padding:"12px 15px",color:T.ink,fontSize:13,
+            borderRadius:9,padding:"12px 15px",color:T.ink,fontSize:14,
             outline:"none",fontFamily:"inherit"}}/>
         <button onClick={send} disabled={loading||(!input.trim()&&!imagen)} style={{
           width:43,height:43,borderRadius:9,border:"none",
@@ -3312,23 +3261,22 @@ function Clima() {
     <div style={{ marginBottom:16 }}>
       {/* Location display + toggle */}
       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-        <div style={{ flex:1, background:T.surface, border:`1px solid ${T.rimHi}`,
+        <div style={{ flex:1, background:T.surface, border:`0.5px solid ${T.rimHi}`,
           borderRadius:9, padding:"9px 14px", display:"flex", alignItems:"center",
           justifyContent:"space-between", cursor:"pointer" }}
           onClick={()=>setShowPicker(!showPicker)}>
           <div>
-            <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
-              fontFamily:"'DM Mono',monospace", marginBottom:2 }}>
+            <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:2 }}>
               {modoUbic==="auto" ? "📍 Posición GPS" : "📌 Lugar seleccionado"}
             </div>
-            <div style={{ color:T.ink, fontSize:13, fontWeight:600 }}>{ubicActual.nombre}</div>
+            <div style={{ color:T.ink, fontSize:14, fontWeight:600 }}>{ubicActual.nombre}</div>
           </div>
-          <span style={{ color:T.inkDim, fontSize:12, fontFamily:"'DM Mono',monospace" }}>
+          <span style={{ color:T.inkDim, fontSize:12 }}>
             {showPicker ? "▲" : "▼"}
           </span>
         </div>
         <button onClick={usarGPS} disabled={gpsLoading} style={{
-          width:42, height:42, borderRadius:9, border:`1px solid ${T.rimHi}`,
+          width:42, height:42, borderRadius:9, border:`0.5px solid ${T.rimHi}`,
           background:modoUbic==="auto" ? T.brass : T.surface,
           color:modoUbic==="auto" ? "#fff" : T.inkDim,
           fontSize:16, cursor:"pointer", flexShrink:0,
@@ -3339,14 +3287,14 @@ function Clima() {
 
       {/* Location picker dropdown */}
       {showPicker && (
-        <div style={{ background:T.surface, border:`1px solid ${T.rimHi}`,
+        <div style={{ background:T.surface, border:`0.5px solid ${T.rimHi}`,
           borderRadius:10, overflow:"hidden",
           boxShadow:"0 4px 20px rgba(0,0,0,0.12)" }}>
           <div style={{ padding:"10px 14px", borderBottom:`1px solid ${T.line}` }}>
             <input value={busqueda} onChange={e=>setBusqueda(e.target.value)}
               placeholder="Buscar puerto o lugar…"
               style={{ width:"100%", background:"transparent", border:"none",
-                color:T.ink, fontSize:13, outline:"none", fontFamily:"inherit" }}/>
+                color:T.ink, fontSize:14, outline:"none", fontFamily:"inherit" }}/>
           </div>
           {lugaresFiltrados.map((l,i)=>(
             <button key={i} onClick={()=>seleccionarLugar(l)} style={{
@@ -3357,8 +3305,7 @@ function Clima() {
               alignItems:"center", justifyContent:"space-between" }}>
               <span style={{ color:T.ink, fontSize:13 }}>{l.nombre}</span>
               {ubicActual.nombre===l.nombre && (
-                <span style={{ color:T.brass, fontSize:11,
-                  fontFamily:"'DM Mono',monospace" }}>✓</span>
+                <span style={{ color:T.brass, fontSize:11 }}>✓</span>
               )}
             </button>
           ))}
@@ -3368,7 +3315,7 @@ function Clima() {
             background:"transparent", cursor:"pointer", textAlign:"left",
             display:"flex", alignItems:"center", gap:8 }}>
             <span style={{ fontSize:14 }}>◎</span>
-            <span style={{ color:T.brass, fontSize:13, fontWeight:600 }}>
+            <span style={{ color:T.brass, fontSize:14, fontWeight:600 }}>
               Usar mi posición GPS ahora
             </span>
           </button>
@@ -3452,16 +3399,14 @@ function Clima() {
         display:"flex", alignItems:"center", gap:16 }}>
         <div style={{ fontSize:36, lineHeight:1 }}>{sem.icon}</div>
         <div>
-          <div style={{ color:semColor, fontWeight:700, fontSize:16,
-            fontFamily:"'Cormorant Garamond',serif" }}>{sem.label}</div>
-          <div style={{ color:T.inkDim, fontSize:11, marginTop:4,
-            fontFamily:"'DM Mono',monospace" }}>{sem.desc}</div>
+          <div style={{ color:semColor, fontWeight:700, fontSize:16 }}>{sem.label}</div>
+          <div style={{ color:T.inkDim, fontSize:11, marginTop:4 }}>{sem.desc}</div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display:"flex", background:T.bg, borderRadius:7, padding:3,
-        gap:3, marginBottom:16, border:`1px solid ${T.rimHi}` }}>
+      <div style={{ display:"flex", background:T.bg, borderRadius:10, padding:3,
+        gap:3, marginBottom:16, border:`0.5px solid ${T.rimHi}` }}>
         {[["ahora","Ahora"],["horas","24h"],["dias","3 días"],["mapa","Mapa"]].map(([id,lbl])=>(
           <button key={id} onClick={()=>setTab(id)} style={{
             flex:1, padding:"8px 4px", borderRadius:5, border:"none", cursor:"pointer",
@@ -3497,14 +3442,12 @@ function Clima() {
               const sc = s.level==="ok"?T.ok:s.level==="warn"?T.warn:T.danger;
               return (
                 <Card key={i} pad="12px 10px" style={{ minWidth:70, textAlign:"center", flexShrink:0 }}>
-                  <div style={{ fontSize:9.5, color:T.inkDim, fontFamily:"'DM Mono',monospace",
+                  <div style={{ fontSize:12, color:T.inkDim,
                     marginBottom:6 }}>{String(h.hour).padStart(2,"0")}:00</div>
                   <div style={{ width:8, height:8, borderRadius:"50%", background:sc,
                     margin:"0 auto 8px", boxShadow:`0 0 6px ${sc}60` }}/>
-                  <div style={{ color:T.ink, fontSize:12, fontWeight:600,
-                    fontFamily:"'DM Mono',monospace" }}>{h.wind}kn</div>
-                  <div style={{ color:T.inkDim, fontSize:10, marginTop:3,
-                    fontFamily:"'DM Mono',monospace" }}>{h.wave?.toFixed(1)??"--"}m</div>
+                  <div style={{ color:T.ink, fontSize:12, fontWeight:600 }}>{h.wind}kn</div>
+                  <div style={{ color:T.inkDim, fontSize:12, color:T.inkDim, marginTop:2 }}>{h.wave?.toFixed(1)??"--"}m</div>
                 </Card>
               );
             })}
@@ -3520,23 +3463,19 @@ function Clima() {
               <div style={{ display:"flex", alignItems:"center", gap:12 }}>
                 <div style={{ width:8, height:8, borderRadius:"50%", background:sc,
                   boxShadow:`0 0 6px ${sc}60` }}/>
-                <div style={{ color:T.ink, fontSize:16, fontWeight:600,
-                  fontFamily:"'Cormorant Garamond',serif" }}>{d.label}</div>
+                <div style={{ color:T.ink, fontSize:16, fontWeight:600 }}>{d.label}</div>
               </div>
               <Signal estado={d.sem.level}/>
             </div>
             <div style={{ display:"flex", gap:16, marginTop:10 }}>
               <div>
-                <div style={{ fontSize:9, color:T.inkDim, fontFamily:"'DM Mono',monospace",
-                  letterSpacing:1.5, textTransform:"uppercase", marginBottom:3 }}>Viento máx.</div>
-                <div style={{ color:d.maxWind>20?T.warn:T.ink, fontWeight:600, fontSize:18,
-                  fontFamily:"'Cormorant Garamond',serif" }}>{d.maxWind} kn</div>
+                <div style={{ fontSize:11, color:T.inkDim, marginBottom:3 }}>Viento máx.</div>
+                <div style={{ color:d.maxWind>20?T.warn:T.ink, fontWeight:600, fontSize:18 }}>{d.maxWind} kn</div>
               </div>
               <div>
-                <div style={{ fontSize:9, color:T.inkDim, fontFamily:"'DM Mono',monospace",
-                  letterSpacing:1.5, textTransform:"uppercase", marginBottom:3 }}>Ola máx.</div>
+                <div style={{ fontSize:11, color:T.inkDim, marginBottom:3 }}>Ola máx.</div>
                 <div style={{ color:d.maxWave>1.5?T.danger:d.maxWave>0.8?T.warn:T.ok,
-                  fontWeight:600, fontSize:18, fontFamily:"'Cormorant Garamond',serif" }}>
+                  fontWeight:600, fontSize:18 }}>
                   {d.maxWave?.toFixed(1)??"--"} m</div>
               </div>
             </div>
@@ -3547,12 +3486,12 @@ function Clima() {
       {/* ── MAPA WINDY ── */}
       {tab==="mapa" && (
         <div>
-          <div style={{fontSize:10,color:T.inkDim,fontFamily:"'DM Mono',monospace",
+          <div style={{fontSize:10,color:T.inkDim,
             marginBottom:12,lineHeight:1.5}}>
             Mapa meteorológico en tiempo real · Puedes mover, hacer zoom y cambiar capas
             (viento, olas, lluvia). Centrado en la Costa del Sol.
           </div>
-          <div style={{borderRadius:12,overflow:"hidden",border:`1px solid ${T.rimHi}`,
+          <div style={{borderRadius:12,overflow:"hidden",border:`0.5px solid ${T.rimHi}`,
             boxShadow:"0 2px 12px rgba(0,0,0,0.08)"}}>
             <iframe
               src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=kt&zoom=8&overlay=wind&product=ecmwf&level=surface&lat=36.73&lon=-4.08&detailLat=36.73&detailLon=-4.08&marker=true&message=true"
@@ -3563,7 +3502,7 @@ function Clima() {
               style={{display:"block"}}
             />
           </div>
-          <div style={{fontSize:9.5,color:T.inkDim,fontFamily:"'DM Mono',monospace",
+          <div style={{fontSize:12,color:T.inkDim,
             marginTop:8,textAlign:"center"}}>
             Powered by Windy.com · Datos ECMWF
           </div>
@@ -3739,15 +3678,15 @@ function Calculadora() {
       <Hdr title="Calculadora"/>
 
       {/* Mode toggle */}
-      <div style={{ display:"flex", background:T.bg, borderRadius:7, padding:3,
-        gap:3, marginBottom:18, border:`1px solid ${T.rimHi}` }}>
+      <div style={{ display:"flex", background:T.bg, borderRadius:10, padding:3,
+        gap:3, marginBottom:18, border:`0.5px solid ${T.rimHi}` }}>
         {[["paseo","🌅  Paseo"],["ruta","🧭  Ruta"]].map(([id,lbl])=>(
           <button key={id} onClick={()=>{ setModo(id); setResultado(null); }} style={{
             flex:1, padding:"10px 4px", borderRadius:5, border:"none", cursor:"pointer",
             background:modo===id?T.surface:"transparent",
-            color:modo===id?T.ink:T.inkDim, fontSize:13, fontWeight:modo===id?700:400,
+            color:modo===id?T.ink:T.inkDim, fontSize:14, fontWeight:modo===id?700:400,
             fontFamily:"inherit", boxShadow:modo===id?"0 1px 3px rgba(0,0,0,0.4)":"none",
-            letterSpacing:0.3 }}>
+            }}>
             {lbl}
           </button>
         ))}
@@ -3758,36 +3697,30 @@ function Calculadora() {
         {modo==="ruta" && (
           <div>
             <div style={{ padding:"12px 0" }}>
-              <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
-                fontFamily:"'DM Mono',monospace", marginBottom:8 }}>Distancia al destino (mn)</div>
+              <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8 }}>Distancia al destino (mn)</div>
               <input type="number" value={distancia} onChange={e=>setDistancia(e.target.value)}
                 placeholder="ej. 18"
-                style={{ background:T.surfaceUp, border:`1px solid ${T.rimHi}`, borderRadius:7,
-                  padding:"10px 14px", color:T.ink, fontSize:16,
-                  fontFamily:"'Cormorant Garamond',serif", outline:"none", width:"100%", fontWeight:600 }}/>
+                style={{ background:T.surfaceUp, border:`0.5px solid ${T.rimHi}`, borderRadius:10,
+                  padding:"10px 14px", color:T.ink, fontSize:16, outline:"none", width:"100%", fontWeight:600 }}/>
             </div>
             <Divider/>
           </div>
         )}
         <div style={{ padding:"12px 0" }}>
-          <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
-            fontFamily:"'DM Mono',monospace", marginBottom:8 }}>
+          <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8 }}>
             {modo==="paseo" ? "Hora de salida" : "Hora de salida prevista"}
           </div>
           <input type="time" value={horaSalida} onChange={e=>setHoraSalida(e.target.value)}
-            style={{ background:T.surfaceUp, border:`1px solid ${T.rimHi}`, borderRadius:7,
-              padding:"10px 14px", color:T.ink, fontSize:16,
-              fontFamily:"'Cormorant Garamond',serif", outline:"none", width:"100%", fontWeight:600 }}/>
+            style={{ background:T.surfaceUp, border:`0.5px solid ${T.rimHi}`, borderRadius:10,
+              padding:"10px 14px", color:T.ink, fontSize:16, outline:"none", width:"100%", fontWeight:600 }}/>
         </div>
         {modo==="ruta" && <><Divider/>
         <div style={{ padding:"12px 0" }}>
-          <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
-            fontFamily:"'DM Mono',monospace", marginBottom:8 }}>Velocidad de crucero (nudos)</div>
+          <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8 }}>Velocidad de crucero (nudos)</div>
           <input type="number" value={velocidad} onChange={e=>setVelocidad(e.target.value)}
             placeholder="10-15"
-            style={{ background:T.surfaceUp, border:`1px solid ${T.rimHi}`, borderRadius:7,
-              padding:"10px 14px", color:T.ink, fontSize:16,
-              fontFamily:"'Cormorant Garamond',serif", outline:"none", width:"100%", fontWeight:600 }}/>
+            style={{ background:T.surfaceUp, border:`0.5px solid ${T.rimHi}`, borderRadius:10,
+              padding:"10px 14px", color:T.ink, fontSize:16, outline:"none", width:"100%", fontWeight:600 }}/>
         </div></>}
       </Card>
 
@@ -3802,13 +3735,12 @@ function Calculadora() {
           {r.hasGolden ? (
             <div style={{ background:T.brass+"18", border:`1px solid ${T.brass}40`,
               borderRadius:12, padding:"16px 18px", marginBottom:14 }}>
-              <div style={{ fontSize:9.5, color:T.brass, letterSpacing:2, textTransform:"uppercase",
-                fontFamily:"'DM Mono',monospace", marginBottom:8 }}>🌅 Ventana dorada</div>
-              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:28,
+              <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8 }}>🌅 Ventana dorada</div>
+              <div style={{, fontSize:22,
                 fontWeight:600, color:T.brassLt, lineHeight:1 }}>
                 {r.optReturnStr} - {r.optReturnEndStr}
               </div>
-              <div style={{ color:T.inkDim, fontSize:11, marginTop:6, fontFamily:"'DM Mono',monospace" }}>
+              <div style={{ color:T.inkDim, fontSize:11, marginTop:6 }}>
                 {r.windAtReturn !== null ? `Viento estimado ${r.windAtReturn}kn` : ""}
                 {r.waveAtReturn !== null ? ` · Ola ${r.waveAtReturn.toFixed(1)}m` : ""}
                 {" · Puesta de sol "}{r.sunset.str}
@@ -3817,7 +3749,7 @@ function Calculadora() {
           ) : r.noGoodWindow ? (
             <div style={{ background:T.danger+"15", border:`1px solid ${T.danger}30`,
               borderRadius:10, padding:"14px 16px", marginBottom:14 }}>
-              <div style={{ color:T.danger, fontSize:13, fontWeight:600 }}>
+              <div style={{ color:T.danger, fontSize:14, fontWeight:600 }}>
                 ⚠ Hoy no hay ventana con buenas condiciones cerca del atardecer.
               </div>
               <div style={{ color:T.inkDim, fontSize:11, marginTop:4 }}>
@@ -3827,7 +3759,7 @@ function Calculadora() {
           ) : (
             <div style={{ background:T.warn+"15", border:`1px solid ${T.warn}30`,
               borderRadius:10, padding:"14px 16px", marginBottom:14 }}>
-              <div style={{ color:T.warn, fontSize:13, fontWeight:600 }}>
+              <div style={{ color:T.warn, fontSize:14, fontWeight:600 }}>
                 Ventana aceptable {r.optReturnStr} - {r.optReturnEndStr}
               </div>
               <div style={{ color:T.inkDim, fontSize:11, marginTop:4 }}>
@@ -3849,8 +3781,7 @@ function Calculadora() {
                 <div style={{ display:"flex", justifyContent:"space-between",
                   alignItems:"center", padding:"10px 0" }}>
                   <span style={{ color:T.inkDim, fontSize:12 }}>{l}</span>
-                  <span style={{ color:c, fontSize:16, fontWeight:600,
-                    fontFamily:"'Cormorant Garamond',serif" }}>{v}</span>
+                  <span style={{ color:c, fontSize:16, fontWeight:600 }}>{v}</span>
                 </div>
               </div>
             ))}
@@ -3907,8 +3838,7 @@ function Calculadora() {
             ].map(({h,l,c},i)=>(
               <div key={i}>{i>0&&<Divider/>}
                 <div style={{ display:"flex", alignItems:"center", gap:14, padding:"10px 0" }}>
-                  <div style={{ fontSize:16, fontWeight:700, color:c, minWidth:44,
-                    fontFamily:"'DM Mono',monospace" }}>{h}</div>
+                  <div style={{ fontSize:16, fontWeight:700, color:c, minWidth:44 }}>{h}</div>
                   <div style={{ color:T.inkMid, fontSize:12.5 }}>{l}</div>
                 </div>
               </div>
@@ -4097,14 +4027,10 @@ function Fondeo() {
       <Hdr title="Fondeo"/>
 
       {/* Tabs */}
-      <div style={{display:"flex",background:T.bg,borderRadius:7,padding:3,
-        gap:3,marginBottom:18,border:`1px solid ${T.rimHi}`}}>
+      <div style={{display:"flex",gap:0,marginBottom:18,borderBottom:`0.5px solid ${T.rim}`}}>
         {[["fondear","Fondear"],["historico","Mis fondeos"]].map(([id,lbl])=>(
           <button key={id} onClick={()=>setTab(id)} style={{
-            flex:1,padding:"9px",borderRadius:5,border:"none",cursor:"pointer",
-            background:tab===id?T.surface:"transparent",
-            color:tab===id?T.ink:T.inkDim,fontSize:12,fontWeight:tab===id?600:400,
-            fontFamily:"inherit",boxShadow:tab===id?"0 1px 3px rgba(0,0,0,0.15)":"none"}}>
+            flex:1,padding:"10px 8px",border:"none",cursor:"pointer",background:"transparent",color:tab===id?T.ink:T.inkDim,fontSize:12,fontWeight:tab===id?500:400,fontFamily:"inherit",borderBottom:tab===id?`1.5px solid ${T.ink}`:"1.5px solid transparent"}}>
             {lbl}
           </button>
         ))}
@@ -4116,13 +4042,13 @@ function Fondeo() {
           {/* GPS status */}
           {gpsError ? (
             <Card style={{marginBottom:14}}>
-              <div style={{color:T.warn,fontSize:13,textAlign:"center"}}>
+              <div style={{color:T.warn,fontSize:14,textAlign:"center"}}>
                 {gpsError} -- activa el GPS del dispositivo
               </div>
             </Card>
           ) : !pos ? (
             <Card style={{marginBottom:14}}>
-              <div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"8px 0"}}>
+              <div style={{color:T.inkDim,fontSize:14,textAlign:"center",padding:"8px 0"}}>
                 Obteniendo posicion GPS...
               </div>
             </Card>
@@ -4135,13 +4061,12 @@ function Fondeo() {
               display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{color:"#fff",fontWeight:700,fontSize:16}}>GARREANDO</div>
-                <div style={{color:"rgba(255,255,255,0.8)",fontSize:11,marginTop:3,
-                  fontFamily:"'DM Mono',monospace"}}>
+                <div style={{color:"rgba(255,255,255,0.8)",fontSize:11,marginTop:3}}>
                   Distancia: {distAncla?.toFixed(0)}m -- Limite: {cadena+16}m
                 </div>
               </div>
               <button onClick={()=>setSonando(false)} style={{background:"rgba(255,255,255,0.2)",
-                border:"none",borderRadius:8,padding:"8px 12px",color:"#fff",
+                border:"none",borderRadius:10,padding:"8px 12px",color:"#fff",
                 fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
                 Silenciar
               </button>
@@ -4152,8 +4077,7 @@ function Fondeo() {
           {ancla ? (
             <Card style={{marginBottom:16,border:`2px solid ${alarmaDisparada?T.danger:T.ok}`}} pad="20px">
               <div style={{textAlign:"center",marginBottom:16}}>
-                <div style={{fontSize:9.5,color:T.ok,letterSpacing:2,textTransform:"uppercase",
-                  fontFamily:"'DM Mono',monospace",marginBottom:6}}>Ancla echada</div>
+                <div style={{fontSize:11,color:T.ok,marginBottom:6}}>Ancla echada</div>
 
                 {/* Flecha hacia el ancla */}
                 <div style={{display:"flex",justifyContent:"center",marginBottom:12}}>
@@ -4162,7 +4086,7 @@ function Fondeo() {
                     background: alarmaDisparada?T.danger+"15":T.ok+"15",
                     border:`2px solid ${alarmaDisparada?T.danger:T.ok}`,
                     display:"flex",alignItems:"center",justifyContent:"center",
-                    fontSize:28,
+                    fontSize:22,
                     transform: rumbo!==null ? `rotate(${rumbo}deg)` : "none",
                     transition:"transform 0.5s"
                   }}>
@@ -4170,12 +4094,10 @@ function Fondeo() {
                   </div>
                 </div>
 
-                <div style={{fontSize:36,fontWeight:600,color:alarmaDisparada?T.danger:T.ok,
-                  fontFamily:"'Cormorant Garamond',serif",lineHeight:1}}>
+                <div style={{fontSize:36,fontWeight:600,color:alarmaDisparada?T.danger:T.ok,lineHeight:1}}>
                   {distAncla !== null ? `${distAncla.toFixed(0)} m` : "--"}
                 </div>
-                <div style={{color:T.inkDim,fontSize:10,marginTop:4,
-                  fontFamily:"'DM Mono',monospace"}}>
+                <div style={{color:T.inkDim,fontSize:10,marginTop:4}}>
                   al ancla {rumbo!==null?`· rumbo ${rumbo}°`:""}
                 </div>
               </div>
@@ -4192,8 +4114,8 @@ function Fondeo() {
                     }}/>
                   </div>
                   <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-                    <span style={{fontSize:9.5,color:T.inkDim,fontFamily:"'DM Mono',monospace"}}>0m</span>
-                    <span style={{fontSize:9.5,color:T.inkDim,fontFamily:"'DM Mono',monospace"}}>
+                    <span style={{fontSize:12,color:T.inkDim}}>0m</span>
+                    <span style={{fontSize:12,color:T.inkDim}}>
                       Limite: {cadena+16}m
                     </span>
                   </div>
@@ -4202,7 +4124,7 @@ function Fondeo() {
 
               <button onClick={levantarAncla} style={{
                 width:"100%",background:T.danger+"15",border:`1px solid ${T.danger}40`,
-                borderRadius:8,padding:"11px",color:T.danger,fontSize:13,fontWeight:600,
+                borderRadius:10,padding:"11px",color:T.danger,fontSize:14,fontWeight:600,
                 cursor:"pointer",fontFamily:"inherit"}}>
                 Levantar ancla
               </button>
@@ -4211,10 +4133,9 @@ function Fondeo() {
             /* BOTON ECHAR ANCLA */
             <Card style={{marginBottom:16}} pad="24px 20px">
               <div style={{textAlign:"center",marginBottom:20}}>
-                <div style={{fontSize:9.5,color:T.inkDim,letterSpacing:2,textTransform:"uppercase",
-                  fontFamily:"'DM Mono',monospace",marginBottom:8}}>Sin fondeo activo</div>
+                <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8}}>Sin fondeo activo</div>
                 {pos && (
-                  <div style={{color:T.inkDim,fontSize:10,fontFamily:"'DM Mono',monospace"}}>
+                  <div style={{color:T.inkDim,fontSize:10}}>
                     {pos.lat.toFixed(5)}, {pos.lon.toFixed(5)} · acc {pos.acc?.toFixed(0)}m
                   </div>
                 )}
@@ -4233,22 +4154,20 @@ function Fondeo() {
 
           {/* CADENA */}
           <Card style={{marginBottom:16}} pad="14px 18px">
-            <div style={{fontSize:9,color:T.inkDim,letterSpacing:1.5,textTransform:"uppercase",
-              fontFamily:"'DM Mono',monospace",marginBottom:8}}>Cadena filada</div>
+            <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8}}>Cadena filada</div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <input type="range" min="10" max="100" step="5" value={cadena}
                 onChange={e=>setCadena(parseInt(e.target.value))}
                 style={{flex:1,accentColor:T.brass}}/>
-              <span style={{fontSize:20,fontWeight:700,minWidth:52,textAlign:"right",
-                fontFamily:"'Cormorant Garamond',serif",color:T.brassLt}}>
+              <span style={{fontSize:20,fontWeight:700,minWidth:52,textAlign:"right",color:T.brassLt}}>
                 {cadena} m
               </span>
             </div>
             <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}>
-              <span style={{fontSize:9.5,color:T.inkDim,fontFamily:"'DM Mono',monospace"}}>
+              <span style={{fontSize:12,color:T.inkDim}}>
                 Relacion 5:1 -- prof {(cadena/5).toFixed(1)}m
               </span>
-              <span style={{fontSize:9.5,color:T.inkDim,fontFamily:"'DM Mono',monospace"}}>
+              <span style={{fontSize:12,color:T.inkDim}}>
                 Limite alarma: {cadena+16}m
               </span>
             </div>
@@ -4263,7 +4182,7 @@ function Fondeo() {
               {showForm && (
                 <Card style={{marginTop:12}} pad="16px">
                   <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
-                    textTransform:"uppercase",letterSpacing:1,fontFamily:"'DM Mono',monospace"}}>
+                    }}>
                     Datos del fondeo
                   </div>
                   <FInput label="Nombre del lugar" value={formFondeo.nombre}
@@ -4296,10 +4215,10 @@ function Fondeo() {
       {tab==="historico" && (
         <div>
           {loadingF ? (
-            <Card><div style={{color:T.inkDim,fontSize:13,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
+            <Card><div style={{color:T.inkDim,fontSize:14,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
           ) : fondeos.length===0 ? (
             <Card>
-              <div style={{color:T.inkDim,fontSize:13,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>
+              <div style={{color:T.inkDim,fontSize:14,fontStyle:"italic",textAlign:"center",padding:"12px 0"}}>
                 Sin fondeos guardados. Fondea y guarda el punto desde la pestana anterior.
               </div>
             </Card>
@@ -4309,10 +4228,8 @@ function Fondeo() {
               <Card key={f.id} style={{marginBottom:11}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                   <div style={{flex:1}}>
-                    <div style={{color:T.ink,fontWeight:600,fontSize:17,
-                      fontFamily:"'Cormorant Garamond',serif"}}>{f.nombre||"Fondeo"}</div>
-                    <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,
-                      fontFamily:"'DM Mono',monospace"}}>
+                    <div style={{color:T.ink,fontWeight:600,fontSize:17}}>{f.nombre||"Fondeo"}</div>
+                    <div style={{color:T.inkDim,fontSize:12,marginTop:3}}>
                       {f.fecha}
                       {f.profundidad ? ` · ${f.profundidad}m prof.` : ""}
                       {f.viento ? ` · ${f.viento}` : ""}
@@ -4323,8 +4240,7 @@ function Fondeo() {
                       <div style={{color:T.brassLt,fontSize:11}}>{estrellas(f.valoracion)}</div>
                     )}
                     {distF !== null && (
-                      <div style={{color:T.inkDim,fontSize:9.5,marginTop:3,
-                        fontFamily:"'DM Mono',monospace"}}>
+                      <div style={{color:T.inkDim,fontSize:12,marginTop:3}}>
                         {distF>1000 ? `${(distF/1000).toFixed(1)}km` : `${distF.toFixed(0)}m`}
                       </div>
                     )}
@@ -4335,15 +4251,13 @@ function Fondeo() {
                 <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
                   {f.resguardado_de && (
                     <span style={{background:T.ok+"15",border:`1px solid ${T.ok}30`,
-                      borderRadius:4,padding:"2px 8px",fontSize:9.5,color:T.ok,
-                      fontFamily:"'DM Mono',monospace"}}>
+                      borderRadius:4,padding:"2px 8px",fontSize:11,color:T.ok}}>
                       Prot. del {f.resguardado_de}
                     </span>
                   )}
                   {f.direccion_viento && (
                     <span style={{background:T.info+"15",border:`1px solid ${T.info}30`,
-                      borderRadius:4,padding:"2px 8px",fontSize:9.5,color:T.info,
-                      fontFamily:"'DM Mono',monospace"}}>
+                      borderRadius:4,padding:"2px 8px",fontSize:12,color:T.info}}>
                       Viento {f.direccion_viento}
                     </span>
                   )}
@@ -4358,13 +4272,13 @@ function Fondeo() {
                     <a href={`https://maps.google.com?q=${f.lat},${f.lon}`}
                       target="_blank" rel="noopener noreferrer"
                       style={{flex:1,background:T.brassDim,border:`1px solid ${T.brass}35`,
-                        borderRadius:7,padding:"7px",color:T.brass,fontSize:11,
+                        borderRadius:10,padding:"7px",color:T.brass,fontSize:11,
                         textDecoration:"none",textAlign:"center",fontWeight:600}}>
                       Ver en mapa
                     </a>
                   )}
                   <button onClick={()=>eliminarFondeo(f.id)} style={{background:"none",
-                    border:`1px solid ${T.danger}40`,borderRadius:7,padding:"7px 12px",
+                    border:`1px solid ${T.danger}40`,borderRadius:10,padding:"7px 12px",
                     color:T.danger,fontSize:11,cursor:"pointer"}}>
                     Eliminar
                   </button>
@@ -4385,7 +4299,7 @@ function MotorHub({ setScreen }) {
     <div>
       <div style={{ fontSize:22, fontWeight:500, color:T.ink,
         letterSpacing:-0.3, marginBottom:6 }}>Motor</div>
-      <div style={{ fontSize:13, color:T.inkDim, marginBottom:24 }}>
+      <div style={{ fontSize:14, color:T.inkDim, marginBottom:24 }}>
         Mantenimiento · Combustible
       </div>
       <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
@@ -4424,7 +4338,7 @@ function ABordoHub({ setScreen }) {
     <div>
       <div style={{ fontSize:22, fontWeight:500, color:T.ink,
         letterSpacing:-0.3, marginBottom:6 }}>A bordo</div>
-      <div style={{ fontSize:13, color:T.inkDim, marginBottom:24 }}>
+      <div style={{ fontSize:14, color:T.inkDim, marginBottom:24 }}>
         Inventario · Seguridad · Habituallamiento
       </div>
       <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
@@ -4463,7 +4377,7 @@ function ElBarcoHub({ setScreen }) {
     <div>
       <div style={{ fontSize:22, fontWeight:500, color:T.ink,
         letterSpacing:-0.3, marginBottom:6 }}>El barco</div>
-      <div style={{ fontSize:13, color:T.inkDim, marginBottom:24 }}>
+      <div style={{ fontSize:14, color:T.inkDim, marginBottom:24 }}>
         Leonidas · Sunseeker Portofino 53
       </div>
       <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
@@ -4585,13 +4499,13 @@ function DrawerNuevaSalida({ onClose, onSaved, ultimasHoras }) {
               borderBottom:`0.5px solid ${T.rim}` }}>
               <div style={{ width:8, height:8, borderRadius:"50%",
                 background:T.ok, flexShrink:0 }}/>
-              <div style={{ flex:1, fontSize:13, color:T.inkDim }}>
+              <div style={{ flex:1, fontSize:14, color:T.inkDim }}>
                 {form.salida}
               </div>
               <input type="time" value={form.hora_salida}
                 onChange={upd("hora_salida")}
                 style={{ background:"none", border:"none", color:T.ink,
-                  fontSize:13, fontFamily:"inherit", outline:"none",
+                  fontSize:14, fontFamily:"inherit", outline:"none",
                   width:56 }}/>
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:12,
@@ -4601,12 +4515,12 @@ function DrawerNuevaSalida({ onClose, onSaved, ultimasHoras }) {
               <input value={form.llegada} onChange={upd("llegada")}
                 placeholder="Destino…"
                 style={{ flex:1, background:"none", border:"none",
-                  color:T.ink, fontSize:13, fontFamily:"inherit",
+                  color:T.ink, fontSize:14, fontFamily:"inherit",
                   outline:"none" }}/>
               <input type="time" value={form.hora_llegada}
                 onChange={upd("hora_llegada")}
                 style={{ background:"none", border:"none", color:T.ink,
-                  fontSize:13, fontFamily:"inherit", outline:"none",
+                  fontSize:14, fontFamily:"inherit", outline:"none",
                   width:56 }}/>
             </div>
           </div>
@@ -4618,7 +4532,7 @@ function DrawerNuevaSalida({ onClose, onSaved, ultimasHoras }) {
             <div style={{ display:"flex", gap:6 }}>
               {["Guille","Varo"].map(p=>(
                 <button key={p} onClick={()=>setForm(v=>({...v,patron:p}))}
-                  style={{ padding:"7px 16px", borderRadius:20, fontSize:13,
+                  style={{ padding:"7px 16px", borderRadius:20, fontSize:14,
                     cursor:"pointer", fontFamily:"inherit", fontWeight:500,
                     border:`0.5px solid ${form.patron===p?T.ink:T.rim}`,
                     background:form.patron===p?T.ink:"transparent",
@@ -4771,11 +4685,10 @@ function SidebarContent({ screen, onNav, onClose, showClose }) {
           <AppLogo size={28}/>
           <div>
             <div style={{ fontSize:16, fontWeight:600, color:"#fff",
-              lineHeight:1, fontFamily:"'Cormorant Garamond',serif" }}>
+              lineHeight:1 }}>
               ShipLog
             </div>
-            <div style={{ fontSize:9, color:T.sidebarDim,
-              letterSpacing:2.5, textTransform:"uppercase",
+            <div style={{ fontSize:11, color:T.sidebarDim,
               marginTop:3 }}>Leonidas</div>
           </div>
         </div>
@@ -4791,8 +4704,7 @@ function SidebarContent({ screen, onNav, onClose, showClose }) {
       <div style={{ flex:1, overflowY:"auto", padding:"8px 0 20px" }}>
         {MENU.map(group => (
           <div key={group.section} style={{ marginBottom:4 }}>
-            <div style={{ fontSize:9, color:T.sidebarDim,
-              letterSpacing:2.5, textTransform:"uppercase",
+            <div style={{ fontSize:11, color:T.sidebarDim,
               padding:"12px 18px 5px" }}>
               {group.section}
             </div>
@@ -4814,7 +4726,7 @@ function SidebarContent({ screen, onNav, onClose, showClose }) {
                   <Icon d={item.svg}
                     color={active ? T.brassLt : T.sidebarInk}
                     size={15} sw={active ? 2 : 1.5}/>
-                  <span style={{ fontSize:13,
+                  <span style={{ fontSize:14,
                     color: active ? T.brassLt : "rgba(255,255,255,0.65)",
                     fontWeight: active ? 500 : 400 }}>
                     {item.label}
@@ -4919,7 +4831,7 @@ export default function App() {
             flexShrink:0 }}>
           <button onClick={()=>setSideOpen(true)}
             style={{ background:"none", border:`0.5px solid ${T.rim}`,
-              borderRadius:8, padding:"8px 10px", cursor:"pointer",
+              borderRadius:10, padding:"8px 10px", cursor:"pointer",
               display:"flex", flexDirection:"column", gap:4.5 }}>
             {[0,1,2].map(i=>(
               <div key={i} style={{ width:17, height:1.5,
@@ -4927,8 +4839,7 @@ export default function App() {
             ))}
           </button>
           <div style={{ textAlign:"center" }}>
-            <div style={{ fontSize:15, fontWeight:500, color:T.ink,
-              fontFamily:"'Cormorant Garamond',serif" }}>
+            <div style={{ fontSize:15, fontWeight:500, color:T.ink }}>
               {MENU.flatMap(g=>g.items).find(i=>i.id===screen)?.label || "Hoy"}
             </div>
           </div>
