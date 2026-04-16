@@ -559,8 +559,7 @@ function Dashboard({ setScreen }) {
             <div key={i} style={{
               padding:"15px 18px",
               borderRight: i%2===0 ? `0.5px solid ${T.rim}` : "none",
-              borderBottom: i<2 ? `0.5px solid ${T.rim}` : "none",
-            }}>
+              borderBottom: i<2 ? `0.5px solid ${T.rim}` : "none" }}>
               <div style={{ fontSize:11, color:T.inkDim, marginBottom:5 }}>
                 {k.label}
               </div>
@@ -947,8 +946,7 @@ function Bitacora() {
       {/* ── FORMULARIO ── */}
       {showForm && (
         <Card style={{marginBottom:16}} pad="16px">
-          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:14,
-            }}>
+          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:14 }}>
             {editId ? "Editar entrada" : "Nueva entrada"}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1299,8 +1297,7 @@ function Mantenimiento() {
                 <Card key={t.id} style={{marginBottom:8,borderLeft:`3px solid ${bc}`}}>
                   {isEditing ? (
                     <div>
-                      <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
-                        }}>
+                      <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12 }}>
                         Registrar revision
                       </div>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -1391,8 +1388,7 @@ function Mantenimiento() {
 
           {showAveriaForm && (
             <Card style={{marginBottom:14}} pad="16px">
-              <div style={{fontSize:11,color:T.danger,fontWeight:700,marginBottom:12,
-                }}>Nueva averia</div>
+              <div style={{fontSize:11,color:T.danger,fontWeight:700,marginBottom:12 }}>Nueva averia</div>
               <FInput label="Descripcion *" value={formAveria.descripcion} onChange={updA("descripcion")}/>
               <FInput label="Fecha" type="date" value={formAveria.fecha} onChange={updA("fecha")}/>
               <FInput label="Notas / diagnostico" value={formAveria.notas} onChange={updA("notas")}/>
@@ -1579,8 +1575,7 @@ function Combustible() {
 
       {showForm && (
         <Card style={{marginBottom:14}} pad="16px">
-          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
-            }}>
+          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12 }}>
             {editItem ? "Editar repostaje" : "Nuevo repostaje"}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -1756,8 +1751,7 @@ function Seguridad() {
             background:tab===t.id?T.surface:"transparent",
             color:tab===t.id?T.ink:T.inkDim, fontSize:11.5,
             fontWeight:tab===t.id?600:400, fontFamily:"inherit",
-            boxShadow:"none",
-          }}>{t.label}</button>
+            boxShadow:"none" }}>{t.label}</button>
         ))}
       </div>
 
@@ -1766,8 +1760,7 @@ function Seguridad() {
         <div>
           {showForm && (
             <Card style={{marginBottom:14}} pad="16px">
-              <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
-                }}>
+              <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12 }}>
                 {editItem?"Editar equipo":"Nuevo equipo"}
               </div>
               <FInput label="Equipo *" value={form.equipo} onChange={upd("equipo")}/>
@@ -1784,8 +1777,7 @@ function Seguridad() {
                       fontFamily:"inherit", fontWeight:form.estado===e?700:400,
                       border:`1px solid ${form.estado===e?ESTADO_COLOR[e]:T.rimHi}`,
                       background:form.estado===e?ESTADO_COLOR[e]+"15":"transparent",
-                      color:form.estado===e?ESTADO_COLOR[e]:T.inkDim,
-                    }}>{ESTADO_LABEL[e]}</button>
+                      color:form.estado===e?ESTADO_COLOR[e]:T.inkDim }}>{ESTADO_LABEL[e]}</button>
                   ))}
                 </div>
               </div>
@@ -2772,8 +2764,7 @@ function Tripulacion() {
       {/* Formulario */}
       {showForm && (
         <Card style={{marginBottom:16}} pad="16px">
-          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:14,
-            }}>
+          <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:14 }}>
             {editId?"Editar tripulante":"Nuevo tripulante"}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -3685,8 +3676,7 @@ function Calculadora() {
             flex:1, padding:"10px 4px", borderRadius:5, border:"none", cursor:"pointer",
             background:modo===id?T.surface:"transparent",
             color:modo===id?T.ink:T.inkDim, fontSize:14, fontWeight:modo===id?700:400,
-            fontFamily:"inherit", boxShadow:modo===id?"0 1px 3px rgba(0,0,0,0.4)":"none",
-            }}>
+            fontFamily:"inherit", boxShadow:modo===id?"0 1px 3px rgba(0,0,0,0.4)":"none" }}>
             {lbl}
           </button>
         ))}
@@ -3736,7 +3726,7 @@ function Calculadora() {
             <div style={{ background:T.brass+"18", border:`1px solid ${T.brass}40`,
               borderRadius:12, padding:"16px 18px", marginBottom:14 }}>
               <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8 }}>🌅 Ventana dorada</div>
-              <div style={{, fontSize:22,
+              <div style={{ fontSize:22,
                 fontWeight:600, color:T.brassLt, lineHeight:1 }}>
                 {r.optReturnStr} - {r.optReturnEndStr}
               </div>
@@ -4181,8 +4171,7 @@ function Fondeo() {
               </Btn>
               {showForm && (
                 <Card style={{marginTop:12}} pad="16px">
-                  <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12,
-                    }}>
+                  <div style={{fontSize:11,color:T.brass,fontWeight:700,marginBottom:12 }}>
                     Datos del fondeo
                   </div>
                   <FInput label="Nombre del lugar" value={formFondeo.nombre}
@@ -4884,3 +4873,4 @@ export default function App() {
     </div>
   );
 }
+  
