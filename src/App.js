@@ -4388,6 +4388,44 @@ function SidebarDesktop({ screen, onNav }) {
 }
 
 // ── APP ROOT ──────────────────────────────────────────────────────────────────
+
+// ── TABS + SCREEN MAP ─────────────────────────────────────────────────────────
+const TABS = [
+  { id:"hoy",      label:"Hoy"      },
+  { id:"bitacora", label:"Bitácora" },
+  { id:"barco",    label:"Barco"    },
+  { id:"mas",      label:"Más"      },
+];
+
+const SCREEN_TAB = {
+  hoy:"hoy",
+  bitacora:"bitacora",
+  barco:"barco", mantenimiento:"barco", combustible:"barco",
+  inventario:"barco", seguridad:"barco", documentos:"barco",
+  tripulacion:"barco", ficha:"barco",
+  clima:"mas", calculadora:"mas", fondeo:"mas",
+  puertos:"mas", ia:"mas",
+};
+
+const SCREENS = {
+  hoy:          Dashboard,
+  bitacora:     Bitacora,
+  barco:        BarcoHub,
+  mantenimiento:Mantenimiento,
+  combustible:  Combustible,
+  inventario:   Inventario,
+  seguridad:    Seguridad,
+  documentos:   Documentos,
+  tripulacion:  Tripulacion,
+  ficha:        Ficha,
+  clima:        Clima,
+  calculadora:  Calculadora,
+  fondeo:       Fondeo,
+  puertos:      Puertos,
+  ia:           AsistenteIA,
+  mas:          MasHub,
+};
+
 export default function App() {
   const [screen, setScreen] = useState("hoy");
   const [showDrawer, setShowDrawer] = useState(false);
@@ -4494,3 +4532,4 @@ export default function App() {
     </div>
   );
 }
+                          
