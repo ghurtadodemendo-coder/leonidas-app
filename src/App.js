@@ -4294,109 +4294,112 @@ function Fondeo() {
   );
 }
 
-function BarcoHub({ setScreen }) {
-  const sections = [
-    {
-      label: "Motor & combustible",
-      items: [
-        { id:"mantenimiento", label:"Mantenimiento",  sub:"Revisar estado",   dot:"warn" },
-        { id:"combustible",   label:"Combustible",    sub:"Último repostaje", dot:"ok"   },
-        { id:"inventario",    label:"Inventario",     sub:"Repuestos a bordo",dot:"ok"   },
-      ]
-    },
-    {
-      label: "Seguridad & docs",
-      items: [
-        { id:"seguridad",   label:"Seguridad",    sub:"Equipos y caducidades", dot:"ok" },
-        { id:"documentos",  label:"Documentos",   sub:"Certificados",          dot:"ok" },
-      ]
-    },
-    {
-      label: "Barco & tripulación",
-      items: [
-        { id:"tripulacion", label:"Tripulación",  sub:"Patrones y crew",   dot:"ok" },
-        { id:"ficha",       label:"Ficha técnica",sub:"Leonidas · Datos",  dot:"ok" },
-      ]
-    },
-  ];
 
+// ── MOTOR HUB (fusión Mantenimiento + Combustible) ───────────────────────────
+function MotorHub({ setScreen }) {
   return (
     <div>
-      <div style={{ marginBottom:24 }}>
-        <div style={{ fontSize:13, color:T.inkDim, marginBottom:3 }}>
-          Sunseeker Portofino 53 · 2007
-        </div>
-        <div style={{ fontSize:22, fontWeight:500, color:T.ink,
-          letterSpacing:-0.3 }}>Leonidas</div>
+      <div style={{ fontSize:22, fontWeight:500, color:T.ink,
+        letterSpacing:-0.3, marginBottom:6 }}>Motor</div>
+      <div style={{ fontSize:13, color:T.inkDim, marginBottom:24 }}>
+        Mantenimiento · Combustible
       </div>
-
-      {sections.map(sec => (
-        <div key={sec.label} style={{ marginBottom:24 }}>
-          <div style={{ fontSize:11, fontWeight:500, color:T.inkDim,
-            marginBottom:8 }}>{sec.label}</div>
-          <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
-            borderRadius:12, overflow:"hidden" }}>
-            {sec.items.map((item, i) => (
-              <div key={item.id}
-                onClick={()=>setScreen(item.id)}
-                style={{ display:"flex", alignItems:"center",
-                  justifyContent:"space-between",
-                  padding:"13px 16px",
-                  borderTop: i>0 ? `0.5px solid ${T.rim}` : "none",
-                  cursor:"pointer" }}>
-                <div>
-                  <div style={{ fontSize:14, fontWeight:500,
-                    color:T.ink, marginBottom:2 }}>{item.label}</div>
-                  <div style={{ fontSize:11, color:T.inkDim }}>{item.sub}</div>
-                </div>
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <StatusDot estado={item.dot}/>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                    stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </div>
-              </div>
-            ))}
+      <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
+        borderRadius:12, overflow:"hidden", marginBottom:20 }}>
+        {[
+          { id:"mantenimiento", label:"Mantenimiento",
+            sub:"Tareas, averías y revisiones" },
+          { id:"combustible",   label:"Combustible",
+            sub:"Repostajes y nivel del depósito" },
+        ].map((item, i) => (
+          <div key={item.id} onClick={()=>setScreen(item.id)}
+            style={{ display:"flex", alignItems:"center",
+              justifyContent:"space-between",
+              padding:"15px 18px",
+              borderTop: i>0 ? `0.5px solid ${T.rim}` : "none",
+              cursor:"pointer" }}>
+            <div>
+              <div style={{ fontSize:15, fontWeight:500, color:T.ink,
+                marginBottom:2 }}>{item.label}</div>
+              <div style={{ fontSize:12, color:T.inkDim }}>{item.sub}</div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
 
-// ── MÁS HUB ───────────────────────────────────────────────────────────────────
-function MasHub({ setScreen }) {
-  const items = [
-    { id:"clima",       label:"Clima",        sub:"Tiempo en tiempo real",  svg:"M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" },
-    { id:"calculadora", label:"Calculadora",  sub:"Ventana dorada · Ruta",  svg:"M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5" },
-    { id:"fondeo",      label:"Fondeo",       sub:"GPS · Alarma garreo",    svg:"M12 2a3 3 0 0 0-3 3c0 1.66 1.34 3 3 3s3-1.34 3-3a3 3 0 0 0-3-3z M12 8v14 M5 12H2a10 10 0 0 0 20 0h-3" },
-    { id:"puertos",     label:"Puertos",      sub:"Amarres y escalas",      svg:"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" },
-    { id:"ia",          label:"Asistente IA", sub:"Consultas del barco",    svg:"M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" },
-  ];
-
+// ── A BORDO HUB (fusión Inventario + Seguridad) ───────────────────────────────
+function ABordoHub({ setScreen }) {
   return (
     <div>
       <div style={{ fontSize:22, fontWeight:500, color:T.ink,
-        letterSpacing:-0.3, marginBottom:24 }}>Más</div>
+        letterSpacing:-0.3, marginBottom:6 }}>A bordo</div>
+      <div style={{ fontSize:13, color:T.inkDim, marginBottom:24 }}>
+        Inventario · Seguridad · Habituallamiento
+      </div>
       <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
-        borderRadius:12, overflow:"hidden" }}>
-        {items.map((item, i) => (
-          <div key={item.id}
-            onClick={()=>setScreen(item.id)}
-            style={{ display:"flex", alignItems:"center", gap:14,
-              padding:"13px 16px",
+        borderRadius:12, overflow:"hidden", marginBottom:20 }}>
+        {[
+          { id:"inventario", label:"Inventario",
+            sub:"Repuestos y material a bordo" },
+          { id:"seguridad",  label:"Seguridad",
+            sub:"Equipos obligatorios y caducidades" },
+        ].map((item, i) => (
+          <div key={item.id} onClick={()=>setScreen(item.id)}
+            style={{ display:"flex", alignItems:"center",
+              justifyContent:"space-between",
+              padding:"15px 18px",
               borderTop: i>0 ? `0.5px solid ${T.rim}` : "none",
               cursor:"pointer" }}>
-            <div style={{ width:36, height:36, borderRadius:9,
-              background:T.surfaceUp, display:"flex", alignItems:"center",
-              justifyContent:"center", flexShrink:0 }}>
-              <Icon d={item.svg} size={16} color={T.brass}/>
+            <div>
+              <div style={{ fontSize:15, fontWeight:500, color:T.ink,
+                marginBottom:2 }}>{item.label}</div>
+              <div style={{ fontSize:12, color:T.inkDim }}>{item.sub}</div>
             </div>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:14, fontWeight:500, color:T.ink,
-                marginBottom:1 }}>{item.label}</div>
-              <div style={{ fontSize:11, color:T.inkDim }}>{item.sub}</div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── EL BARCO HUB (Ficha + Documentos) ────────────────────────────────────────
+function ElBarcoHub({ setScreen }) {
+  return (
+    <div>
+      <div style={{ fontSize:22, fontWeight:500, color:T.ink,
+        letterSpacing:-0.3, marginBottom:6 }}>El barco</div>
+      <div style={{ fontSize:13, color:T.inkDim, marginBottom:24 }}>
+        Leonidas · Sunseeker Portofino 53
+      </div>
+      <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
+        borderRadius:12, overflow:"hidden", marginBottom:20 }}>
+        {[
+          { id:"ficha",      label:"Ficha técnica",
+            sub:"Datos, matrícula y especificaciones" },
+          { id:"documentos", label:"Documentos",
+            sub:"Certificados y archivos del barco" },
+        ].map((item, i) => (
+          <div key={item.id} onClick={()=>setScreen(item.id)}
+            style={{ display:"flex", alignItems:"center",
+              justifyContent:"space-between",
+              padding:"15px 18px",
+              borderTop: i>0 ? `0.5px solid ${T.rim}` : "none",
+              cursor:"pointer" }}>
+            <div>
+              <div style={{ fontSize:15, fontWeight:500, color:T.ink,
+                marginBottom:2 }}>{item.label}</div>
+              <div style={{ fontSize:12, color:T.inkDim }}>{item.sub}</div>
             </div>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
@@ -4616,104 +4619,120 @@ function DrawerNuevaSalida({ onClose, onSaved, ultimasHoras }) {
   );
 }
 
-// ── BOTTOM TAB BAR ────────────────────────────────────────────────────────────
-function BottomNav({ activeTab, onTab }) {
-  const tabSvgs = {
-    hoy: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 5v5l4 2",
-    bitacora: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6",
-    barco: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z",
-    mas: "M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M19 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M5 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z",
-  };
-  return (
-    <div style={{ display:"flex", borderTop:`0.5px solid ${T.rim}`,
-      background:T.surface, flexShrink:0 }}>
-      {TABS.map(tab=>{
-        const active = activeTab === tab.id;
-        return (
-          <button key={tab.id} onClick={()=>onTab(tab.id)}
-            style={{ flex:1, display:"flex", flexDirection:"column",
-              alignItems:"center", gap:4, padding:"10px 4px 14px",
-              border:"none", background:"none", cursor:"pointer",
-              fontFamily:"inherit" }}>
-            <Icon d={tabSvgs[tab.id]} size={22}
-              color={active?T.ink:T.inkDim}
-              sw={active?2:1.5}/>
-            <span style={{ fontSize:10, fontWeight:active?500:400,
-              color:active?T.ink:T.inkDim }}>
-              {tab.label}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
-// ── SIDEBAR DESKTOP ───────────────────────────────────────────────────────────
-function SidebarDesktop({ screen, onNav }) {
-  const groups = [
-    { label:"Navegación", items:[
-      { id:"hoy",      label:"Hoy",        svg:"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z M12 7v5l4 2" },
-      { id:"bitacora", label:"Bitácora",   svg:"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6" },
-      { id:"clima",    label:"Clima",      svg:"M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" },
-      { id:"calculadora",label:"Calculadora",svg:"M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5" },
-      { id:"fondeo",   label:"Fondeo",     svg:"M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M12 8v14 M5 12H2a10 10 0 0 0 20 0h-3" },
-    ]},
-    { label:"Barco", items:[
-      { id:"mantenimiento",label:"Mantenimiento",svg:"M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" },
-      { id:"combustible",  label:"Combustible", svg:"M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-8 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" },
-      { id:"inventario",   label:"Inventario",  svg:"M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" },
-      { id:"seguridad",    label:"Seguridad",   svg:"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" },
-      { id:"documentos",   label:"Documentos",  svg:"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8" },
-      { id:"tripulacion",  label:"Tripulación", svg:"M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" },
-      { id:"puertos",      label:"Puertos",     svg:"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10" },
-      { id:"ficha",        label:"Ficha técnica",svg:"M12 2L2 7l10 5 10-5-10-5z" },
-    ]},
-    { label:"Asistente", items:[
-      { id:"ia", label:"IA Náutica", svg:"M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" },
-    ]},
-  ];
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+const MENU = [
+  {
+    section: "Navegar",
+    items: [
+      { id:"dashboard",   label:"Hoy",         svg:"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 5v5l4 2" },
+      { id:"clima",       label:"Clima",        svg:"M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" },
+      { id:"fondeo",      label:"Fondeo",       svg:"M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M12 8v14 M5 12H2a10 10 0 0 0 20 0h-3" },
+    ]
+  },
+  {
+    section: "A bordo",
+    items: [
+      { id:"bitacora",    label:"Bitácora",     svg:"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6" },
+      { id:"tripulacion", label:"Tripulación",  svg:"M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" },
+      { id:"puertos",     label:"Puertos",      svg:"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10" },
+    ]
+  },
+  {
+    section: "Mantenimiento",
+    items: [
+      { id:"motor",       label:"Motor",        svg:"M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" },
+      { id:"abordo",      label:"A bordo",      svg:"M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" },
+      { id:"elbarco",     label:"El barco",     svg:"M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.83a16 16 0 0 0 6.29 6.29" },
+    ]
+  },
+  {
+    section: "Asistente",
+    items: [
+      { id:"ia",          label:"IA Náutica",   svg:"M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" },
+    ]
+  },
+];
 
+const SCREENS = {
+  dashboard:    Dashboard,
+  clima:        Clima,
+  fondeo:       Fondeo,
+  bitacora:     Bitacora,
+  tripulacion:  Tripulacion,
+  puertos:      Puertos,
+  motor:        MotorHub,
+  mantenimiento:Mantenimiento,
+  combustible:  Combustible,
+  abordo:       ABordoHub,
+  inventario:   Inventario,
+  seguridad:    Seguridad,
+  elbarco:      ElBarcoHub,
+  ficha:        Ficha,
+  documentos:   Documentos,
+  ia:           AsistenteIA,
+};
+
+function SidebarContent({ screen, onNav, onClose, showClose }) {
   return (
-    <div style={{ height:"100dvh", background:T.sidebarBg,
-      display:"flex", flexDirection:"column", flexShrink:0, width:220,
-      overflowY:"auto" }}>
+    <div style={{ height:"100%", background:T.sidebarBg,
+      display:"flex", flexDirection:"column" }}>
+
       {/* Logo */}
-      <div style={{ padding:"20px 18px 16px",
-        borderBottom:`1px solid ${T.sidebarLine}` }}>
+      <div style={{ padding:"20px 18px 16px", flexShrink:0,
+        borderBottom:`1px solid ${T.sidebarLine}`,
+        display:"flex", alignItems:"center",
+        justifyContent:"space-between" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           <AppLogo size={28}/>
           <div>
             <div style={{ fontSize:16, fontWeight:600, color:"#fff",
-              lineHeight:1 }}>ShipLog</div>
-            <div style={{ fontSize:9, color:T.sidebarDim,
-              letterSpacing:2, textTransform:"uppercase", marginTop:3 }}>
-              Leonidas
+              lineHeight:1, fontFamily:"'Cormorant Garamond',serif" }}>
+              ShipLog
             </div>
-          </div>
-        </div>
-      </div>
-      {/* Nav */}
-      <div style={{ flex:1, padding:"6px 0 20px", overflowY:"auto" }}>
-        {groups.map(g=>(
-          <div key={g.label} style={{ marginBottom:4 }}>
             <div style={{ fontSize:9, color:T.sidebarDim,
               letterSpacing:2.5, textTransform:"uppercase",
-              padding:"10px 18px 4px",
-              fontFamily:"inherit" }}>{g.label}</div>
-            {g.items.map(item=>{
-              const active = screen===item.id;
+              marginTop:3 }}>Leonidas</div>
+          </div>
+        </div>
+        {showClose && (
+          <button onClick={onClose}
+            style={{ background:"none", border:"none", cursor:"pointer",
+              color:T.sidebarInk, fontSize:18, lineHeight:1,
+              padding:"2px 4px" }}>✕</button>
+        )}
+      </div>
+
+      {/* Nav items */}
+      <div style={{ flex:1, overflowY:"auto", padding:"8px 0 20px" }}>
+        {MENU.map(group => (
+          <div key={group.section} style={{ marginBottom:4 }}>
+            <div style={{ fontSize:9, color:T.sidebarDim,
+              letterSpacing:2.5, textTransform:"uppercase",
+              padding:"12px 18px 5px" }}>
+              {group.section}
+            </div>
+            {group.items.map(item => {
+              const active = screen === item.id ||
+                (item.id === "motor"   && ["mantenimiento","combustible"].includes(screen)) ||
+                (item.id === "abordo"  && ["inventario","seguridad"].includes(screen)) ||
+                (item.id === "elbarco" && ["ficha","documentos"].includes(screen));
               return (
                 <button key={item.id} onClick={()=>onNav(item.id)}
                   style={{ width:"100%", display:"flex", alignItems:"center",
-                    gap:10, padding:"9px 18px", border:"none",
-                    cursor:"pointer", textAlign:"left", fontFamily:"inherit",
-                    background:active?"rgba(176,141,87,0.15)":"transparent",
-                    borderLeft:active?`2px solid ${T.brass}`:"2px solid transparent" }}>
-                  <Icon d={item.svg} color={active?T.brassLt:T.sidebarInk}
-                    size={14} sw={active?2:1.5}/>
-                  <span style={{ color:active?T.brassLt:T.sidebarInk,
-                    fontSize:13, fontWeight:active?500:400 }}>
+                    gap:11, padding:"10px 18px", border:"none",
+                    cursor:"pointer", textAlign:"left",
+                    fontFamily:"inherit",
+                    background: active ? "rgba(176,141,87,0.14)" : "transparent",
+                    borderLeft: active
+                      ? `2px solid ${T.brass}`
+                      : "2px solid transparent" }}>
+                  <Icon d={item.svg}
+                    color={active ? T.brassLt : T.sidebarInk}
+                    size={15} sw={active ? 2 : 1.5}/>
+                  <span style={{ fontSize:13,
+                    color: active ? T.brassLt : "rgba(255,255,255,0.65)",
+                    fontWeight: active ? 500 : 400 }}>
                     {item.label}
                   </span>
                 </button>
@@ -4727,71 +4746,23 @@ function SidebarDesktop({ screen, onNav }) {
 }
 
 // ── APP ROOT ──────────────────────────────────────────────────────────────────
-
-// ── TABS + SCREEN MAP ─────────────────────────────────────────────────────────
-const TABS = [
-  { id:"hoy",      label:"Hoy"      },
-  { id:"bitacora", label:"Bitácora" },
-  { id:"barco",    label:"Barco"    },
-  { id:"mas",      label:"Más"      },
-];
-
-const SCREEN_TAB = {
-  hoy:"hoy",
-  bitacora:"bitacora",
-  barco:"barco", mantenimiento:"barco", combustible:"barco",
-  inventario:"barco", seguridad:"barco", documentos:"barco",
-  tripulacion:"barco", ficha:"barco",
-  clima:"mas", calculadora:"mas", fondeo:"mas",
-  puertos:"mas", ia:"mas",
-};
-
-const SCREENS = {
-  hoy:          Dashboard,
-  bitacora:     Bitacora,
-  barco:        BarcoHub,
-  mantenimiento:Mantenimiento,
-  combustible:  Combustible,
-  inventario:   Inventario,
-  seguridad:    Seguridad,
-  documentos:   Documentos,
-  tripulacion:  Tripulacion,
-  ficha:        Ficha,
-  clima:        Clima,
-  calculadora:  Calculadora,
-  fondeo:       Fondeo,
-  puertos:      Puertos,
-  ia:           AsistenteIA,
-  mas:          MasHub,
-};
-
 export default function App() {
-  const [screen, setScreen] = useState("hoy");
+  const [screen, setScreen] = useState("dashboard");
+  const [sideOpen, setSideOpen] = useState(false);
   const [showDrawer, setShowDrawer] = useState(false);
   const [drawerKey, setDrawerKey] = useState(0);
 
-  // Derive active tab from current screen
-  const activeTab = SCREEN_TAB[screen] || "hoy";
-
-  function navTo(id) { setScreen(id); }
-
-  function handleTab(tabId) {
-    // Navigate to hub screens
-    const hubMap = { hoy:"hoy", bitacora:"bitacora", barco:"barco", mas:"mas" };
-    setScreen(hubMap[tabId] || tabId);
-  }
+  function navTo(id) { setScreen(id); setSideOpen(false); }
 
   function openDrawer() {
-    setDrawerKey(k=>k+1);
+    setDrawerKey(k => k + 1);
     setShowDrawer(true);
   }
 
   const Screen = SCREENS[screen] || Dashboard;
 
-  // Show FAB on main tabs, not on sub-screens that have their own + button
-  const showFAB = ["hoy","bitacora","barco","mas","mantenimiento",
-    "combustible","clima","fondeo","puertos","inventario",
-    "seguridad","documentos","tripulacion"].includes(screen);
+  // FAB visible on most screens — not on detail screens that have own + button
+  const showFAB = !["ficha","ia","fondeo","clima"].includes(screen);
 
   return (
     <div style={{ height:"100dvh", background:T.bg, color:T.ink,
@@ -4800,50 +4771,102 @@ export default function App() {
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Crimson+Pro:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&display=swap');
-        * { box-sizing:border-box }
-        ::-webkit-scrollbar { width:0 }
-        input::placeholder { color:${T.inkDim} }
-        select, textarea, button { font-family:inherit }
+        * { box-sizing: border-box }
+        ::-webkit-scrollbar { width: 0 }
+        input::placeholder { color: ${T.inkDim} }
+        select, textarea, button { font-family: inherit }
         @keyframes blink { 0%,100%{opacity:.2} 50%{opacity:1} }
         @keyframes garreo-pulse { from{box-shadow:0 0 0 0 rgba(168,52,40,0.5)} to{box-shadow:0 0 0 14px rgba(168,52,40,0)} }
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-        @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
         @keyframes slideIn { from{transform:translateX(-100%)} to{transform:translateX(0)} }
-        .sidebar-desktop { display:none !important }
+        @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+        .app-sidebar { display:none }
+        .app-hamburger { display:flex }
         @media(min-width:768px) {
-          .sidebar-desktop { display:flex !important }
-          .bottom-nav { display:none !important }
-          .fab-btn { right:28px !important; bottom:28px !important }
-          .content-inner { padding:24px 32px 40px !important; max-width:760px; margin:0 auto; width:100% }
+          .app-sidebar { display:flex !important }
+          .app-hamburger { display:none !important }
+          .app-content { max-width: none; margin: 0 }
+        }
+        @media(min-width:1024px) {
+          .app-inner { padding: 28px 36px 60px !important; max-width: 820px; margin: 0 auto; width: 100% }
         }
       `}</style>
 
-      {/* SIDEBAR — tablet/desktop only */}
-      <div className="sidebar-desktop">
-        <SidebarDesktop screen={screen} onNav={navTo}/>
+      {/* SIDEBAR OVERLAY — mobile */}
+      {sideOpen && (
+        <div style={{ position:"fixed", inset:0, zIndex:200, display:"flex" }}>
+          <div onClick={()=>setSideOpen(false)}
+            style={{ position:"absolute", inset:0,
+              background:"rgba(0,0,0,0.6)",
+              animation:"fadeIn 0.2s ease" }}/>
+          <div style={{ position:"relative", width:260, height:"100%",
+            animation:"slideIn 0.22s ease", zIndex:1,
+            boxShadow:"6px 0 32px rgba(0,0,0,0.45)" }}>
+            <SidebarContent
+              screen={screen}
+              onNav={navTo}
+              onClose={()=>setSideOpen(false)}
+              showClose={true}/>
+          </div>
+        </div>
+      )}
+
+      {/* SIDEBAR FIXED — tablet/desktop */}
+      <div className="app-sidebar"
+        style={{ width:232, flexShrink:0, height:"100dvh" }}>
+        <SidebarContent
+          screen={screen}
+          onNav={navTo}
+          onClose={()=>{}}
+          showClose={false}/>
       </div>
 
-      {/* MAIN COLUMN */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column",
-        minWidth:0, position:"relative", overflow:"hidden" }}>
+      {/* MAIN */}
+      <div className="app-content"
+        style={{ flex:1, display:"flex", flexDirection:"column",
+          minWidth:0, position:"relative", overflow:"hidden" }}>
+
+        {/* TOP HEADER — mobile only */}
+        <div className="app-hamburger"
+          style={{ position:"sticky", top:0, zIndex:100,
+            background:T.surface, borderBottom:`0.5px solid ${T.rim}`,
+            padding:"12px 18px",
+            alignItems:"center", justifyContent:"space-between",
+            flexShrink:0 }}>
+          <button onClick={()=>setSideOpen(true)}
+            style={{ background:"none", border:`0.5px solid ${T.rim}`,
+              borderRadius:8, padding:"8px 10px", cursor:"pointer",
+              display:"flex", flexDirection:"column", gap:4.5 }}>
+            {[0,1,2].map(i=>(
+              <div key={i} style={{ width:17, height:1.5,
+                background:T.inkMid, borderRadius:1 }}/>
+            ))}
+          </button>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontSize:15, fontWeight:500, color:T.ink,
+              fontFamily:"'Cormorant Garamond',serif" }}>
+              {MENU.flatMap(g=>g.items).find(i=>i.id===screen)?.label || "Hoy"}
+            </div>
+          </div>
+          <div style={{ width:37 }}/>
+        </div>
 
         {/* CONTENT */}
-        <div className="content-inner"
+        <div className="app-inner"
           style={{ flex:1, overflowY:"auto", overflowX:"hidden",
-            padding:"20px 18px 100px",
+            padding:"22px 18px 100px",
             WebkitOverflowScrolling:"touch" }}>
           <Screen setScreen={navTo}/>
         </div>
 
-        {/* FAB — nueva entrada de bitácora */}
+        {/* FAB */}
         {showFAB && (
-          <button className="fab-btn"
-            onClick={openDrawer}
-            style={{ position:"absolute", bottom:72, right:18,
-              width:48, height:48, borderRadius:14,
+          <button onClick={openDrawer}
+            style={{ position:"absolute", bottom:24, right:20,
+              width:50, height:50, borderRadius:15,
               background:T.ink, border:"none", cursor:"pointer",
               display:"flex", alignItems:"center", justifyContent:"center",
-              boxShadow:"0 4px 16px rgba(13,27,42,0.35)",
+              boxShadow:"0 4px 20px rgba(13,27,42,0.3)",
               zIndex:50 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="#fff" strokeWidth="2" strokeLinecap="round">
@@ -4852,11 +4875,6 @@ export default function App() {
             </svg>
           </button>
         )}
-
-        {/* BOTTOM NAV — mobile only */}
-        <div className="bottom-nav">
-          <BottomNav activeTab={activeTab} onTab={handleTab}/>
-        </div>
       </div>
 
       {/* DRAWER nueva salida */}
@@ -4864,7 +4882,7 @@ export default function App() {
         <DrawerNuevaSalida
           key={drawerKey}
           onClose={()=>setShowDrawer(false)}
-          onSaved={()=>{ if(screen!=="bitacora") navTo("bitacora"); }}
+          onSaved={()=>{ navTo("bitacora"); }}
           ultimasHoras={""}
         />
       )}
