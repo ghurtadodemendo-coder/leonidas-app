@@ -2216,6 +2216,322 @@ function Documentos() {
     </div>
   );
 }
+// ── COMPARTIR DOCUMENTACIÓN ───────────────────────────────────────────────────
+function CompartirDocsDrawer({ tripulantes, onClose }) {
+  const [seleccionados, setSeleccionados] = useState([]);
+  const [sharing, setSharing] = useState(false);
+  const [status, setStatus] = useState(null); // null | 'downloading' | 'done' | 'error' | 'unsupported'
+
+  function toggleTrip(id) {
+    setSeleccionados(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  }
+
+  function selectAll() {
+    setSeleccionados(tripulantes.map(t => t.id));
+  }
+
+  // Collect all docs from selected tripulantes
+  function getDocsPendientes() {
+    return tripulantes
+      .filter(t => seleccionados.includes(t.id))
+      .flatMap(t => (t.docs || []).map(d => ({ ...d, tripulante: t.alias || t.nombre })));
+  }
+
+  async function fetchFileAsBlob(url, nombre) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      // Try to infer extension from Content-Type or URL
+      let ext = '';
+      const ct = blob.type;
+      if (ct.includes('pdf')) ext = '.pdf';
+      else if (ct.includes('jpeg') || ct.includes('jpg')) ext = '.jpg';
+      else if (ct.includes('png')) ext = '.png';
+      else {
+        const urlExt = url.split('.').pop().split('?')[0].toLowerCase();
+        if (['pdf','jpg','jpeg','png','doc','docx'].includes(urlExt)) ext = '.'+urlExt;
+        else ext = '.pdf';
+      }
+      const filename = `${nombre}${ext}`;
+      return new File([blob], filename, { type: blob.type || 'application/pdf' });
+    } catch(e) {
+      console.error('fetch error', url, e);
+      return null;
+    }
+  }
+
+  async function compartir() {
+    const docs = getDocsPendientes().filter(d => d.url_archivo);
+    if (docs.length === 0) {
+      setStatus('nodocs');
+      return;
+    }
+
+    // Check Web Share API support
+    if (!navigator.share) {
+      setStatus('unsupported');
+      return;
+    }
+
+    setSharing(true);
+    setStatus('downloading');
+
+    try {
+      // Download all files as Blobs
+      const files = (await Promise.all(
+        docs.map(d => {
+          const nombre = `${d.tripulante}_${d.nombre.replace(/\s+/g, '_')}`;
+          return fetchFileAsBlob(d.url_archivo, nombre);
+        })
+      )).filter(Boolean);
+
+      if (files.length === 0) {
+        setStatus('error');
+        setSharing(false);
+        return;
+      }
+
+      setStatus(null);
+
+      // Try sharing files directly
+      // iOS Safari supports PDF files via share
+      const canShareFiles = navigator.canShare && navigator.canShare({ files });
+
+      if (canShareFiles) {
+        await navigator.share({
+          title: `Documentación tripulación · Leonidas`,
+          text: `Documentos de: ${seleccionados
+            .map(id => tripulantes.find(t => t.id === id))
+            .filter(Boolean)
+            .map(t => t.alias || t.nombre)
+            .join(', ')}`,
+          files,
+        });
+      } else {
+        // Fallback: share URLs as text if files not supported
+        const urls = docs.map(d =>
+          `${d.tripulante} – ${d.nombre}: ${d.url_archivo}`
+        ).join('\n');
+        await navigator.share({
+          title: `Documentación tripulación · Leonidas`,
+          text: urls,
+        });
+      }
+      setStatus('done');
+    } catch(e) {
+      if (e.name !== 'AbortError') {
+        console.error(e);
+        setStatus('error');
+      }
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  const docs = getDocsPendientes();
+  const docsConArchivo = docs.filter(d => d.url_archivo);
+  const tripSelec = tripulantes.filter(t => seleccionados.includes(t.id));
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:400 }}>
+      {/* overlay */}
+      <div onClick={onClose}
+        style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.35)" }}/>
+
+      {/* sheet */}
+      <div style={{ position:"absolute", bottom:0, left:0, right:0,
+        background:T.surface, borderRadius:"20px 20px 0 0",
+        maxHeight:"88dvh", display:"flex", flexDirection:"column",
+        animation:"slideUp 0.25s ease" }}>
+
+        {/* handle */}
+        <div style={{ padding:"12px 0 0", display:"flex",
+          justifyContent:"center", flexShrink:0 }}>
+          <div style={{ width:36, height:4, background:T.rim, borderRadius:2 }}/>
+        </div>
+
+        {/* header */}
+        <div style={{ padding:"14px 20px 12px", display:"flex",
+          alignItems:"center", justifyContent:"space-between", flexShrink:0,
+          borderBottom:`0.5px solid ${T.rim}` }}>
+          <div>
+            <div style={{ fontSize:18, fontWeight:500, color:T.ink }}>
+              Compartir documentación
+            </div>
+            <div style={{ fontSize:11, color:T.inkDim, marginTop:2 }}>
+              Selecciona los tripulantes
+            </div>
+          </div>
+          <button onClick={onClose}
+            style={{ background:"none", border:"none", fontSize:22,
+              color:T.inkDim, cursor:"pointer", padding:"2px 6px", lineHeight:1 }}>
+            ×
+          </button>
+        </div>
+
+        {/* tripulante list — scrollable */}
+        <div style={{ flex:1, overflowY:"auto", padding:"12px 20px" }}>
+
+          {/* select all */}
+          <button onClick={selectAll}
+            style={{ background:"none", border:"none", color:T.brass,
+              fontSize:13, fontWeight:500, cursor:"pointer",
+              padding:"0 0 12px", fontFamily:"inherit" }}>
+            Seleccionar todos
+          </button>
+
+          {tripulantes.map(t => {
+            const sel = seleccionados.includes(t.id);
+            const docsT = (t.docs || []).filter(d => d.url_archivo);
+            return (
+              <div key={t.id}
+                onClick={() => toggleTrip(t.id)}
+                style={{ display:"flex", alignItems:"center", gap:14,
+                  padding:"12px 0",
+                  borderBottom:`0.5px solid ${T.rim}`,
+                  cursor:"pointer" }}>
+
+                {/* checkbox */}
+                <div style={{ width:22, height:22, borderRadius:6, flexShrink:0,
+                  background: sel ? T.ink : "transparent",
+                  border: `1.5px solid ${sel ? T.ink : T.rim}`,
+                  display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  {sel && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                      stroke="#fff" strokeWidth="3" strokeLinecap="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  )}
+                </div>
+
+                {/* info */}
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:14, fontWeight:500, color:T.ink }}>
+                    {t.nombre} {t.apellidos}
+                  </div>
+                  <div style={{ fontSize:11, color:T.inkDim, marginTop:2 }}>
+                    {t.rol}
+                    {docsT.length > 0
+                      ? ` · ${docsT.length} doc${docsT.length > 1 ? 's' : ''} adjunto${docsT.length > 1 ? 's' : ''}`
+                      : ' · Sin documentos adjuntos'}
+                  </div>
+                  {/* doc names preview */}
+                  {sel && docsT.length > 0 && (
+                    <div style={{ marginTop:6, display:"flex",
+                      flexWrap:"wrap", gap:5 }}>
+                      {docsT.map(d => (
+                        <span key={d.id} style={{ fontSize:10,
+                          background:T.brassDim, color:T.brassLt,
+                          padding:"2px 8px", borderRadius:20 }}>
+                          {d.nombre}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {sel && docsT.length === 0 && (
+                    <div style={{ marginTop:4, fontSize:10, color:T.warn }}>
+                      No hay archivos subidos para este tripulante
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* summary + CTA */}
+        <div style={{ padding:"14px 20px 40px", flexShrink:0,
+          borderTop:`0.5px solid ${T.rim}` }}>
+
+          {/* status messages */}
+          {status === 'unsupported' && (
+            <div style={{ fontSize:12, color:T.warn, marginBottom:10,
+              padding:"10px 14px", background:T.warn+"10",
+              borderRadius:10, lineHeight:1.5 }}>
+              Tu navegador no soporta compartir archivos. Puedes abrir cada
+              documento individualmente desde el perfil del tripulante.
+            </div>
+          )}
+          {status === 'error' && (
+            <div style={{ fontSize:12, color:T.danger, marginBottom:10,
+              padding:"10px 14px", background:T.danger+"10",
+              borderRadius:10 }}>
+              Error al descargar algunos archivos. Comprueba la conexión.
+            </div>
+          )}
+          {status === 'nodocs' && (
+            <div style={{ fontSize:12, color:T.warn, marginBottom:10,
+              padding:"10px 14px", background:T.warn+"10",
+              borderRadius:10 }}>
+              Los tripulantes seleccionados no tienen archivos subidos.
+            </div>
+          )}
+          {status === 'done' && (
+            <div style={{ fontSize:12, color:T.ok, marginBottom:10,
+              padding:"10px 14px", background:T.ok+"10",
+              borderRadius:10 }}>
+              ¡Enviado correctamente!
+            </div>
+          )}
+          {status === 'downloading' && (
+            <div style={{ fontSize:12, color:T.inkDim, marginBottom:10,
+              padding:"10px 14px", background:T.surfaceUp,
+              borderRadius:10 }}>
+              Preparando archivos…
+            </div>
+          )}
+
+          {/* summary */}
+          {seleccionados.length > 0 && docsConArchivo.length > 0 && (
+            <div style={{ fontSize:12, color:T.inkDim, marginBottom:12 }}>
+              {docsConArchivo.length} archivo{docsConArchivo.length > 1 ? 's' : ''} de{' '}
+              {tripSelec.map(t => t.alias || t.nombre).join(', ')}
+            </div>
+          )}
+
+          <button
+            onClick={compartir}
+            disabled={seleccionados.length === 0 || sharing}
+            style={{ width:"100%", background: seleccionados.length > 0 ? T.ink : T.rim,
+              color: seleccionados.length > 0 ? "#fff" : T.inkDim,
+              border:"none", borderRadius:12, padding:"14px",
+              fontSize:14, fontWeight:500, cursor: seleccionados.length > 0 ? "pointer" : "default",
+              fontFamily:"inherit",
+              display:"flex", alignItems:"center",
+              justifyContent:"center", gap:8 }}>
+            {sharing ? (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Preparando…
+              </>
+            ) : (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                {seleccionados.length === 0
+                  ? "Selecciona tripulantes"
+                  : `Compartir ${docsConArchivo.length > 0 ? docsConArchivo.length + ' archivo' + (docsConArchivo.length > 1 ? 's' : '') : 'documentación'}`}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Tripulacion() {
   const [tripulantes, setTripulantes] = useState([]);
   const [loading, setLoading]         = useState(true);
@@ -2225,6 +2541,7 @@ function Tripulacion() {
   const [showDocForm, setShowDocForm] = useState(null);
   const [saving, setSaving]           = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [showCompartir, setShowCompartir] = useState(false);
 
   const FORM_INIT = { nombre:"", apellidos:"", alias:"", rol:"Invitado", telefono:"", email:"", notas:"" };
   const DOC_INIT  = { nombre:"", tipo:"DNI", fecha_vencimiento:"" };
@@ -2383,10 +2700,32 @@ function Tripulacion() {
     <div>
       <Hdr title="Tripulación"
         action={
-          <Btn sm onClick={()=>{ setShowForm(!showForm); setEditId(null); setForm(FORM_INIT); }}>
-            {showForm&&!editId?"Cancelar":"+ Añadir"}
-          </Btn>
+          <div style={{display:"flex",gap:7}}>
+            <button onClick={()=>setShowCompartir(true)}
+              style={{ background:"none", border:`0.5px solid ${T.rim}`,
+                borderRadius:10, padding:"8px 12px", cursor:"pointer",
+                display:"flex", alignItems:"center", gap:6,
+                color:T.inkMid, fontSize:12, fontFamily:"inherit" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Compartir docs
+            </button>
+            <Btn sm onClick={()=>{ setShowForm(!showForm); setEditId(null); setForm(FORM_INIT); }}>
+              {showForm&&!editId?"Cancelar":"+ Añadir"}
+            </Btn>
+          </div>
         }/>
+
+      {showCompartir && (
+        <CompartirDocsDrawer
+          tripulantes={tripulantes.filter(t=>t.activo)}
+          onClose={()=>setShowCompartir(false)}
+        />
+      )}
 
       {/* Formulario */}
       {showForm && (
@@ -4532,4 +4871,3 @@ export default function App() {
     </div>
   );
 }
-                          
