@@ -26,30 +26,29 @@ async function db(table, method="GET", body=null, query="") {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const T = {
-  // Brandbook Ship Log — #0B1F3A + #B08D57 + #F7F6F3
   bg:       "#F7F6F3",
   surface:  "#FFFFFF",
-  surfaceUp:"#EDF0F5",
-  rim:      "#D5DAE5",
-  rimHi:    "rgba(11,31,58,0.08)",
-  ink:      "#0B1F3A",
-  inkMid:   "#3A5070",
+  surfaceUp:"#F2F3F5",
+  rim:      "#E4E6EC",
+  rimHi:    "rgba(11,31,58,0.07)",
+  ink:      "#0D1B2A",
+  inkMid:   "#3D5068",
   inkDim:   "#8A9BB5",
   brass:    "#B08D57",
   brassLt:  "#C9A96E",
-  brassDim: "rgba(176,141,87,0.12)",
+  brassDim: "rgba(176,141,87,0.10)",
   ok:       "#2A7A52",
   warn:     "#B06A18",
   danger:   "#A83428",
   info:     "#1B4F8A",
-  line:     "rgba(11,31,58,0.07)",
-  lineHi:   "rgba(11,31,58,0.13)",
-  // Sidebar marino
-  sidebarBg:    "#0B1F3A",
-  sidebarSurf:  "#162D50",
-  sidebarLine:  "rgba(255,255,255,0.08)",
-  sidebarInk:   "rgba(255,255,255,0.90)",
-  sidebarDim:   "rgba(255,255,255,0.45)",
+  line:     "rgba(11,31,58,0.06)",
+  lineHi:   "rgba(11,31,58,0.11)",
+  // Sidebar
+  sidebarBg:   "#0D1B2A",
+  sidebarSurf: "#162940",
+  sidebarLine: "rgba(255,255,255,0.07)",
+  sidebarInk:  "rgba(255,255,255,0.92)",
+  sidebarDim:  "rgba(255,255,255,0.40)",
 };
 
 const NAV = [
@@ -134,22 +133,22 @@ function Icon({ d, size=18, color=T.inkDim, sw=1.5 }) {
 
 function Signal({ estado }) {
   const cfg = {
-    ok:      { c:T.ok,     l:"OK"        },
-    warn:    { c:T.warn,   l:"Atención"  },
-    danger:  { c:T.danger, l:"Vencido"   },
-    info:    { c:T.info,   l:"Info"      },
-    pendiente:{ c:T.warn,  l:"Pendiente" },
-    reparado:{ c:T.ok,     l:"OK"        },
-    bajo:    { c:T.warn,   l:"Stock bajo"},
+    ok:       { c:T.ok,     l:"OK"        },
+    warn:     { c:T.warn,   l:"Atención"  },
+    danger:   { c:T.danger, l:"Vencido"   },
+    info:     { c:T.info,   l:"Info"      },
+    pendiente:{ c:T.warn,   l:"Pendiente" },
+    reparado: { c:T.ok,     l:"OK"        },
+    bajo:     { c:T.warn,   l:"Stock bajo"},
   };
   const s = cfg[estado] || { c:T.inkDim, l:estado };
   return (
     <span style={{ display:"inline-flex", alignItems:"center", gap:5,
-      background:s.c+"18", border:`1px solid ${s.c}40`, color:s.c,
-      borderRadius:4, padding:"2px 8px", fontSize:9.5, fontWeight:600,
-      letterSpacing:0.8, textTransform:"uppercase", fontFamily:"'DM Mono',monospace",
+      background:s.c+"15", border:`0.5px solid ${s.c}35`, color:s.c,
+      borderRadius:6, padding:"3px 8px", fontSize:10, fontWeight:500,
       whiteSpace:"nowrap" }}>
-      <span style={{ width:4, height:4, borderRadius:"50%", background:s.c, display:"inline-block" }}/>
+      <span style={{ width:5, height:5, borderRadius:"50%",
+        background:s.c, display:"inline-block" }}/>
       {s.l}
     </span>
   );
@@ -158,113 +157,128 @@ function Signal({ estado }) {
 function Card({ children, style={}, pad="16px 18px" }) {
   return (
     <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
-      borderRadius:10, padding:pad,
-      boxShadow:"0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-      ...style }}>
+      borderRadius:12, padding:pad, ...style }}>
       {children}
     </div>
   );
 }
 
-function Hdr({ eyebrow, title, action }) {
+function Hdr({ title, action }) {
   return (
-    <div style={{ marginBottom:24, display:"flex", justifyContent:"space-between", alignItems:"flex-end" }}>
-      <div>
-        <div style={{ fontSize:9.5, color:T.brass, letterSpacing:2.5, textTransform:"uppercase",
-          fontFamily:"'DM Mono',monospace", marginBottom:6 }}>{eyebrow}</div>
-        <h2 style={{ margin:0, fontSize:28, color:T.ink,
-          fontFamily:"'Cormorant Garamond',serif", fontWeight:600, lineHeight:1, letterSpacing:-0.3 }}>{title}</h2>
-      </div>
+    <div style={{ display:"flex", justifyContent:"space-between",
+      alignItems:"center", marginBottom:20 }}>
+      <div style={{ fontSize:22, fontWeight:500, color:T.ink,
+        letterSpacing:-0.3, lineHeight:1 }}>{title}</div>
       {action}
     </div>
   );
 }
 
-function Divider() { return <div style={{ height:1, background:T.line, margin:"0 -1px" }}/>; }
+function Divider() {
+  return <div style={{ height:"0.5px", background:T.rim, margin:"0 -1px" }}/>;
+}
 
 function Row({ label, value, accent }) {
   return (
-    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0" }}>
-      <span style={{ color:T.inkDim, fontSize:12 }}>{label}</span>
-      <span style={{ color:accent||T.ink, fontSize:12.5, fontWeight:500, textAlign:"right", maxWidth:"58%" }}>{value}</span>
+    <div style={{ display:"flex", justifyContent:"space-between",
+      alignItems:"center", padding:"11px 0" }}>
+      <span style={{ color:T.inkDim, fontSize:13 }}>{label}</span>
+      <span style={{ color:accent||T.ink, fontSize:13, fontWeight:500,
+        textAlign:"right", maxWidth:"60%" }}>{value}</span>
     </div>
   );
 }
 
-
-// ── FORM PRIMITIVES (defined globally to prevent re-render/deselect bug) ─────
 function FInput({ label, value, onChange, type="text", placeholder="" }) {
   return (
-    <div style={{ marginBottom:11 }}>
-      {label && <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
-        fontFamily:"'DM Mono',monospace", marginBottom:5 }}>{label}</div>}
-      <input type={type} value={value} onChange={onChange} placeholder={placeholder}
-        style={{ width:"100%", background:T.bg, border:`0.5px solid ${T.rim}`,
-          borderRadius:7, padding:"10px 12px", color:T.ink, fontSize:14,
-          fontFamily:"inherit", outline:"none",
-          boxShadow:"inset 0 1px 2px rgba(0,0,0,0.04)" }}/>
+    <div style={{ marginBottom:12 }}>
+      {label && <div style={{ fontSize:11, color:T.inkDim, marginBottom:5,
+        fontWeight:500 }}>{label}</div>}
+      <input type={type} value={value} onChange={onChange}
+        placeholder={placeholder}
+        style={{ width:"100%", background:T.surfaceUp, border:`0.5px solid ${T.rim}`,
+          borderRadius:10, padding:"11px 13px", color:T.ink, fontSize:14,
+          fontFamily:"inherit", outline:"none", boxSizing:"border-box" }}/>
     </div>
   );
 }
 
-function FSelect({ label, value, onChange, options }) {
+function FSelect({ label, value, onChange, options=[] }) {
   return (
-    <div style={{ marginBottom:10 }}>
-      {label && <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
-        fontFamily:"'DM Mono',monospace", marginBottom:5 }}>{label}</div>}
+    <div style={{ marginBottom:12 }}>
+      {label && <div style={{ fontSize:11, color:T.inkDim, marginBottom:5,
+        fontWeight:500 }}>{label}</div>}
       <select value={value} onChange={onChange}
-        style={{ width:"100%", background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
-          borderRadius:7, padding:"10px 12px", color:T.ink, fontSize:14,
-          fontFamily:"inherit", outline:"none" }}>
-        {options.map(o => <option key={o}>{o}</option>)}
+        style={{ width:"100%", background:T.surfaceUp, border:`0.5px solid ${T.rim}`,
+          borderRadius:10, padding:"11px 13px", color:T.ink, fontSize:14,
+          fontFamily:"inherit", outline:"none", appearance:"none", boxSizing:"border-box" }}>
+        {options.map(o=><option key={o}>{o}</option>)}
       </select>
     </div>
   );
 }
 
-function FTextarea({ label, value, onChange, rows=2 }) {
+function FTextarea({ label, value, onChange, placeholder="", rows=3 }) {
   return (
-    <div style={{ marginBottom:10 }}>
-      {label && <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5, textTransform:"uppercase",
-        fontFamily:"'DM Mono',monospace", marginBottom:5 }}>{label}</div>}
+    <div style={{ marginBottom:12 }}>
+      {label && <div style={{ fontSize:11, color:T.inkDim, marginBottom:5,
+        fontWeight:500 }}>{label}</div>}
       <textarea value={value} onChange={onChange} rows={rows}
-        style={{ width:"100%", background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
-          borderRadius:7, padding:"10px 12px", color:T.ink, fontSize:14,
-          fontFamily:"inherit", outline:"none", resize:"none" }}/>
+        placeholder={placeholder}
+        style={{ width:"100%", background:T.surfaceUp, border:`0.5px solid ${T.rim}`,
+          borderRadius:10, padding:"11px 13px", color:T.ink, fontSize:14,
+          fontFamily:"inherit", outline:"none", resize:"vertical",
+          boxSizing:"border-box" }}/>
     </div>
   );
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
-
-// ── PATRON SELECT (carga patrones desde Supabase + base hardcodeados) ─────────
 function PatronSelect({ value, onChange }) {
-  const [opciones, setOpciones] = useState(["Guille","Varo"]);
-  useEffect(()=>{
-    db("tripulacion","GET",null,"?activo=eq.true&order=nombre.asc")
-      .then(rows => {
-        const aliases = rows.map(r => r.alias || r.nombre).filter(Boolean);
-        setOpciones([...new Set(aliases)]);
-      })
-      .catch(()=>{ setOpciones(["Guille","Varo"]); });
-  },[]);
-  return <FSelect label="Patron" value={value} onChange={onChange} options={opciones}/>;
+  return (
+    <FSelect label="Patrón" value={value} onChange={onChange}
+      options={["Guille","Varo"]}/>
+  );
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
 function Btn({ children, onClick, variant="primary", sm }) {
-  const base = { border:"none", borderRadius:7, cursor:"pointer",
-    fontSize:sm?11:12.5, fontWeight:700, fontFamily:"inherit", letterSpacing:0.4,
-    padding: sm?"7px 14px":"11px 18px" };
-  const styles = {
-    primary: { background:T.brass, color:"#fff", boxShadow:`0 2px 8px rgba(140,106,46,0.3)` },
-    ghost:   { background:"transparent", color:T.inkMid, border:`0.5px solid ${T.rim}` },
+  const base = {
+    border:"none", borderRadius:10, cursor:"pointer",
+    fontSize:sm?12:13, fontWeight:500, fontFamily:"inherit",
+    padding:sm?"8px 14px":"12px 20px",
+    transition:"opacity 0.15s",
   };
-  return <button onClick={onClick} style={{...base,...styles[variant]}}>{children}</button>;
+  const styles = {
+    primary: { background:T.ink, color:"#fff" },
+    ghost:   { background:"transparent", color:T.inkMid,
+               border:`0.5px solid ${T.rim}` },
+    danger:  { background:"transparent", color:T.danger,
+               border:`0.5px solid ${T.danger}50` },
+  };
+  return (
+    <button onClick={onClick}
+      style={{...base,...(styles[variant]||styles.primary)}}>
+      {children}
+    </button>
+  );
 }
 
-// ── SCREENS ───────────────────────────────────────────────────────────────────
+function Chip({ children, color }) {
+  return (
+    <span style={{ display:"inline-flex", alignItems:"center",
+      padding:"3px 9px", borderRadius:20, fontSize:10, fontWeight:500,
+      background:(color||T.warn)+"14", color:color||T.warn }}>
+      {children}
+    </span>
+  );
+}
 
+function StatusDot({ estado }) {
+  const c = estado==="ok"?T.ok:estado==="danger"?T.danger:T.warn;
+  return (
+    <div style={{ width:8, height:8, borderRadius:"50%",
+      background:c, flexShrink:0 }}/>
+  );
+}
 
 // ── APP LOGO — Brújula brandbook Ship Log ─────────────────────────────────────
 function AppLogo({ size = 32 }) {
@@ -590,7 +604,7 @@ function Ficha() {
   ];
   return (
     <div>
-      <Hdr eyebrow="Datos técnicos" title="Ficha del Barco"/>
+      <Hdr title="Ficha del Barco"/>
       <Card style={{ marginBottom:12 }} pad="0 18px">
         {specs.map(([k,v],i)=>(
           <div key={i}>{i>0&&<Divider/>}
@@ -777,7 +791,7 @@ function Bitacora() {
 
   return (
     <div>
-      <Hdr eyebrow="Registro de navegación" title="Bitácora"
+      <Hdr title="Bitácora"
         action={
           <div style={{display:"flex",gap:7}}>
             <button onClick={()=>setShowFiltros(!showFiltros)} style={{
@@ -1173,7 +1187,7 @@ function Mantenimiento() {
 
   return (
     <div>
-      <Hdr eyebrow="Estado tecnico" title="Mantenimiento"/>
+      <Hdr title="Mantenimiento"/>
 
       {/* Resumen alertas */}
       {alertas.length > 0 && (
@@ -1466,7 +1480,7 @@ function Combustible() {
 
   return (
     <div>
-      <Hdr eyebrow="Repostajes y consumo" title="Combustible"
+      <Hdr title="Combustible"
         action={<Btn sm onClick={()=>{ setShowForm(!showForm); setEditItem(null); setForm(FORM_INIT); }}>
           {showForm&&!editItem?"Cancelar":"+ Repostaje"}
         </Btn>}/>
@@ -1681,7 +1695,7 @@ function Seguridad() {
 
   return (
     <div>
-      <Hdr eyebrow="Equipos y emergencias" title="Seguridad"
+      <Hdr title="Seguridad"
         action={tab==="equipos" && <Btn sm onClick={()=>{ setShowForm(!showForm); setEditItem(null); setForm(FORM_INIT); }}>
           {showForm&&!editItem?"Cancelar":"+ Añadir"}
         </Btn>}/>
@@ -1926,7 +1940,7 @@ function Puertos() {
 
   return (
     <div>
-      <Hdr eyebrow="Historial de escalas" title="Puertos y Amarres"
+      <Hdr title="Puertos y Amarres"
         action={<Btn sm onClick={()=>{ setShowForm(!showForm); setEditItem(null); }}>{showForm&&!editItem?"Cancelar":"+ Añadir"}</Btn>}/>
 
       {showForm && (
@@ -2031,7 +2045,7 @@ function Inventario() {
 
   return (
     <div>
-      <Hdr eyebrow="Repuestos a bordo" title="Inventario"
+      <Hdr title="Inventario"
         action={<Btn sm onClick={()=>{ setShowForm(!showForm); setEditItem(null); }}>{showForm&&!editItem?"Cancelar":"+ Añadir"}</Btn>}/>
 
       {issues>0 && <div style={{background:T.warn+"10",border:`1px solid ${T.warn}28`,borderRadius:8,padding:"11px 15px",marginBottom:14}}>
@@ -2137,7 +2151,7 @@ function Documentos() {
 
   return (
     <div>
-      <Hdr eyebrow="Certificados y archivos" title="Documentos"
+      <Hdr title="Documentos"
         action={<Btn sm onClick={()=>setShowForm(!showForm)}>{showForm?"Cancelar":"+ Subir"}</Btn>}/>
 
       {showForm && (
@@ -2367,7 +2381,7 @@ function Tripulacion() {
 
   return (
     <div>
-      <Hdr eyebrow="A bordo del Leonidas" title="Tripulación"
+      <Hdr title="Tripulación"
         action={
           <Btn sm onClick={()=>{ setShowForm(!showForm); setEditId(null); setForm(FORM_INIT); }}>
             {showForm&&!editId?"Cancelar":"+ Añadir"}
@@ -2683,7 +2697,7 @@ function AsistenteIA() {
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"calc(100vh - 148px)" }}>
-      <Hdr eyebrow="Asistente de a bordo" title="IA Náutica"/>
+      <Hdr title="IA Náutica"/>
 
       {/* Chat */}
       <div style={{ flex:1, overflowY:"auto", marginBottom:11 }}>
@@ -2942,7 +2956,7 @@ function Clima() {
 
   if (loading) return (
     <div>
-      <Hdr eyebrow="Condiciones meteorológicas" title="Clima"/>
+      <Hdr title="Clima"/>
       {renderLocationBar()}
       <Card style={{ textAlign:"center", padding:"40px 20px" }}>
         <div style={{ color:T.inkDim, fontSize:13 }}>Consultando datos en {ubicActual.nombre}…</div>
@@ -2955,7 +2969,7 @@ function Clima() {
 
   if (err) return (
     <div>
-      <Hdr eyebrow="Condiciones meteorológicas" title="Clima"/>
+      <Hdr title="Clima"/>
       {renderLocationBar()}
       <Card><div style={{ color:T.warn, fontSize:13 }}>{err}</div></Card>
     </div>
@@ -3005,7 +3019,7 @@ function Clima() {
 
   return (
     <div>
-      <Hdr eyebrow="Condiciones meteorológicas" title="Clima"/>
+      <Hdr title="Clima"/>
 
       {renderLocationBar()}
 
@@ -3299,7 +3313,7 @@ function Calculadora() {
 
   return (
     <div>
-      <Hdr eyebrow="Planificación" title="Calculadora"/>
+      <Hdr title="Calculadora"/>
 
       {/* Mode toggle */}
       <div style={{ display:"flex", background:T.bg, borderRadius:7, padding:3,
@@ -3657,7 +3671,7 @@ function Fondeo() {
 
   return (
     <div>
-      <Hdr eyebrow="Anclaje y fondeos" title="Fondeo"/>
+      <Hdr title="Fondeo"/>
 
       {/* Tabs */}
       <div style={{display:"flex",background:T.bg,borderRadius:7,padding:3,
@@ -3941,191 +3955,542 @@ function Fondeo() {
   );
 }
 
-function SidebarContent({ navTo, screen, onClose, showClose }) {
+function BarcoHub({ setScreen }) {
+  const sections = [
+    {
+      label: "Motor & combustible",
+      items: [
+        { id:"mantenimiento", label:"Mantenimiento",  sub:"Revisar estado",   dot:"warn" },
+        { id:"combustible",   label:"Combustible",    sub:"Último repostaje", dot:"ok"   },
+        { id:"inventario",    label:"Inventario",     sub:"Repuestos a bordo",dot:"ok"   },
+      ]
+    },
+    {
+      label: "Seguridad & docs",
+      items: [
+        { id:"seguridad",   label:"Seguridad",    sub:"Equipos y caducidades", dot:"ok" },
+        { id:"documentos",  label:"Documentos",   sub:"Certificados",          dot:"ok" },
+      ]
+    },
+    {
+      label: "Barco & tripulación",
+      items: [
+        { id:"tripulacion", label:"Tripulación",  sub:"Patrones y crew",   dot:"ok" },
+        { id:"ficha",       label:"Ficha técnica",sub:"Leonidas · Datos",  dot:"ok" },
+      ]
+    },
+  ];
+
   return (
-    <>
-      {/* Header */}
-      <div style={{ padding:"18px 18px 16px", borderBottom:`1px solid ${T.sidebarLine}`,
-        display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <AppLogo size={30}/>
-          <div>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17,
-              fontWeight:600, color:"#fff", lineHeight:1 }}>ShipLog</div>
-            <div style={{ fontSize:8, color:T.sidebarDim, letterSpacing:2.5,
-              textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginTop:3 }}>Leonidas</div>
-          </div>
+    <div>
+      <div style={{ marginBottom:24 }}>
+        <div style={{ fontSize:13, color:T.inkDim, marginBottom:3 }}>
+          Sunseeker Portofino 53 · 2007
         </div>
-        {showClose && (
-          <button onClick={onClose} style={{ background:"none", border:"none",
-            cursor:"pointer", color:T.sidebarInk, fontSize:18, lineHeight:1, padding:"2px 4px" }}>✕</button>
-        )}
+        <div style={{ fontSize:22, fontWeight:500, color:T.ink,
+          letterSpacing:-0.3 }}>Leonidas</div>
       </div>
 
-      {/* Menu */}
-      <div style={{ flex:1, padding:"6px 0 12px", overflowY:"auto" }}>
-        {MENU.map(section=>(
-          <div key={section.section} style={{ marginBottom:2 }}>
-            <div style={{ fontSize:8, color:T.sidebarDim, letterSpacing:2.5,
-              textTransform:"uppercase", fontFamily:"'DM Mono',monospace",
-              padding:"10px 18px 4px" }}>{section.section}</div>
-            {section.items.map(item=>{
-              const active = screen === item.id;
+      {sections.map(sec => (
+        <div key={sec.label} style={{ marginBottom:24 }}>
+          <div style={{ fontSize:11, fontWeight:500, color:T.inkDim,
+            marginBottom:8 }}>{sec.label}</div>
+          <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
+            borderRadius:12, overflow:"hidden" }}>
+            {sec.items.map((item, i) => (
+              <div key={item.id}
+                onClick={()=>setScreen(item.id)}
+                style={{ display:"flex", alignItems:"center",
+                  justifyContent:"space-between",
+                  padding:"13px 16px",
+                  borderTop: i>0 ? `0.5px solid ${T.rim}` : "none",
+                  cursor:"pointer" }}>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:500,
+                    color:T.ink, marginBottom:2 }}>{item.label}</div>
+                  <div style={{ fontSize:11, color:T.inkDim }}>{item.sub}</div>
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <StatusDot estado={item.dot}/>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── MÁS HUB ───────────────────────────────────────────────────────────────────
+function MasHub({ setScreen }) {
+  const items = [
+    { id:"clima",       label:"Clima",        sub:"Tiempo en tiempo real",  svg:"M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" },
+    { id:"calculadora", label:"Calculadora",  sub:"Ventana dorada · Ruta",  svg:"M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5" },
+    { id:"fondeo",      label:"Fondeo",       sub:"GPS · Alarma garreo",    svg:"M12 2a3 3 0 0 0-3 3c0 1.66 1.34 3 3 3s3-1.34 3-3a3 3 0 0 0-3-3z M12 8v14 M5 12H2a10 10 0 0 0 20 0h-3" },
+    { id:"puertos",     label:"Puertos",      sub:"Amarres y escalas",      svg:"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" },
+    { id:"ia",          label:"Asistente IA", sub:"Consultas del barco",    svg:"M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" },
+  ];
+
+  return (
+    <div>
+      <div style={{ fontSize:22, fontWeight:500, color:T.ink,
+        letterSpacing:-0.3, marginBottom:24 }}>Más</div>
+      <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
+        borderRadius:12, overflow:"hidden" }}>
+        {items.map((item, i) => (
+          <div key={item.id}
+            onClick={()=>setScreen(item.id)}
+            style={{ display:"flex", alignItems:"center", gap:14,
+              padding:"13px 16px",
+              borderTop: i>0 ? `0.5px solid ${T.rim}` : "none",
+              cursor:"pointer" }}>
+            <div style={{ width:36, height:36, borderRadius:9,
+              background:T.surfaceUp, display:"flex", alignItems:"center",
+              justifyContent:"center", flexShrink:0 }}>
+              <Icon d={item.svg} size={16} color={T.brass}/>
+            </div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:14, fontWeight:500, color:T.ink,
+                marginBottom:1 }}>{item.label}</div>
+              <div style={{ fontSize:11, color:T.inkDim }}>{item.sub}</div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── DRAWER NUEVA SALIDA ───────────────────────────────────────────────────────
+function DrawerNuevaSalida({ onClose, onSaved, ultimasHoras }) {
+  const [form, setForm] = useState({
+    fecha: new Date().toISOString().split("T")[0],
+    hora_salida: "", hora_llegada: "",
+    patron: "Guille", salida: "Caleta de Vélez", llegada: "",
+    horas_motor_inicio: ultimasHoras || "",
+    horas_motor_fin: "",
+    combustible_pct: "80",
+    condiciones: "", incidencias: "Sin novedad", notas: "",
+    tripulacion_ids: [],
+  });
+  const [saving, setSaving] = useState(false);
+  const [tripDisp, setTripDisp] = useState([]);
+  const upd = f => e => setForm(v=>({...v,[f]:e.target.value}));
+
+  useEffect(()=>{
+    db("tripulacion","GET",null,"?activo=eq.true&order=nombre.asc")
+      .then(r=>setTripDisp(r)).catch(()=>{});
+  },[]);
+
+  async function guardar() {
+    if (!form.llegada) return;
+    setSaving(true);
+    try {
+      const payload = {
+        fecha: form.fecha,
+        hora_salida: form.hora_salida||null,
+        hora_llegada: form.hora_llegada||null,
+        patron: form.patron,
+        salida: form.salida, llegada: form.llegada,
+        horas_motor_inicio: parseFloat(form.horas_motor_inicio)||null,
+        horas_motor_fin: parseFloat(form.horas_motor_fin)||null,
+        combustible_cargado: parseFloat(form.combustible_pct)||null,
+        condiciones: form.condiciones,
+        incidencias: form.incidencias||"Sin novedad",
+        notas: form.notas||null,
+      };
+      const res = await db("bitacora","POST",payload);
+      const bid = res[0]?.id;
+      if (bid && form.tripulacion_ids?.length > 0) {
+        await Promise.all(form.tripulacion_ids.map(tid =>
+          db("bitacora_tripulacion","POST",{ bitacora_id:bid, tripulante_id:tid })
+        ));
+      }
+      onSaved?.();
+      onClose();
+    } catch(e){ alert("Error: "+e.message); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:300 }}>
+      {/* overlay */}
+      <div onClick={onClose}
+        style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.3)" }}/>
+
+      {/* sheet */}
+      <div style={{ position:"absolute", bottom:0, left:0, right:0,
+        background:T.surface, borderRadius:"20px 20px 0 0",
+        maxHeight:"90dvh", overflowY:"auto",
+        animation:"slideUp 0.25s ease" }}>
+
+        {/* handle */}
+        <div style={{ padding:"12px 0 6px", display:"flex",
+          justifyContent:"center", flexShrink:0 }}>
+          <div style={{ width:36, height:4, background:T.rim,
+            borderRadius:2 }}/>
+        </div>
+
+        <div style={{ padding:"0 20px 40px" }}>
+          <div style={{ display:"flex", alignItems:"center",
+            justifyContent:"space-between", marginBottom:20 }}>
+            <div style={{ fontSize:18, fontWeight:500, color:T.ink }}>
+              Nueva salida
+            </div>
+            <button onClick={onClose} style={{ background:"none", border:"none",
+              fontSize:22, color:T.inkDim, cursor:"pointer",
+              padding:"2px 6px", lineHeight:1 }}>×</button>
+          </div>
+
+          {/* Ruta */}
+          <div style={{ background:T.surfaceUp, borderRadius:12,
+            overflow:"hidden", marginBottom:14 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:12,
+              padding:"11px 14px",
+              borderBottom:`0.5px solid ${T.rim}` }}>
+              <div style={{ width:8, height:8, borderRadius:"50%",
+                background:T.ok, flexShrink:0 }}/>
+              <div style={{ flex:1, fontSize:13, color:T.inkDim }}>
+                {form.salida}
+              </div>
+              <input type="time" value={form.hora_salida}
+                onChange={upd("hora_salida")}
+                style={{ background:"none", border:"none", color:T.ink,
+                  fontSize:13, fontFamily:"inherit", outline:"none",
+                  width:56 }}/>
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:12,
+              padding:"11px 14px" }}>
+              <div style={{ width:8, height:8, borderRadius:2,
+                background:T.danger, flexShrink:0 }}/>
+              <input value={form.llegada} onChange={upd("llegada")}
+                placeholder="Destino…"
+                style={{ flex:1, background:"none", border:"none",
+                  color:T.ink, fontSize:13, fontFamily:"inherit",
+                  outline:"none" }}/>
+              <input type="time" value={form.hora_llegada}
+                onChange={upd("hora_llegada")}
+                style={{ background:"none", border:"none", color:T.ink,
+                  fontSize:13, fontFamily:"inherit", outline:"none",
+                  width:56 }}/>
+            </div>
+          </div>
+
+          {/* Patrón chips */}
+          <div style={{ marginBottom:14 }}>
+            <div style={{ fontSize:11, fontWeight:500, color:T.inkDim,
+              marginBottom:7 }}>Patrón</div>
+            <div style={{ display:"flex", gap:6 }}>
+              {["Guille","Varo"].map(p=>(
+                <button key={p} onClick={()=>setForm(v=>({...v,patron:p}))}
+                  style={{ padding:"7px 16px", borderRadius:20, fontSize:13,
+                    cursor:"pointer", fontFamily:"inherit", fontWeight:500,
+                    border:`0.5px solid ${form.patron===p?T.ink:T.rim}`,
+                    background:form.patron===p?T.ink:"transparent",
+                    color:form.patron===p?"#fff":T.inkMid }}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Combustible */}
+          <div style={{ marginBottom:14 }}>
+            <div style={{ display:"flex", justifyContent:"space-between",
+              alignItems:"center", marginBottom:7 }}>
+              <div style={{ fontSize:11, fontWeight:500, color:T.inkDim }}>
+                Combustible
+              </div>
+              <div style={{ fontSize:14, fontWeight:500,
+                color:parseInt(form.combustible_pct)<40?T.danger:T.brass }}>
+                {form.combustible_pct}%
+              </div>
+            </div>
+            <input type="range" min="0" max="100" step="10"
+              value={form.combustible_pct} onChange={upd("combustible_pct")}
+              style={{ width:"100%", accentColor:T.brass }}/>
+          </div>
+
+          {/* Horas motor */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr",
+            gap:10, marginBottom:14 }}>
+            <FInput label="H. motor inicio" type="number"
+              value={form.horas_motor_inicio}
+              onChange={upd("horas_motor_inicio")}/>
+            <FInput label="H. motor fin" type="number"
+              value={form.horas_motor_fin}
+              onChange={upd("horas_motor_fin")}/>
+          </div>
+
+          {/* Tripulación */}
+          {tripDisp.length > 0 && (
+            <div style={{ marginBottom:14 }}>
+              <div style={{ fontSize:11, fontWeight:500, color:T.inkDim,
+                marginBottom:7 }}>Tripulación a bordo</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                {tripDisp.map(t=>{
+                  const sel = form.tripulacion_ids?.includes(t.id);
+                  return (
+                    <button key={t.id}
+                      onClick={()=>setForm(v=>({...v,
+                        tripulacion_ids:sel
+                          ? v.tripulacion_ids.filter(id=>id!==t.id)
+                          : [...(v.tripulacion_ids||[]),t.id]
+                      }))}
+                      style={{ padding:"6px 13px", borderRadius:20,
+                        fontSize:12, cursor:"pointer", fontFamily:"inherit",
+                        border:`0.5px solid ${sel?T.ink:T.rim}`,
+                        background:sel?T.ink:"transparent",
+                        color:sel?"#fff":T.inkMid }}>
+                      {t.alias||t.nombre}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <FTextarea label="Notas / condiciones"
+            value={form.notas} onChange={upd("notas")}
+            placeholder="NE 10kn, mar llana, sin novedad…"/>
+
+          <button onClick={guardar} disabled={!form.llegada||saving}
+            style={{ width:"100%", background:form.llegada?T.ink:T.rim,
+              color:form.llegada?"#fff":T.inkDim, border:"none",
+              borderRadius:12, padding:"14px", fontSize:14, fontWeight:500,
+              cursor:form.llegada?"pointer":"default",
+              fontFamily:"inherit" }}>
+            {saving?"Guardando…":"Guardar entrada"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── BOTTOM TAB BAR ────────────────────────────────────────────────────────────
+function BottomNav({ activeTab, onTab }) {
+  const tabSvgs = {
+    hoy: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 5v5l4 2",
+    bitacora: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6",
+    barco: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z",
+    mas: "M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M19 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M5 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z",
+  };
+  return (
+    <div style={{ display:"flex", borderTop:`0.5px solid ${T.rim}`,
+      background:T.surface, flexShrink:0 }}>
+      {TABS.map(tab=>{
+        const active = activeTab === tab.id;
+        return (
+          <button key={tab.id} onClick={()=>onTab(tab.id)}
+            style={{ flex:1, display:"flex", flexDirection:"column",
+              alignItems:"center", gap:4, padding:"10px 4px 14px",
+              border:"none", background:"none", cursor:"pointer",
+              fontFamily:"inherit" }}>
+            <Icon d={tabSvgs[tab.id]} size={22}
+              color={active?T.ink:T.inkDim}
+              sw={active?2:1.5}/>
+            <span style={{ fontSize:10, fontWeight:active?500:400,
+              color:active?T.ink:T.inkDim }}>
+              {tab.label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── SIDEBAR DESKTOP ───────────────────────────────────────────────────────────
+function SidebarDesktop({ screen, onNav }) {
+  const groups = [
+    { label:"Navegación", items:[
+      { id:"hoy",      label:"Hoy",        svg:"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z M12 7v5l4 2" },
+      { id:"bitacora", label:"Bitácora",   svg:"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6" },
+      { id:"clima",    label:"Clima",      svg:"M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" },
+      { id:"calculadora",label:"Calculadora",svg:"M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5" },
+      { id:"fondeo",   label:"Fondeo",     svg:"M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M12 8v14 M5 12H2a10 10 0 0 0 20 0h-3" },
+    ]},
+    { label:"Barco", items:[
+      { id:"mantenimiento",label:"Mantenimiento",svg:"M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" },
+      { id:"combustible",  label:"Combustible", svg:"M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-8 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" },
+      { id:"inventario",   label:"Inventario",  svg:"M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" },
+      { id:"seguridad",    label:"Seguridad",   svg:"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" },
+      { id:"documentos",   label:"Documentos",  svg:"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8" },
+      { id:"tripulacion",  label:"Tripulación", svg:"M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" },
+      { id:"puertos",      label:"Puertos",     svg:"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10" },
+      { id:"ficha",        label:"Ficha técnica",svg:"M12 2L2 7l10 5 10-5-10-5z" },
+    ]},
+    { label:"Asistente", items:[
+      { id:"ia", label:"IA Náutica", svg:"M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" },
+    ]},
+  ];
+
+  return (
+    <div style={{ height:"100dvh", background:T.sidebarBg,
+      display:"flex", flexDirection:"column", flexShrink:0, width:220,
+      overflowY:"auto" }}>
+      {/* Logo */}
+      <div style={{ padding:"20px 18px 16px",
+        borderBottom:`1px solid ${T.sidebarLine}` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <AppLogo size={28}/>
+          <div>
+            <div style={{ fontSize:16, fontWeight:600, color:"#fff",
+              lineHeight:1 }}>ShipLog</div>
+            <div style={{ fontSize:9, color:T.sidebarDim,
+              letterSpacing:2, textTransform:"uppercase", marginTop:3 }}>
+              Leonidas
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Nav */}
+      <div style={{ flex:1, padding:"6px 0 20px", overflowY:"auto" }}>
+        {groups.map(g=>(
+          <div key={g.label} style={{ marginBottom:4 }}>
+            <div style={{ fontSize:9, color:T.sidebarDim,
+              letterSpacing:2.5, textTransform:"uppercase",
+              padding:"10px 18px 4px",
+              fontFamily:"inherit" }}>{g.label}</div>
+            {g.items.map(item=>{
+              const active = screen===item.id;
               return (
-                <button key={item.id} onClick={()=>navTo(item.id)} style={{
-                  width:"100%", display:"flex", alignItems:"center", gap:10,
-                  padding:"9px 18px", border:"none", cursor:"pointer", textAlign:"left",
-                  background: active ? "rgba(140,106,46,0.18)" : "transparent",
-                  borderLeft: active ? `2px solid ${T.brass}` : "2px solid transparent",
-                  borderRight:"none", borderTop:"none", borderBottom:"none" }}>
-                  <Icon d={item.svg} color={active?T.brassLt:T.sidebarInk} size={14} sw={active?2:1.5}/>
-                  <span style={{ color:active?T.brassLt:"rgba(255,255,255,0.6)", fontSize:13,
-                    fontWeight:active?600:400, letterSpacing:0.1 }}>{item.label}</span>
+                <button key={item.id} onClick={()=>onNav(item.id)}
+                  style={{ width:"100%", display:"flex", alignItems:"center",
+                    gap:10, padding:"9px 18px", border:"none",
+                    cursor:"pointer", textAlign:"left", fontFamily:"inherit",
+                    background:active?"rgba(176,141,87,0.15)":"transparent",
+                    borderLeft:active?`2px solid ${T.brass}`:"2px solid transparent" }}>
+                  <Icon d={item.svg} color={active?T.brassLt:T.sidebarInk}
+                    size={14} sw={active?2:1.5}/>
+                  <span style={{ color:active?T.brassLt:T.sidebarInk,
+                    fontSize:13, fontWeight:active?500:400 }}>
+                    {item.label}
+                  </span>
                 </button>
               );
             })}
           </div>
         ))}
       </div>
-
-
-    </>
+    </div>
   );
 }
 
-// ── NAVIGATION CONFIG ─────────────────────────────────────────────────────────
-const NAV_MAP = Object.fromEntries(NAV.map(n=>[n.id, n.svg]));
-const MENU = [
-  { section:"Navegación", items:[
-    { id:"dashboard",    label:"Panel",        svg:NAV_MAP["dashboard"]    },
-    { id:"clima",        label:"Clima",         svg:NAV_MAP["clima"]        },
-    { id:"calculadora",  label:"Calculadora",   svg:NAV_MAP["calculadora"]  },
-    { id:"fondeo",       label:"Fondeo",        svg:NAV_MAP["fondeo"]       },
-  ]},
-  { section:"Barco", items:[
-    { id:"bitacora",     label:"Bitácora",      svg:NAV_MAP["bitacora"]     },
-    { id:"puertos",      label:"Puertos",       svg:NAV_MAP["puertos"]      },
-    { id:"tripulacion",  label:"Tripulación",   svg:NAV_MAP["tripulacion"]  },
-    { id:"ficha",        label:"Ficha técnica", svg:NAV_MAP["ficha"]        },
-  ]},
-  { section:"Gestión", items:[
-    { id:"mantenimiento",label:"Mantenimiento", svg:NAV_MAP["mantenimiento"]},
-    { id:"combustible",  label:"Combustible",   svg:NAV_MAP["combustible"]  },
-    { id:"inventario",   label:"Inventario",    svg:NAV_MAP["inventario"]   },
-    { id:"seguridad",    label:"Seguridad",     svg:NAV_MAP["seguridad"]    },
-    { id:"documentos",   label:"Documentos",    svg:NAV_MAP["documentos"]   },
-  ]},
-  { section:"IA", items:[
-    { id:"ia",           label:"Asistente IA",  svg:NAV_MAP["ia"]           },
-  ]},
-];
-
-const SCREENS = {
-  dashboard:    Dashboard,
-  clima:        Clima,
-  calculadora:  Calculadora,
-  fondeo:       Fondeo,
-  bitacora:     Bitacora,
-  puertos:      Puertos,
-  tripulacion:  Tripulacion,
-  ficha:        Ficha,
-  mantenimiento:Mantenimiento,
-  combustible:  Combustible,
-  inventario:   Inventario,
-  seguridad:    Seguridad,
-  documentos:   Documentos,
-  ia:           AsistenteIA,
-};
-
 // ── APP ROOT ──────────────────────────────────────────────────────────────────
 export default function App() {
-  const [screen, setScreen] = useState("dashboard");
-  const [sideOpen, setSideOpen] = useState(false);
+  const [screen, setScreen] = useState("hoy");
+  const [showDrawer, setShowDrawer] = useState(false);
+  const [drawerKey, setDrawerKey] = useState(0);
+
+  // Derive active tab from current screen
+  const activeTab = SCREEN_TAB[screen] || "hoy";
+
+  function navTo(id) { setScreen(id); }
+
+  function handleTab(tabId) {
+    // Navigate to hub screens
+    const hubMap = { hoy:"hoy", bitacora:"bitacora", barco:"barco", mas:"mas" };
+    setScreen(hubMap[tabId] || tabId);
+  }
+
+  function openDrawer() {
+    setDrawerKey(k=>k+1);
+    setShowDrawer(true);
+  }
+
   const Screen = SCREENS[screen] || Dashboard;
 
-  function navTo(id) { setScreen(id); setSideOpen(false); }
-
-  const currentLabel = MENU.flatMap(s=>s.items).find(i=>i.id===screen)?.label || "Panel";
+  // Show FAB on main tabs, not on sub-screens that have their own + button
+  const showFAB = ["hoy","bitacora","barco","mas","mantenimiento",
+    "combustible","clima","fondeo","puertos","inventario",
+    "seguridad","documentos","tripulacion"].includes(screen);
 
   return (
     <div style={{ height:"100dvh", background:T.bg, color:T.ink,
       fontFamily:"'Crimson Pro',Georgia,serif",
-      display:"flex", flexDirection:"row", overflow:"hidden" }}>
+      display:"flex", overflow:"hidden" }}>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Crimson+Pro:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&display=swap');
-        *{box-sizing:border-box}
-        ::-webkit-scrollbar{width:0}
-        input::placeholder{color:#9A9488}
-        select{font-family:inherit}
-        textarea{font-family:inherit}
-        button{font-family:inherit}
-        @keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
-        @keyframes garreo-pulse{from{box-shadow:0 0 0 0 rgba(168,52,40,0.5)}to{box-shadow:0 0 0 14px rgba(168,52,40,0)}}
-        @keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}
-        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-        .app-sidebar-desktop{display:none}
-        .app-content{flex:1;display:flex;flex-direction:column;min-width:0;max-width:600px;margin:0 auto;width:100%}
-        .app-header-hamburger{display:flex}
-        @media(min-width:768px){
-          .app-sidebar-desktop{display:flex !important}
-          .app-header-hamburger{display:none !important}
-          .app-content{max-width:none;margin:0}
-        }
-        @media(min-width:1024px){
-          .app-content-inner{padding:24px 32px 40px !important;max-width:800px;margin:0 auto;width:100%}
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Crimson+Pro:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&display=swap');
+        * { box-sizing:border-box }
+        ::-webkit-scrollbar { width:0 }
+        input::placeholder { color:${T.inkDim} }
+        select, textarea, button { font-family:inherit }
+        @keyframes blink { 0%,100%{opacity:.2} 50%{opacity:1} }
+        @keyframes garreo-pulse { from{box-shadow:0 0 0 0 rgba(168,52,40,0.5)} to{box-shadow:0 0 0 14px rgba(168,52,40,0)} }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+        @keyframes slideIn { from{transform:translateX(-100%)} to{transform:translateX(0)} }
+        .sidebar-desktop { display:none !important }
+        @media(min-width:768px) {
+          .sidebar-desktop { display:flex !important }
+          .bottom-nav { display:none !important }
+          .fab-btn { right:28px !important; bottom:28px !important }
+          .content-inner { padding:24px 32px 40px !important; max-width:760px; margin:0 auto; width:100% }
         }
       `}</style>
 
-      {/* SIDEBAR OVERLAY (movil) */}
-      {sideOpen && (
-        <div style={{ position:"fixed", inset:0, zIndex:200, display:"flex" }}>
-          <div onClick={()=>setSideOpen(false)} style={{ position:"absolute", inset:0,
-            background:"rgba(0,0,0,0.65)", animation:"fadeIn 0.2s ease" }}/>
-          <div style={{ position:"relative", width:272, height:"100%", background:T.sidebarBg,
-            borderRight:"none", overflowY:"auto",
-            animation:"slideIn 0.25s ease", zIndex:1, display:"flex", flexDirection:"column",
-            boxShadow:"4px 0 32px rgba(0,0,0,0.5)" }}>
-            <SidebarContent navTo={navTo} screen={screen} onClose={()=>setSideOpen(false)} showClose={true}/>
-          </div>
-        </div>
-      )}
-
-      {/* SIDEBAR FIJO (tablet/desktop) */}
-      <div className="app-sidebar-desktop" style={{ width:240, height:"100dvh", background:T.sidebarBg,
-        borderRight:"none", flexDirection:"column", flexShrink:0, overflowY:"auto" }}>
-        <SidebarContent navTo={navTo} screen={screen} onClose={()=>{}} showClose={false}/>
+      {/* SIDEBAR — tablet/desktop only */}
+      <div className="sidebar-desktop">
+        <SidebarDesktop screen={screen} onNav={navTo}/>
       </div>
 
-      {/* MAIN */}
-      <div className="app-content" style={{ background:T.bg }}>
-        {/* HEADER */}
-        <div style={{ position:"sticky", top:0, zIndex:100, background:T.surface,
-          borderBottom:`0.5px solid ${T.rim}`, padding:"13px 20px",
-          display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0,
-          boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
-          <button className="app-header-hamburger" onClick={()=>setSideOpen(true)}
-            style={{ background:"none", border:`0.5px solid ${T.rim}`, cursor:"pointer",
-              flexDirection:"column", gap:4.5, padding:"8px 9px", borderRadius:7 }}>
-            {[0,1,2].map(i=>(
-              <div key={i} style={{ width:18, height:1.5, background:T.inkMid, borderRadius:1 }}/>
-            ))}
-          </button>
-          <div style={{ textAlign:"center" }}>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16,
-              fontWeight:600, color:T.ink, lineHeight:1 }}>{currentLabel}</div>
-            <div style={{ fontSize:8.5, color:T.inkDim, letterSpacing:2,
-              textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginTop:2 }}>Leonidas</div>
-          </div>
-
-        </div>
+      {/* MAIN COLUMN */}
+      <div style={{ flex:1, display:"flex", flexDirection:"column",
+        minWidth:0, position:"relative", overflow:"hidden" }}>
 
         {/* CONTENT */}
-        <div className="app-content-inner" style={{ flex:1, overflowY:"auto", overflowX:"hidden",
-          padding:"18px 16px 40px", WebkitOverflowScrolling:"touch", minHeight:0 }}>
+        <div className="content-inner"
+          style={{ flex:1, overflowY:"auto", overflowX:"hidden",
+            padding:"20px 18px 100px",
+            WebkitOverflowScrolling:"touch" }}>
           <Screen setScreen={navTo}/>
         </div>
+
+        {/* FAB — nueva entrada de bitácora */}
+        {showFAB && (
+          <button className="fab-btn"
+            onClick={openDrawer}
+            style={{ position:"absolute", bottom:72, right:18,
+              width:48, height:48, borderRadius:14,
+              background:T.ink, border:"none", cursor:"pointer",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              boxShadow:"0 4px 16px rgba(13,27,42,0.35)",
+              zIndex:50 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="#fff" strokeWidth="2" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        )}
+
+        {/* BOTTOM NAV — mobile only */}
+        <div className="bottom-nav">
+          <BottomNav activeTab={activeTab} onTab={handleTab}/>
+        </div>
       </div>
+
+      {/* DRAWER nueva salida */}
+      {showDrawer && (
+        <DrawerNuevaSalida
+          key={drawerKey}
+          onClose={()=>setShowDrawer(false)}
+          onSaved={()=>{ if(screen!=="bitacora") navTo("bitacora"); }}
+          ultimasHoras={""}
+        />
+      )}
     </div>
   );
 }
