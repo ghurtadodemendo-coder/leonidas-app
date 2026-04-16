@@ -123,10 +123,11 @@ const PATRONES = [
 
 // ── PRIMITIVES ────────────────────────────────────────────────────────────────
 function Icon({ d, size=18, color=T.inkDim, sw=1.5 }) {
+  const paths = Array.isArray(d) ? d : [d];
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
       stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-      {d.split(" M").map((seg,i) => <path key={i} d={i===0?seg:"M"+seg} />)}
+      {paths.map((p,i) => <path key={i} d={p}/>)}
     </svg>
   );
 }
@@ -4612,31 +4613,73 @@ const MENU = [
   {
     section: "Navegar",
     items: [
-      { id:"dashboard",   label:"Hoy",         svg:"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 5v5l4 2" },
-      { id:"clima",       label:"Clima",        svg:"M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" },
-      { id:"fondeo",      label:"Fondeo",       svg:"M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M12 8v14 M5 12H2a10 10 0 0 0 20 0h-3" },
+      { id:"dashboard", label:"Hoy", svg:[
+        "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z",
+        "M12 7v5l4 2"
+      ]},
+      { id:"clima", label:"Clima", svg:[
+        "M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"
+      ]},
+      { id:"fondeo", label:"Fondeo", svg:[
+        "M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
+        "M12 8v14",
+        "M5 12H2a10 10 0 0 0 20 0h-3"
+      ]},
     ]
   },
   {
     section: "A bordo",
     items: [
-      { id:"bitacora",    label:"Bitácora",     svg:"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6" },
-      { id:"tripulacion", label:"Tripulación",  svg:"M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" },
-      { id:"puertos",     label:"Puertos",      svg:"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10" },
+      { id:"bitacora", label:"Bitácora", svg:[
+        "M4 19.5A2.5 2.5 0 0 1 6.5 17H20",
+        "M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",
+        "M9 8h6",
+        "M9 12h4"
+      ]},
+      { id:"tripulacion", label:"Tripulación", svg:[
+        "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2",
+        "M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+        "M23 21v-2a4 4 0 0 0-3-3.87",
+        "M16 3.13a4 4 0 0 1 0 7.75"
+      ]},
+      { id:"puertos", label:"Puertos", svg:[
+        "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z",
+        "M12 10m-3 0a3 3 0 1 0 6 0 3 3 0 1 0-6 0"
+      ]},
     ]
   },
   {
     section: "Mantenimiento",
     items: [
-      { id:"motor",       label:"Motor",        svg:"M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" },
-      { id:"abordo",      label:"A bordo",      svg:"M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" },
-      { id:"elbarco",     label:"El barco",     svg:"M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1.24h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.83a16 16 0 0 0 6.29 6.29" },
+      { id:"motor", label:"Motor", svg:[
+        "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+      ]},
+      { id:"abordo", label:"A bordo", svg:[
+        "M8 6h13",
+        "M8 12h13",
+        "M8 18h13",
+        "M3 6h.01",
+        "M3 12h.01",
+        "M3 18h.01"
+      ]},
+      { id:"elbarco", label:"El barco", svg:[
+        "M2 21c.6.5 1.2 1 2.5 1C7 22 7 20 9.5 20c2.4 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1",
+        "M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76",
+        "M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6",
+        "M12 10v3",
+        "M12 3v4"
+      ]},
     ]
   },
   {
     section: "Asistente",
     items: [
-      { id:"ia",          label:"IA Náutica",   svg:"M12 20h9 M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" },
+      { id:"ia", label:"IA Náutica", svg:[
+        "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+        "M9 10h.01",
+        "M12 10h.01",
+        "M15 10h.01"
+      ]},
     ]
   },
 ];
@@ -4873,4 +4916,3 @@ export default function App() {
     </div>
   );
 }
-  
