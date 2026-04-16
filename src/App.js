@@ -319,262 +319,346 @@ function DashboardWeather({ setScreen }) {
         const wave = md.current.wave_height;
         const dir  = degToCompass(wd.current.wind_direction_10m);
         setWx({ wind, wave, dir, sem: semaforo(wind, wave||0) });
-      } catch(e) { /* silent fail */ }
+      } catch(e) {}
     }
     load();
   }, []);
 
-  if (!wx) return null;
-  const sc = wx.sem.level==="ok"?T.ok:wx.sem.level==="warn"?T.warn:T.danger;
+  if (!wx) return (
+    <div style={{ height:76, background:T.surfaceUp, borderRadius:14,
+      marginBottom:16, display:"flex", alignItems:"center",
+      justifyContent:"center" }}>
+      <div style={{ fontSize:12, color:T.inkDim }}>Consultando condiciones…</div>
+    </div>
+  );
+
+  const sc = wx.sem.level==="ok" ? T.ok : wx.sem.level==="warn" ? T.warn : T.danger;
+
   return (
-    <div onClick={()=>setScreen("clima")} style={{
-      background: sc+"15", border:`1px solid ${sc}40`,
-      borderRadius:10, padding:"13px 18px", marginBottom:16,
-      display:"flex", alignItems:"center", justifyContent:"space-between",
-      cursor:"pointer", boxShadow:`0 1px 4px ${sc}20` }}>
-      <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-        <div style={{ width:9, height:9, borderRadius:"50%", background:sc,
-          boxShadow:`0 0 8px ${sc}`, flexShrink:0 }}/>
-        <div>
-          <div style={{ color:sc, fontSize:12.5, fontWeight:600 }}>{wx.sem.label}</div>
-          <div style={{ color:T.inkDim, fontSize:10, marginTop:2,
-            fontFamily:"'DM Mono',monospace" }}>
-            {wx.wind}kn del {wx.dir} · Ola {wx.wave?.toFixed(1)??"--"}m · {wx.lugar||"Caleta de Vélez"}
+    <div onClick={()=>setScreen("clima")}
+      style={{ marginBottom:16, cursor:"pointer",
+        background:T.surface, border:`0.5px solid ${T.rim}`,
+        borderRadius:14, overflow:"hidden" }}>
+      <div style={{ height:3, background:sc }}/>
+      <div style={{ padding:"14px 18px", display:"flex",
+        alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ width:9, height:9, borderRadius:"50%",
+            background:sc, flexShrink:0 }}/>
+          <div>
+            <div style={{ fontSize:14, fontWeight:500, color:T.ink,
+              marginBottom:2 }}>{wx.sem.label}</div>
+            <div style={{ fontSize:12, color:T.inkDim }}>
+              {wx.wind} kn del {wx.dir} · Ola {wx.wave?.toFixed(1)??"--"} m
+            </div>
           </div>
         </div>
+        <div style={{ display:"flex", alignItems:"center", gap:16,
+          paddingLeft:16, borderLeft:`0.5px solid ${T.rim}` }}>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontSize:20, fontWeight:500, color:T.ink,
+              lineHeight:1 }}>{wx.wind}</div>
+            <div style={{ fontSize:10, color:T.inkDim, marginTop:2 }}>kn</div>
+          </div>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontSize:20, fontWeight:500, color:T.ink,
+              lineHeight:1 }}>{wx.wave?.toFixed(1)??"--"}</div>
+            <div style={{ fontSize:10, color:T.inkDim, marginTop:2 }}>m ola</div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
       </div>
-      <span style={{ color:T.inkDim, fontSize:14 }}>›</span>
     </div>
   );
 }
 
-
 function Dashboard({ setScreen }) {
   const [stats, setStats] = useState({ horas:"--", millas:"--", ultimoRepo:"--" });
   const [ultimaBitacora, setUltimaBitacora] = useState(null);
+  const [combustibleAlert, setCombustibleAlert] = useState(null);
+  const [mantAlert, setMantAlert]   = useState(null);
+  const [averiasAlert, setAveriasAlert] = useState([]);
+  const [docsAlert, setDocsAlert]   = useState([]);
 
   useEffect(()=>{
-    async function cargarStats() {
+    async function load() {
       try {
         const [ultimaBit, ultimoRepo, todasBits] = await Promise.all([
           db("bitacora","GET",null,"?order=fecha.desc&limit=1"),
           db("combustible","GET",null,"?order=fecha.desc&limit=1"),
           db("bitacora","GET",null,"?select=millas,horas_motor_inicio,horas_motor_fin"),
         ]);
-
-        // Millas totales -- suma de todas las entradas
-        const totalMillas = todasBits.reduce((a,c) => a + (parseFloat(c.millas)||0), 0);
-
-        // Horas motor -- base 774h + horas navegadas registradas en bitácora
-        const HORAS_BASE = 774;
-        const horasNavegadas = todasBits.reduce((a,c) => {
-          const ini = parseFloat(c.horas_motor_inicio) || 0;
-          const fin = parseFloat(c.horas_motor_fin) || 0;
-          return a + (fin > ini ? fin - ini : 0);
-        }, 0);
-        const totalHoras = HORAS_BASE + horasNavegadas;
-
+        const totalMillas = todasBits.reduce((a,c)=>a+(parseFloat(c.millas)||0),0);
+        const horasNav    = todasBits.reduce((a,c)=>{
+          const i=parseFloat(c.horas_motor_inicio)||0;
+          const f=parseFloat(c.horas_motor_fin)||0;
+          return a+(f>i?f-i:0);
+        },0);
+        const totalHoras = 774 + horasNav;
         if (ultimaBit.length) setUltimaBitacora(ultimaBit[0]);
         setStats({
-          horas: totalHoras % 1 === 0 ? totalHoras : totalHoras.toFixed(1),
+          horas: totalHoras%1===0 ? String(totalHoras) : totalHoras.toFixed(1),
           millas: totalMillas.toFixed(0),
           ultimoRepo: ultimoRepo.length
-            ? `${ultimoRepo[0].litros}L · ${ultimoRepo[0].fecha}`
+            ? `${ultimoRepo[0].litros} L · ${ultimoRepo[0].fecha}`
             : "Sin datos",
         });
-      } catch(e){ console.error("cargarStats:", e); }
+      } catch(e){ console.error(e); }
     }
-    cargarStats();
-  },[]);
+    load();
 
-  const [combustibleAlert, setCombustibleAlert] = useState(null);
-  const [mantAlert, setMantAlert] = useState(null);
-  const [averiasAlert, setAveriasAlert] = useState([]);
-  const [docsAlert, setDocsAlert] = useState([]);
-
-  useEffect(()=>{
-    async function checkMantenimiento() {
+    async function checks() {
       try {
-        const [tareas, bits] = await Promise.all([
-          db("mantenimiento","GET",null,"?select=tipo,horas_intervalo,horas_ultima,intervalo_dias,fecha_ultima"),
-          db("bitacora","GET",null,"?select=horas_motor_inicio,horas_motor_fin"),
-        ]);
-        const horasNav = bits.reduce((a,b)=>{
-          const ini=parseFloat(b.horas_motor_inicio)||0, fin=parseFloat(b.horas_motor_fin)||0;
-          return a+(fin>ini?fin-ini:0);
-        },0);
-        const hAct = 774 + horasNav;
-        const hoy = new Date();
-        let vencidas=0, proximas=0;
-        tareas.forEach(t=>{
-          let danger=false, warn=false;
-          if (t.horas_intervalo && t.horas_ultima) {
-            const r = t.horas_intervalo-(hAct-parseFloat(t.horas_ultima));
-            if (r<=0) danger=true; else if (r<=t.horas_intervalo*0.2) warn=true;
-          }
-          if (t.intervalo_dias && t.fecha_ultima) {
-            const fProx = new Date(new Date(t.fecha_ultima).getTime()+t.intervalo_dias*86400000);
-            const d = Math.round((fProx-hoy)/86400000);
-            if (d<=0) danger=true; else if (d<=30) warn=true;
-          } else if (t.intervalo_dias && !t.fecha_ultima) { warn=true; }
-          if (danger) vencidas++; else if (warn) proximas++;
-        });
-        if (vencidas>0) setMantAlert({nivel:"danger",texto:`${vencidas} mantenimiento${vencidas>1?"s":""} vencido${vencidas>1?"s":""}`});
-        else if (proximas>0) setMantAlert({nivel:"warn",texto:`${proximas} mantenimiento${proximas>1?"s":""} proximo${proximas>1?"s":""}`});
-        else setMantAlert(null);
-      } catch(e){}
-    }
-    checkMantenimiento();
-
-    async function checkAverias() {
-      try {
-        const a = await db("averias","GET",null,"?estado=in.(pendiente,en_taller)&order=fecha.desc");
-        setAveriasAlert(a);
-      } catch(e){}
-    }
-    checkAverias();
-
-    async function checkDocs() {
-      try {
-        const docs = await db("documentos","GET",null,"?select=nombre,fecha_vencimiento&fecha_vencimiento=not.is.null");
-        const hoy = new Date();
-        const proximos = docs.filter(d => {
-          if (!d.fecha_vencimiento) return false;
-          const dias = Math.round((new Date(d.fecha_vencimiento) - hoy) / 86400000);
-          return dias >= 0 && dias <= 30;
-        });
-        setDocsAlert(proximos);
-      } catch(e){}
-    }
-    checkDocs();
-
-    async function checkCombustible() {
-      try {
-        // Check latest bitacora entry for fuel level
+        // Combustible
         const bits = await db("bitacora","GET",null,"?order=fecha.desc&limit=1&select=combustible_cargado,fecha");
         if (bits.length && bits[0].combustible_cargado !== null) {
           const pct = parseFloat(bits[0].combustible_cargado);
-          // Check if there's a repostaje AFTER the last bitacora entry
-          const ultimaFecha = bits[0].fecha;
-          const repostajes = await db("combustible","GET",null,`?order=fecha.desc&limit=1&fecha=gte.${ultimaFecha}`);
-          // If there's a recent repostaje, assume tank is full - no alert
-          if (repostajes.length > 0) {
-            setCombustibleAlert(null);
-          } else if (pct < 40) {
-            setCombustibleAlert(pct);
-          } else {
-            setCombustibleAlert(null);
-          }
+          const repos = await db("combustible","GET",null,`?order=fecha.desc&limit=1&fecha=gte.${bits[0].fecha}`);
+          if (!repos.length && pct < 40) setCombustibleAlert(pct);
         }
       } catch(e){}
+      try {
+        // Mantenimiento
+        const [tareas, hbits] = await Promise.all([
+          db("mantenimiento","GET",null,"?select=tipo,horas_intervalo,horas_ultima,intervalo_dias,fecha_ultima"),
+          db("bitacora","GET",null,"?select=horas_motor_inicio,horas_motor_fin"),
+        ]);
+        const hAct = 774 + hbits.reduce((a,b)=>{
+          const i=parseFloat(b.horas_motor_inicio)||0, f=parseFloat(b.horas_motor_fin)||0;
+          return a+(f>i?f-i:0);
+        },0);
+        let vencidas=0, proximas=0;
+        const hoy = new Date();
+        tareas.forEach(t=>{
+          let d=false, w=false;
+          if (t.horas_intervalo && t.horas_ultima) {
+            const r = t.horas_intervalo-(hAct-parseFloat(t.horas_ultima));
+            if (r<=0) d=true; else if (r<=t.horas_intervalo*0.2) w=true;
+          }
+          if (t.intervalo_dias && t.fecha_ultima) {
+            const fp = new Date(new Date(t.fecha_ultima).getTime()+t.intervalo_dias*86400000);
+            const dv = Math.round((fp-hoy)/86400000);
+            if (dv<=0) d=true; else if (dv<=30) w=true;
+          } else if (t.intervalo_dias && !t.fecha_ultima) w=true;
+          if (d) vencidas++; else if (w) proximas++;
+        });
+        if (vencidas>0) setMantAlert({nivel:"danger",texto:`${vencidas} tarea${vencidas>1?"s":""} vencida${vencidas>1?"s":""}`});
+        else if (proximas>0) setMantAlert({nivel:"warn",texto:`${proximas} revisión${proximas>1?"es":""} próxima${proximas>1?"s":""}`});
+      } catch(e){}
+      try {
+        const av = await db("averias","GET",null,"?estado=in.(pendiente,en_taller)&order=fecha.desc");
+        setAveriasAlert(av);
+      } catch(e){}
+      try {
+        const docs = await db("documentos","GET",null,"?select=nombre,fecha_vencimiento&fecha_vencimiento=not.is.null");
+        const hoy = new Date();
+        setDocsAlert(docs.filter(d=>{
+          if (!d.fecha_vencimiento) return false;
+          const dias = Math.round((new Date(d.fecha_vencimiento)-hoy)/86400000);
+          return dias>=0 && dias<=30;
+        }));
+      } catch(e){}
     }
-    checkCombustible();
+    checks();
   },[]);
 
   const alerts = [
-    // Combustible
-    combustibleAlert !== null ? { msg:`⛽ Combustible bajo · ${combustibleAlert}%`, sub:"Repostar antes de la proxima salida", c:T.danger, to:"combustible" } : null,
-    // Mantenimiento dinamico
-    mantAlert?.nivel==="danger" ? { msg:`🔧 ${mantAlert.texto}`, sub:"Accede a Mantenimiento para revisar", c:T.danger, to:"mantenimiento" } : null,
-    mantAlert?.nivel==="warn"   ? { msg:`🔧 ${mantAlert.texto}`, sub:"Revision proxima recomendada", c:T.warn, to:"mantenimiento" } : null,
-    // Averias pendientes
-    ...averiasAlert.map(a => ({ msg:`⚠ Averia: ${a.descripcion}`, sub:`Registrada el ${a.fecha} · ${a.estado==="en_taller"?"En taller":"Pendiente"}`, c:T.danger, to:"mantenimiento" })),
-    // Documentos proximos a vencer
-    ...docsAlert.map(d => ({ msg:`📄 ${d.nombre} vence pronto`, sub:`Vencimiento: ${d.fecha_vencimiento}`, c:T.warn, to:"documentos" })),
+    combustibleAlert !== null
+      ? { msg:`Combustible bajo · ${combustibleAlert}%`, sub:"Repostar antes de salir", c:T.danger, to:"combustible" }
+      : null,
+    mantAlert?.nivel==="danger"
+      ? { msg:mantAlert.texto, sub:"Accede a Motor para revisar", c:T.danger, to:"motor" }
+      : null,
+    mantAlert?.nivel==="warn"
+      ? { msg:mantAlert.texto, sub:"Revisión próxima recomendada", c:T.warn, to:"motor" }
+      : null,
+    ...averiasAlert.map(a=>({
+      msg:`Avería: ${a.descripcion}`,
+      sub:`${a.fecha} · ${a.estado==="en_taller"?"En taller":"Pendiente"}`,
+      c:T.danger, to:"motor"
+    })),
+    ...docsAlert.map(d=>({
+      msg:`${d.nombre} vence pronto`,
+      sub:`Vencimiento: ${d.fecha_vencimiento}`,
+      c:T.warn, to:"elbarco"
+    })),
   ].filter(Boolean);
+
+  // SVG icon paths
+  const SVG_BITACORA = (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+      stroke="#B08D57" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      <line x1="9" y1="8" x2="15" y2="8"/>
+      <line x1="9" y1="12" x2="13" y2="12"/>
+    </svg>
+  );
+  const SVG_MOTOR = (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+      stroke="#B08D57" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+  );
+  const SVG_REPOSTAJE = (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+      stroke="#B08D57" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 22V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/>
+      <path d="M3 22h10"/>
+      <path d="M13 8h2a2 2 0 0 1 2 2v1a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V7a2 2 0 0 0-.59-1.41L17 2"/>
+      <line x1="7" y1="10" x2="9" y2="10"/>
+    </svg>
+  );
+  const SVG_IA = (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+      stroke="#B08D57" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      <line x1="9" y1="10" x2="9.01" y2="10" strokeWidth="2.5"/>
+      <line x1="12" y1="10" x2="12.01" y2="10" strokeWidth="2.5"/>
+      <line x1="15" y1="10" x2="15.01" y2="10" strokeWidth="2.5"/>
+    </svg>
+  );
+
+  const quickLinks = [
+    { label:"Bitácora",    id:"bitacora",   icon:SVG_BITACORA,  primary:true  },
+    { label:"Motor",       id:"motor",      icon:SVG_MOTOR,     primary:false },
+    { label:"Repostaje",   id:"combustible",icon:SVG_REPOSTAJE, primary:false },
+    { label:"Asistente IA",id:"ia",         icon:SVG_IA,        primary:false },
+  ];
 
   return (
     <div>
-      <div style={{ marginBottom:28, paddingTop:4 }}>
-        <div style={{ fontSize:9.5, color:T.brass, letterSpacing:3, textTransform:"uppercase",
-          fontFamily:"'DM Mono',monospace", marginBottom:6 }}>Embarcación activa</div>
-        <h1 style={{ margin:"0 0 5px", fontFamily:"'Cormorant Garamond',serif",
-          fontSize:40, fontWeight:600, color:T.ink, lineHeight:1, letterSpacing:-0.5 }}>
+      {/* ── HEADER ── */}
+      <div style={{ marginBottom:22 }}>
+        <div style={{ fontSize:13, color:T.inkDim, marginBottom:6 }}>
+          Sunseeker Portofino 53 · Caleta de Vélez
+        </div>
+        <div style={{ fontSize:34, fontWeight:500, color:T.ink,
+          letterSpacing:-0.8, lineHeight:1,
+          fontFamily:"'Cormorant Garamond',serif" }}>
           Leonidas
-        </h1>
-        <div style={{ color:T.inkDim, fontSize:11, fontFamily:"'DM Mono',monospace", letterSpacing:0.3 }}>
-          Sunseeker Portofino 53 · 7ª PM-1-231-25 · Caleta de Vélez
         </div>
       </div>
 
+      {/* ── CLIMA ── */}
       <DashboardWeather setScreen={setScreen}/>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:9, marginBottom:18 }}>
-        {[
-          { l:"Horas motor",      v:stats.horas+" h",        a:T.brassLt },
-          { l:"Millas totales",   v:stats.millas+" mn",      a:stats.millas>0?T.ink:T.inkDim },
-          { l:"Último repostaje", v:stats.ultimoRepo,        a:stats.ultimoRepo!=="Sin datos"?T.ink:T.inkDim },
-          { l:"Alertas activas",  v:alerts.length+"",        a:T.warn },
-        ].map((k,i) => (
-          <Card key={i} pad="14px 16px">
-            <div style={{ fontSize:9, color:T.inkDim, letterSpacing:1.5,
-              textTransform:"uppercase", fontFamily:"'DM Mono',monospace", marginBottom:7 }}>{k.l}</div>
-            <div style={{ fontSize:26, fontWeight:600, color:k.a,
-              fontFamily:"'Cormorant Garamond',serif", lineHeight:1 }}>{k.v}</div>
-          </Card>
-        ))}
+      {/* ── KPIs ── */}
+      <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
+        borderRadius:14, overflow:"hidden", marginBottom:16 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr" }}>
+          {[
+            { label:"Motor",           value:stats.horas+" h",    color:T.brass  },
+            { label:"Millas",          value:stats.millas+" mn",  color:T.ink    },
+            { label:"Último repostaje",value:stats.ultimoRepo,    color:T.ink, small:true },
+            { label:"Alertas",         value:String(alerts.length),
+              color:alerts.length>0?T.danger:T.ok },
+          ].map((k,i)=>(
+            <div key={i} style={{
+              padding:"15px 18px",
+              borderRight: i%2===0 ? `0.5px solid ${T.rim}` : "none",
+              borderBottom: i<2 ? `0.5px solid ${T.rim}` : "none",
+            }}>
+              <div style={{ fontSize:11, color:T.inkDim, marginBottom:5 }}>
+                {k.label}
+              </div>
+              <div style={{
+                fontSize: k.small ? 14 : 24,
+                fontWeight:500, color:k.color, letterSpacing:-0.3,
+                lineHeight:1
+              }}>{k.value}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <Card style={{ marginBottom:14 }}>
-        <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:2, textTransform:"uppercase",
-          fontFamily:"'DM Mono',monospace", marginBottom:12 }}>Alertas</div>
-        {alerts.map((a,i) => (
-          <div key={i} onClick={a.to?()=>setScreen(a.to):undefined}
-            style={{ cursor:a.to?"pointer":"default" }}>
-            {i>0 && <Divider/>}
-            <div style={{ display:"flex", alignItems:"center", gap:12, padding:"9px 0" }}>
-              <div style={{ width:3, height:38, borderRadius:2, background:a.c, flexShrink:0 }}/>
-              <div style={{flex:1}}>
-                <div style={{ color:T.ink, fontSize:12.5, fontWeight:500 }}>{a.msg}</div>
-                <div style={{ color:T.inkDim, fontSize:10, marginTop:2,
-                  fontFamily:"'DM Mono',monospace" }}>{a.sub}</div>
+      {/* ── ALERTAS ── */}
+      {alerts.length > 0 && (
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:11, fontWeight:500, color:T.inkDim,
+            marginBottom:10 }}>Alertas</div>
+          {alerts.map((a,i)=>(
+            <div key={i} onClick={()=>setScreen(a.to)}
+              style={{ display:"flex", alignItems:"center", gap:12,
+                padding:"11px 0", cursor:"pointer",
+                borderBottom: i<alerts.length-1
+                  ? `0.5px solid ${T.rim}` : "none" }}>
+              <div style={{ width:2, height:36, background:a.c,
+                borderRadius:1, flexShrink:0 }}/>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:13, fontWeight:500, color:T.ink,
+                  marginBottom:2 }}>{a.msg}</div>
+                <div style={{ fontSize:11, color:T.inkDim }}>{a.sub}</div>
               </div>
-              {a.to && <span style={{color:T.inkDim,fontSize:18,fontWeight:300}}>›</span>}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
             </div>
-          </div>
-        ))}
-      </Card>
+          ))}
+        </div>
+      )}
 
-      <Card style={{ marginBottom:14 }}>
-        <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:2, textTransform:"uppercase",
-          fontFamily:"'DM Mono',monospace", marginBottom:10 }}>Última entrada · Bitácora</div>
-        {ultimaBitacora ? (
-          <div onClick={()=>setScreen("bitacora")}
-            style={{ cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-            <div style={{flex:1}}>
-              <div style={{ color:T.ink, fontWeight:600, fontSize:17,
-                fontFamily:"'Cormorant Garamond',serif" }}>{ultimaBitacora.salida} → {ultimaBitacora.llegada}</div>
-              <div style={{ color:T.inkDim, fontSize:10, marginTop:3,
-                fontFamily:"'DM Mono',monospace" }}>{ultimaBitacora.fecha} · {ultimaBitacora.patron}</div>
+      {/* ── ÚLTIMA SALIDA ── */}
+      <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
+        borderRadius:14, overflow:"hidden", marginBottom:16 }}>
+        <div onClick={()=>setScreen("bitacora")}
+          style={{ padding:"14px 18px", display:"flex",
+            alignItems:"center", justifyContent:"space-between",
+            cursor:"pointer" }}>
+          <div>
+            <div style={{ fontSize:11, color:T.inkDim, marginBottom:5 }}>
+              Última salida
             </div>
-            <span style={{color:T.inkDim, fontSize:22, fontWeight:300, alignSelf:"center"}}>›</span>
+            {ultimaBitacora ? (
+              <>
+                <div style={{ fontSize:15, fontWeight:500, color:T.ink,
+                  marginBottom:3 }}>
+                  {ultimaBitacora.salida} → {ultimaBitacora.llegada}
+                </div>
+                <div style={{ fontSize:12, color:T.inkDim }}>
+                  {ultimaBitacora.fecha} · {ultimaBitacora.patron}
+                  {ultimaBitacora.hora_salida && ultimaBitacora.hora_llegada
+                    ? ` · ${ultimaBitacora.hora_salida}–${ultimaBitacora.hora_llegada}`
+                    : ""}
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize:13, color:T.inkDim, fontStyle:"italic" }}>
+                Sin salidas registradas aún
+              </div>
+            )}
           </div>
-        ) : (
-          <div style={{ color:T.inkDim, fontSize:13, fontStyle:"italic" }}>
-            Aún no hay entradas. Pulsa "+ Nueva" en Bitácora.
-          </div>
-        )}
-      </Card>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+      </div>
 
-      <div style={{ fontSize:9.5, color:T.inkDim, letterSpacing:2, textTransform:"uppercase",
-        fontFamily:"'DM Mono',monospace", marginBottom:11 }}>Acceso rápido</div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:9 }}>
-        {[
-          { label:"Bitácora",       id:"bitacora",      d:NAV[2].svg },
-          { label:"Mantenimiento",  id:"mantenimiento", d:NAV[3].svg },
-          { label:"Repostaje",      id:"combustible",   d:NAV[4].svg },
-          { label:"Asistente IA",   id:"ia",            d:NAV[10].svg },
-        ].map(a => (
-          <button key={a.id} onClick={()=>setScreen(a.id)} style={{
-            background:T.surfaceUp, border:`1px solid ${T.rimHi}`,
-            borderRadius:10, padding:"15px 13px", cursor:"pointer",
-            display:"flex", flexDirection:"column", alignItems:"flex-start", gap:10,
-            textAlign:"left" }}>
-            <Icon d={a.d} color={T.brass} size={19}/>
-            <span style={{ color:T.inkMid, fontSize:12, lineHeight:1.4,
-              fontFamily:"inherit" }}>{a.label}</span>
-          </button>
-        ))}
+      {/* ── ACCESO RÁPIDO ── */}
+      <div>
+        <div style={{ fontSize:11, fontWeight:500, color:T.inkDim,
+          marginBottom:10 }}>Acceso rápido</div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+          {quickLinks.map(q=>(
+            <button key={q.id} onClick={()=>setScreen(q.id)}
+              style={{ background: q.primary ? T.ink : T.surface,
+                border: q.primary ? "none" : `0.5px solid ${T.rim}`,
+                borderRadius:12, padding:"13px 16px",
+                cursor:"pointer", textAlign:"left",
+                display:"flex", alignItems:"center", gap:10 }}>
+              {q.icon}
+              <span style={{ fontSize:13, fontWeight:500,
+                color: q.primary ? "#fff" : T.ink }}>
+                {q.label}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
