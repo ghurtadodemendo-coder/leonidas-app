@@ -3287,23 +3287,168 @@ const LUGARES_GUARDADOS = [
 ];
 
 function Clima() {
-  const [wx, setWx] = useState(null);
+  const [wx, setWx]           = useState(null);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState(null);
-  const [tab, setTab] = useState("ahora");
-
-  // Location state
-  const [modoUbic, setModoUbic] = useState("auto"); // "auto" | "manual"
+  const [err, setErr]         = useState(null);
+  const [tab, setTab]         = useState("ahora");
+  const [modoUbic, setModoUbic]   = useState("auto");
   const [ubicActual, setUbicActual] = useState({ nombre:"Caleta de Vélez", lat:CALETA.lat, lon:CALETA.lon });
   const [gpsLoading, setGpsLoading] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
-  const [busqueda, setBusqueda] = useState("");
+  const [busqueda, setBusqueda]     = useState("");
 
+  // ── Weather code → visual state ──────────────────────────────────────────
+  function wxState(code) {
+    if (code === 0)                          return "sun";
+    if (code <= 2)                           return "sun_cloud";
+    if (code === 3)                          return "cloud";
+    if (code >= 45 && code <= 48)           return "fog";
+    if (code >= 51 && code <= 67)           return "rain";
+    if (code >= 71 && code <= 77)           return "snow";
+    if (code >= 80 && code <= 82)           return "rain";
+    if (code >= 95)                          return "storm";
+    return "cloud";
+  }
+
+  function wxLabel(code) {
+    if (code === 0)                          return "Despejado";
+    if (code <= 2)                           return "Parcialmente nublado";
+    if (code === 3)                          return "Nublado";
+    if (code >= 45 && code <= 48)           return "Niebla";
+    if (code >= 51 && code <= 67)           return "Lluvia";
+    if (code >= 71 && code <= 77)           return "Nieve";
+    if (code >= 80 && code <= 82)           return "Chubascos";
+    if (code >= 95)                          return "Tormenta";
+    return "Nublado";
+  }
+
+  // ── Animated weather icon ─────────────────────────────────────────────────
+  function WxIcon({ state, size=64 }) {
+    const s = size;
+    const half = s/2;
+    const sunR = s*0.28;
+    const cloudW = s*0.76;
+    const cloudH = s*0.42;
+
+    if (state === "sun") return (
+      <div style={{ position:"relative", width:s, height:s,
+        animation:"wxRise 4s ease-in-out infinite", flexShrink:0 }}>
+        {/* Rays */}
+        <svg style={{ position:"absolute", top:0, left:0 }}
+          width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
+          <g stroke="#ffb830" strokeWidth={s*0.028} strokeLinecap="round" opacity=".65">
+            {[0,45,90,135,180,225,270,315].map((deg,i) => {
+              const r1 = sunR + s*0.07, r2 = sunR + s*0.15;
+              const rad = deg * Math.PI / 180;
+              return <line key={i}
+                x1={half + r1*Math.cos(rad)} y1={half + r1*Math.sin(rad)}
+                x2={half + r2*Math.cos(rad)} y2={half + r2*Math.sin(rad)}/>;
+            })}
+          </g>
+        </svg>
+        {/* Sun disc */}
+        <div style={{ position:"absolute",
+          top: half-sunR, left: half-sunR,
+          width: sunR*2, height: sunR*2, borderRadius:"50%",
+          background:"radial-gradient(circle,#ffe87a 40%,#ffb830 100%)",
+          boxShadow:`0 0 ${s*0.3}px #ffb83060`,
+          animation:"wxGlow 3s ease-in-out infinite" }}/>
+      </div>
+    );
+
+    if (state === "sun_cloud") return (
+      <div style={{ position:"relative", width:s, height:s, flexShrink:0 }}>
+        {/* Small sun top-right */}
+        <div style={{ position:"absolute", top:s*0.06, right:s*0.08,
+          width:s*0.38, height:s*0.38, borderRadius:"50%",
+          background:"radial-gradient(circle,#ffe87a,#ffb830)",
+          boxShadow:`0 0 ${s*0.18}px #ffb83050`,
+          animation:"wxGlow 3s ease-in-out infinite" }}/>
+        {/* Cloud bottom-left */}
+        <div style={{ position:"absolute", bottom:s*0.05, left:0,
+          animation:"wxDrift 6s ease-in-out infinite" }}>
+          <svg width={s*0.78} height={s*0.48} viewBox="0 0 56 34">
+            <ellipse cx="28" cy="24" rx="24" ry="11" fill="#4a6080"/>
+            <ellipse cx="20" cy="17" rx="15" ry="13" fill="#3d5570"/>
+            <ellipse cx="36" cy="19" rx="13" ry="11" fill="#3d5570"/>
+          </svg>
+        </div>
+      </div>
+    );
+
+    if (state === "cloud" || state === "fog") return (
+      <div style={{ position:"relative", width:s, height:s, flexShrink:0 }}>
+        <div style={{ position:"absolute", top:s*0.08, right:s*0.04,
+          animation:"wxDrift2 7s ease-in-out infinite" }}>
+          <svg width={s*0.6} height={s*0.42} viewBox="0 0 44 30">
+            <ellipse cx="22" cy="22" rx="18" ry="9" fill="#2e3d4f"/>
+            <ellipse cx="16" cy="15" rx="12" ry="11" fill="#253347"/>
+            <ellipse cx="30" cy="17" rx="10" ry="9" fill="#253347"/>
+          </svg>
+        </div>
+        <div style={{ position:"absolute", bottom:s*0.06, left:s*0.02,
+          animation:"wxDrift 8s ease-in-out infinite" }}>
+          <svg width={s*0.78} height={s*0.46} viewBox="0 0 56 32">
+            <ellipse cx="28" cy="23" rx="23" ry="10" fill="#364858"/>
+            <ellipse cx="20" cy="16" rx="15" ry="12" fill="#2d3f52"/>
+            <ellipse cx="36" cy="18" rx="13" ry="10" fill="#2d3f52"/>
+          </svg>
+        </div>
+      </div>
+    );
+
+    if (state === "rain" || state === "snow") return (
+      <div style={{ position:"relative", width:s, height:s, flexShrink:0 }}>
+        {/* Cloud */}
+        <div style={{ position:"absolute", top:s*0.04, left:s*0.04,
+          animation:"wxDrift 9s ease-in-out infinite" }}>
+          <svg width={s*0.84} height={s*0.44} viewBox="0 0 60 30">
+            <ellipse cx="30" cy="22" rx="26" ry="9" fill="#1e2d3d"/>
+            <ellipse cx="22" cy="14" rx="17" ry="13" fill="#182636"/>
+            <ellipse cx="38" cy="16" rx="14" ry="11" fill="#182636"/>
+          </svg>
+        </div>
+        {/* Drops */}
+        <div style={{ position:"absolute", bottom:s*0.04, left:s*0.18,
+          display:"flex", gap:s*0.08 }}>
+          {[0,.25,.5,.75,1].map(delay => (
+            <div key={delay} style={{ width:s*0.03, height:s*0.14,
+              background: state==="snow" ? "#a8d4f5" : "#5b9bd5",
+              borderRadius:s*0.02,
+              animation:`wxRain 1s ease-in infinite`,
+              animationDelay:`${delay}s` }}/>
+          ))}
+        </div>
+      </div>
+    );
+
+    if (state === "storm") return (
+      <div style={{ position:"relative", width:s, height:s, flexShrink:0 }}>
+        <div style={{ position:"absolute", top:s*0.04, left:s*0.04,
+          animation:"wxDrift 9s ease-in-out infinite" }}>
+          <svg width={s*0.84} height={s*0.44} viewBox="0 0 60 30">
+            <ellipse cx="30" cy="22" rx="26" ry="9" fill="#0e1820"/>
+            <ellipse cx="22" cy="14" rx="17" ry="13" fill="#0b141e"/>
+            <ellipse cx="38" cy="16" rx="14" ry="11" fill="#0b141e"/>
+          </svg>
+        </div>
+        {/* Lightning bolt */}
+        <svg style={{ position:"absolute", bottom:s*0.02, left:s*0.35 }}
+          width={s*0.3} height={s*0.42} viewBox="0 0 20 28">
+          <path d="M12 0L4 16h7L8 28l11-16h-7z" fill="#ffe87a" opacity=".9"/>
+        </svg>
+      </div>
+    );
+
+    return null;
+  }
+
+  // ── API fetch ─────────────────────────────────────────────────────────────
   async function fetchWxAt(lat, lon) {
     setLoading(true); setErr(null); setWx(null);
     try {
       const url  = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_direction,wave_period&current=wave_height,wave_direction,wave_period&timezone=Europe%2FMadrid&forecast_days=3`;
-      const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&wind_speed_unit=kn&timezone=Europe%2FMadrid&forecast_days=3`;
+      const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,weathercode&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,weathercode&wind_speed_unit=kn&timezone=Europe%2FMadrid&forecast_days=3`;
       const [mRes, wRes] = await Promise.all([fetch(url), fetch(wUrl)]);
       const [mData, wData] = await Promise.all([mRes.json(), wRes.json()]);
       setWx({ marine: mData, wind: wData });
@@ -3315,22 +3460,16 @@ function Clima() {
     if (!navigator.geolocation) { setErr("GPS no disponible"); return; }
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(pos => {
-      const loc = { nombre:"Mi posición actual", lat: pos.coords.latitude, lon: pos.coords.longitude };
-      setUbicActual(loc);
-      setModoUbic("auto");
-      setGpsLoading(false);
+      const loc = { nombre:"Mi posición actual", lat:pos.coords.latitude, lon:pos.coords.longitude };
+      setUbicActual(loc); setModoUbic("auto"); setGpsLoading(false);
       fetchWxAt(loc.lat, loc.lon);
-    }, () => {
-      setGpsLoading(false);
-      setErr("No se pudo obtener tu posición GPS.");
-    }, { enableHighAccuracy: true, timeout: 8000 });
+    }, () => { setGpsLoading(false); setErr("No se pudo obtener tu posición GPS."); },
+    { enableHighAccuracy:true, timeout:8000 });
   }
 
   function seleccionarLugar(lugar) {
-    setUbicActual(lugar);
-    setModoUbic("manual");
-    setShowPicker(false);
-    setBusqueda("");
+    setUbicActual(lugar); setModoUbic("manual");
+    setShowPicker(false); setBusqueda("");
     fetchWxAt(lugar.lat, lugar.lon);
   }
 
@@ -3342,38 +3481,40 @@ function Clima() {
 
   const renderLocationBar = () => (
     <div style={{ marginBottom:16 }}>
-      {/* Location display + toggle */}
       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-        <div style={{ flex:1, background:T.surface, border:`0.5px solid ${T.rimHi}`,
-          borderRadius:9, padding:"9px 14px", display:"flex", alignItems:"center",
+        <div style={{ flex:1, background:T.surface, border:`0.5px solid ${T.rim}`,
+          borderRadius:10, padding:"10px 14px", display:"flex", alignItems:"center",
           justifyContent:"space-between", cursor:"pointer" }}
           onClick={()=>setShowPicker(!showPicker)}>
           <div>
             <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:2 }}>
-              {modoUbic==="auto" ? "📍 Posición GPS" : "📌 Lugar seleccionado"}
+              {modoUbic==="auto" ? "Posición GPS" : "Lugar seleccionado"}
             </div>
-            <div style={{ color:T.ink, fontSize:14, fontWeight:600 }}>{ubicActual.nombre}</div>
+            <div style={{ color:T.ink, fontSize:14, fontWeight:500 }}>{ubicActual.nombre}</div>
           </div>
-          <span style={{ color:T.inkDim, fontSize:12 }}>
-            {showPicker ? "▲" : "▼"}
-          </span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
+            <polyline points={showPicker?"18 15 12 9 6 15":"6 9 12 15 18 9"}/>
+          </svg>
         </div>
         <button onClick={usarGPS} disabled={gpsLoading} style={{
-          width:42, height:42, borderRadius:9, border:`0.5px solid ${T.rimHi}`,
-          background:modoUbic==="auto" ? T.brass : T.surface,
+          width:42, height:42, borderRadius:10,
+          border:`0.5px solid ${modoUbic==="auto"?T.ink:T.rim}`,
+          background:modoUbic==="auto" ? T.ink : T.surface,
           color:modoUbic==="auto" ? "#fff" : T.inkDim,
-          fontSize:16, cursor:"pointer", flexShrink:0,
+          cursor:"pointer", flexShrink:0,
           display:"flex", alignItems:"center", justifyContent:"center" }}>
-          {gpsLoading ? "…" : "◎"}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+          </svg>
         </button>
       </div>
-
-      {/* Location picker dropdown */}
       {showPicker && (
-        <div style={{ background:T.surface, border:`0.5px solid ${T.rimHi}`,
-          borderRadius:10, overflow:"hidden",
-          boxShadow:"0 4px 20px rgba(0,0,0,0.12)" }}>
-          <div style={{ padding:"10px 14px", borderBottom:`1px solid ${T.line}` }}>
+        <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
+          borderRadius:12, overflow:"hidden" }}>
+          <div style={{ padding:"10px 14px", borderBottom:`0.5px solid ${T.rim}` }}>
             <input value={busqueda} onChange={e=>setBusqueda(e.target.value)}
               placeholder="Buscar puerto o lugar…"
               style={{ width:"100%", background:"transparent", border:"none",
@@ -3381,25 +3522,27 @@ function Clima() {
           </div>
           {lugaresFiltrados.map((l,i)=>(
             <button key={i} onClick={()=>seleccionarLugar(l)} style={{
-              width:"100%", padding:"10px 14px", border:"none",
-              borderBottom: i < lugaresFiltrados.length-1 ? `1px solid ${T.line}` : "none",
+              width:"100%", padding:"11px 14px", border:"none",
+              borderBottom: i<lugaresFiltrados.length-1 ? `0.5px solid ${T.rim}` : "none",
               background: ubicActual.nombre===l.nombre ? T.brassDim : "transparent",
               cursor:"pointer", textAlign:"left", display:"flex",
-              alignItems:"center", justifyContent:"space-between" }}>
+              alignItems:"center", justifyContent:"space-between", fontFamily:"inherit" }}>
               <span style={{ color:T.ink, fontSize:13 }}>{l.nombre}</span>
-              {ubicActual.nombre===l.nombre && (
-                <span style={{ color:T.brass, fontSize:11 }}>✓</span>
-              )}
+              {ubicActual.nombre===l.nombre &&
+                <span style={{ color:T.brass, fontSize:12 }}>✓</span>}
             </button>
           ))}
           <button onClick={()=>{ setShowPicker(false); usarGPS(); }} style={{
-            width:"100%", padding:"10px 14px", border:"none",
-            borderTop:`1px solid ${T.line}`,
-            background:"transparent", cursor:"pointer", textAlign:"left",
-            display:"flex", alignItems:"center", gap:8 }}>
-            <span style={{ fontSize:14 }}>◎</span>
-            <span style={{ color:T.brass, fontSize:14, fontWeight:600 }}>
-              Usar mi posición GPS ahora
+            width:"100%", padding:"11px 14px", border:"none",
+            borderTop:`0.5px solid ${T.rim}`, background:"transparent",
+            cursor:"pointer", textAlign:"left", display:"flex",
+            alignItems:"center", gap:10, fontFamily:"inherit" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke={T.brass} strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+            </svg>
+            <span style={{ color:T.brass, fontSize:13, fontWeight:500 }}>
+              Usar mi posición GPS
             </span>
           </button>
         </div>
@@ -3411,12 +3554,18 @@ function Clima() {
     <div>
       <Hdr title="Clima"/>
       {renderLocationBar()}
-      <Card style={{ textAlign:"center", padding:"40px 20px" }}>
-        <div style={{ color:T.inkDim, fontSize:13 }}>Consultando datos en {ubicActual.nombre}…</div>
-        <div style={{ display:"flex", justifyContent:"center", gap:6, marginTop:16 }}>
-          {[0,1,2].map(j=><div key={j} style={{ width:6,height:6,borderRadius:"50%",background:T.brass,opacity:0.3,animation:"blink 1.2s infinite",animationDelay:`${j*0.2}s` }}/>)}
+      <div style={{ background:T.ink, borderRadius:18, padding:"28px 20px",
+        display:"flex", flexDirection:"column", alignItems:"center",
+        justifyContent:"center", gap:16, minHeight:180 }}>
+        <div style={{ display:"flex", gap:6 }}>
+          {[0,1,2].map(j=><div key={j} style={{ width:6,height:6,borderRadius:"50%",
+            background:"rgba(255,255,255,0.4)", animation:"blink 1.2s infinite",
+            animationDelay:`${j*0.2}s` }}/>)}
         </div>
-      </Card>
+        <div style={{ color:"rgba(255,255,255,0.5)", fontSize:12 }}>
+          Consultando {ubicActual.nombre}…
+        </div>
+      </div>
     </div>
   );
 
@@ -3428,172 +3577,253 @@ function Clima() {
     </div>
   );
 
-  const windKn   = Math.round(wx.wind.current.wind_speed_10m);
-  const gustKn   = Math.round(wx.wind.current.wind_gusts_10m);
-  const windDir  = wx.wind.current.wind_direction_10m;
-  const tempC    = Math.round(wx.wind.current.temperature_2m);
-  const waveM    = wx.marine.current.wave_height;
-  const wavePer  = wx.marine.current.wave_period;
-  const waveDir  = wx.marine.current.wave_direction;
-  const sem      = semaforo(windKn, waveM);
+  const windKn  = Math.round(wx.wind.current.wind_speed_10m);
+  const gustKn  = Math.round(wx.wind.current.wind_gusts_10m);
+  const windDir = wx.wind.current.wind_direction_10m;
+  const tempC   = Math.round(wx.wind.current.temperature_2m);
+  const wCode   = wx.wind.current.weathercode ?? 0;
+  const waveM   = wx.marine.current.wave_height;
+  const wavePer = wx.marine.current.wave_period;
+  const waveDir = wx.marine.current.wave_direction;
+  const sem     = semaforo(windKn, waveM);
+  const semColor = sem.level==="ok" ? T.ok : sem.level==="warn" ? T.warn : T.danger;
+  const iconState = wxState(wCode);
 
-  // Build hourly forecast for next 24h
   const now = new Date();
   const hours = wx.wind.hourly.time
     .map((t,i) => ({
-      time: t,
-      hour: new Date(t).getHours(),
+      time: t, hour: new Date(t).getHours(),
       wind: Math.round(wx.wind.hourly.wind_speed_10m[i]),
       gust: Math.round(wx.wind.hourly.wind_gusts_10m[i]),
       wave: wx.marine.hourly.wave_height[i],
       temp: Math.round(wx.wind.hourly.temperature_2m[i]),
+      wcode: wx.wind.hourly.weathercode?.[i] ?? 0,
     }))
     .filter(h => new Date(h.time) >= now)
     .slice(0, 24);
 
-  // 3-day summary
   const days = [];
   for (let d = 0; d < 3; d++) {
-    const dayHours = wx.wind.hourly.time
-      .map((t,i) => ({ t, wind: Math.round(wx.wind.hourly.wind_speed_10m[i]), wave: wx.marine.hourly.wave_height[i] }))
+    const dHours = wx.wind.hourly.time
+      .map((t,i) => ({
+        t, wind: Math.round(wx.wind.hourly.wind_speed_10m[i]),
+        wave: wx.marine.hourly.wave_height[i],
+        wcode: wx.wind.hourly.weathercode?.[i] ?? 0,
+        temp: Math.round(wx.wind.hourly.temperature_2m[i]),
+      }))
       .filter(h => {
         const hDate = new Date(h.t);
         const target = new Date(); target.setDate(target.getDate() + d);
         return hDate.toDateString() === target.toDateString();
       });
-    if (!dayHours.length) continue;
-    const maxWind = Math.max(...dayHours.map(h=>h.wind));
-    const maxWave = Math.max(...dayHours.filter(h=>h.wave!=null).map(h=>h.wave));
-    const label = d===0?"Hoy":d===1?"Mañana":new Date(dayHours[0].t).toLocaleDateString("es-ES",{weekday:"short"});
-    days.push({ label, maxWind, maxWave, sem: semaforo(maxWind, maxWave||0) });
+    if (!dHours.length) continue;
+    const maxWind = Math.max(...dHours.map(h=>h.wind));
+    const maxWave = Math.max(...dHours.filter(h=>h.wave!=null).map(h=>h.wave));
+    const midCode = dHours[Math.floor(dHours.length/2)]?.wcode ?? 0;
+    const maxTemp = Math.max(...dHours.map(h=>h.temp));
+    const minTemp = Math.min(...dHours.map(h=>h.temp));
+    const label = d===0?"Hoy":d===1?"Mañana":new Date(dHours[0].t).toLocaleDateString("es-ES",{weekday:"short"});
+    days.push({ label, maxWind, maxWave, midCode, maxTemp, minTemp,
+      sem: semaforo(maxWind, maxWave||0) });
   }
-
-  const semColor = sem.level==="ok"?T.ok:sem.level==="warn"?T.warn:T.danger;
 
   return (
     <div>
       <Hdr title="Clima"/>
-
       {renderLocationBar()}
 
-      {/* Semáforo principal */}
-      <div style={{ background: semColor+"18", border:`1px solid ${semColor}40`,
-        borderRadius:12, padding:"18px 20px", marginBottom:16,
-        display:"flex", alignItems:"center", gap:16 }}>
-        <div style={{ fontSize:36, lineHeight:1 }}>{sem.icon}</div>
-        <div>
-          <div style={{ color:semColor, fontWeight:700, fontSize:16 }}>{sem.label}</div>
-          <div style={{ color:T.inkDim, fontSize:11, marginTop:4 }}>{sem.desc}</div>
+      {/* ── HERO MARINO OSCURO ── */}
+      <div style={{ background:T.ink, borderRadius:18, overflow:"hidden",
+        marginBottom:16 }}>
+        <div style={{ padding:"20px 20px 0" }}>
+          {/* Semáforo náutico */}
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16 }}>
+            <div style={{ width:8, height:8, borderRadius:"50%",
+              background:semColor, boxShadow:`0 0 8px ${semColor}` }}/>
+            <span style={{ fontSize:13, color:"rgba(255,255,255,0.9)",
+              fontWeight:500 }}>{sem.label}</span>
+            <span style={{ fontSize:12, color:"rgba(255,255,255,0.4)",
+              marginLeft:"auto" }}>{wxLabel(wCode)}</span>
+          </div>
+
+          {/* Temperatura + icono */}
+          <div style={{ display:"flex", alignItems:"flex-start",
+            justifyContent:"space-between", marginBottom:20 }}>
+            <div>
+              <div style={{ fontSize:68, fontWeight:200, color:"#fff",
+                lineHeight:1, letterSpacing:-3 }}>{tempC}°</div>
+            </div>
+            <WxIcon state={iconState} size={68}/>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr",
+          borderTop:"1px solid rgba(255,255,255,0.08)",
+          padding:"14px 20px 18px", gap:0 }}>
+          {[
+            { label:"Viento", value:`${windKn}`, unit:"kn",
+              color: windKn>20 ? T.danger : windKn>8 ? T.warn : "rgba(255,255,255,0.9)" },
+            { label:"Ola", value:`${waveM?.toFixed(1)??"--"}`, unit:"m",
+              color: waveM>1.5 ? T.danger : waveM>0.5 ? T.warn : "rgba(255,255,255,0.9)" },
+            { label:"Rachas", value:`${gustKn}`, unit:"kn",
+              color:"rgba(255,255,255,0.9)" },
+          ].map((s,i) => (
+            <div key={i} style={{
+              paddingRight: i<2 ? 12 : 0,
+              paddingLeft: i>0 ? 12 : 0,
+              borderRight: i<2 ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
+              <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)",
+                marginBottom:4 }}>{s.label}</div>
+              <div style={{ fontSize:22, fontWeight:400, color:s.color,
+                lineHeight:1 }}>
+                {s.value}
+                <span style={{ fontSize:12,
+                  color:"rgba(255,255,255,0.4)", marginLeft:3 }}>{s.unit}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display:"flex", background:T.bg, borderRadius:10, padding:3,
-        gap:3, marginBottom:16, border:`0.5px solid ${T.rimHi}` }}>
+      {/* ── TABS ── */}
+      <div style={{ display:"flex", gap:0, marginBottom:16,
+        borderBottom:`0.5px solid ${T.rim}` }}>
         {[["ahora","Ahora"],["horas","24h"],["dias","3 días"],["mapa","Mapa"]].map(([id,lbl])=>(
           <button key={id} onClick={()=>setTab(id)} style={{
-            flex:1, padding:"8px 4px", borderRadius:5, border:"none", cursor:"pointer",
-            background:tab===id?T.surface:"transparent",
-            color:tab===id?T.ink:T.inkDim, fontSize:11, fontWeight:tab===id?600:400,
-            fontFamily:"inherit", boxShadow:tab===id?"0 1px 3px rgba(0,0,0,0.4)":"none" }}>
+            flex:1, padding:"10px 4px", border:"none", cursor:"pointer",
+            background:"transparent",
+            color:tab===id ? T.ink : T.inkDim,
+            fontSize:12, fontWeight:tab===id ? 500 : 400,
+            fontFamily:"inherit",
+            borderBottom:tab===id ? `2px solid ${T.ink}` : "2px solid transparent",
+            marginBottom:-0.5 }}>
             {lbl}
           </button>
         ))}
       </div>
 
+      {/* ── AHORA ── */}
       {tab==="ahora" && (
-        <Card pad="0 18px">
+        <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
+          borderRadius:12, overflow:"hidden" }}>
           {[
-            ["Viento",       `${windKn} kn · ${degToCompass(windDir)}`, windKn>20?T.warn:T.ink],
-            ["Rachas",       `${gustKn} kn`, gustKn>25?T.danger:gustKn>18?T.warn:T.ink],
-            ["Dirección viento", degToCompass(windDir)+"  ("+windDir+"°)", T.ink],
-            ["Altura de ola", `${waveM?.toFixed(1) ?? "--"} m`, waveM>1.5?T.danger:waveM>0.8?T.warn:T.ok],
-            ["Período de ola",`${wavePer?.toFixed(0) ?? "--"} s`, T.ink],
-            ["Dirección ola", degToCompass(waveDir), T.ink],
-            ["Temperatura",  `${tempC} °C`, T.ink],
-          ].map(([k,v,c],i)=>(
-            <div key={k}>{i>0&&<Divider/>}<Row label={k} value={v} accent={c}/></div>
+            ["Viento",          `${windKn} kn · ${degToCompass(windDir)}`,
+              windKn>20?T.danger:windKn>8?T.warn:T.ink],
+            ["Rachas",          `${gustKn} kn`,
+              gustKn>25?T.danger:gustKn>18?T.warn:T.ink],
+            ["Dirección",       degToCompass(windDir)+` (${windDir}°)`, T.ink],
+            ["Altura de ola",   `${waveM?.toFixed(1)??"--"} m`,
+              waveM>1.5?T.danger:waveM>0.8?T.warn:T.ok],
+            ["Período de ola",  `${wavePer?.toFixed(0)??"--"} s`, T.ink],
+            ["Dirección ola",   degToCompass(waveDir), T.ink],
+            ["Temperatura",     `${tempC} °C`, T.ink],
+          ].map(([k,v,c],i) => (
+            <div key={k} style={{
+              display:"flex", alignItems:"center",
+              justifyContent:"space-between",
+              padding:"13px 18px",
+              borderBottom: i<6 ? `0.5px solid ${T.rim}` : "none" }}>
+              <span style={{ fontSize:13, color:T.inkDim }}>{k}</span>
+              <span style={{ fontSize:13, fontWeight:500, color:c }}>{v}</span>
+            </div>
           ))}
-        </Card>
+        </div>
       )}
 
+      {/* ── 24H ── */}
       {tab==="horas" && (
         <div style={{ overflowX:"auto" }}>
-          <div style={{ display:"flex", gap:8, paddingBottom:8, minWidth:"max-content" }}>
-            {hours.map((h,i)=>{
+          <div style={{ display:"flex", gap:8, paddingBottom:8,
+            minWidth:"max-content" }}>
+            {hours.map((h,i) => {
               const s = semaforo(h.wind, h.wave||0);
               const sc = s.level==="ok"?T.ok:s.level==="warn"?T.warn:T.danger;
+              const hs = wxState(h.wcode);
               return (
-                <Card key={i} pad="12px 10px" style={{ minWidth:70, textAlign:"center", flexShrink:0 }}>
-                  <div style={{ fontSize:12, color:T.inkDim,
-                    marginBottom:6 }}>{String(h.hour).padStart(2,"0")}:00</div>
-                  <div style={{ width:8, height:8, borderRadius:"50%", background:sc,
-                    margin:"0 auto 8px", boxShadow:`0 0 6px ${sc}60` }}/>
-                  <div style={{ color:T.ink, fontSize:12, fontWeight:600 }}>{h.wind}kn</div>
-                  <div style={{ color:T.inkDim, fontSize:12, color:T.inkDim, marginTop:2 }}>{h.wave?.toFixed(1)??"--"}m</div>
-                </Card>
+                <div key={i} style={{ background:T.surface,
+                  border:`0.5px solid ${T.rim}`, borderRadius:12,
+                  padding:"12px 10px", minWidth:64, textAlign:"center",
+                  flexShrink:0 }}>
+                  <div style={{ fontSize:11, color:T.inkDim,
+                    marginBottom:8 }}>
+                    {String(h.hour).padStart(2,"0")}h
+                  </div>
+                  {/* Mini icono clima */}
+                  <div style={{ display:"flex", justifyContent:"center",
+                    marginBottom:6, height:24 }}>
+                    <WxIcon state={hs} size={28}/>
+                  </div>
+                  <div style={{ fontSize:12, fontWeight:500, color:T.ink,
+                    marginBottom:2 }}>{h.temp}°</div>
+                  <div style={{ fontSize:11, color:sc,
+                    fontWeight:500 }}>{h.wind}kn</div>
+                  <div style={{ fontSize:11, color:T.inkDim,
+                    marginTop:1 }}>{h.wave?.toFixed(1)??"--"}m</div>
+                </div>
               );
             })}
           </div>
         </div>
       )}
 
-      {tab==="dias" && days.map((d,i)=>{
-        const sc = d.sem.level==="ok"?T.ok:d.sem.level==="warn"?T.warn:T.danger;
-        return (
-          <Card key={i} style={{ marginBottom:9 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                <div style={{ width:8, height:8, borderRadius:"50%", background:sc,
-                  boxShadow:`0 0 6px ${sc}60` }}/>
-                <div style={{ color:T.ink, fontSize:16, fontWeight:600 }}>{d.label}</div>
+      {/* ── 3 DÍAS ── */}
+      {tab==="dias" && (
+        <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
+          borderRadius:12, overflow:"hidden" }}>
+          {days.map((d,i) => {
+            const sc = d.sem.level==="ok"?T.ok:d.sem.level==="warn"?T.warn:T.danger;
+            return (
+              <div key={i} style={{
+                display:"flex", alignItems:"center", gap:14,
+                padding:"14px 18px",
+                borderBottom: i<days.length-1 ? `0.5px solid ${T.rim}` : "none" }}>
+                {/* Icono día */}
+                <WxIcon state={wxState(d.midCode)} size={36}/>
+                {/* Día */}
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:14, fontWeight:500,
+                    color:T.ink }}>{d.label}</div>
+                  <div style={{ fontSize:11, color:T.inkDim,
+                    marginTop:2 }}>
+                    {d.minTemp}° – {d.maxTemp}°
+                  </div>
+                </div>
+                {/* Viento + ola */}
+                <div style={{ textAlign:"right" }}>
+                  <div style={{ fontSize:13, fontWeight:500,
+                    color:sc }}>{d.maxWind} kn</div>
+                  <div style={{ fontSize:11, color:T.inkDim,
+                    marginTop:2 }}>ola {d.maxWave?.toFixed(1)??"--"}m</div>
+                </div>
               </div>
-              <Signal estado={d.sem.level}/>
-            </div>
-            <div style={{ display:"flex", gap:16, marginTop:10 }}>
-              <div>
-                <div style={{ fontSize:11, color:T.inkDim, marginBottom:3 }}>Viento máx.</div>
-                <div style={{ color:d.maxWind>20?T.warn:T.ink, fontWeight:600, fontSize:18 }}>{d.maxWind} kn</div>
-              </div>
-              <div>
-                <div style={{ fontSize:11, color:T.inkDim, marginBottom:3 }}>Ola máx.</div>
-                <div style={{ color:d.maxWave>1.5?T.danger:d.maxWave>0.8?T.warn:T.ok,
-                  fontWeight:600, fontSize:18 }}>
-                  {d.maxWave?.toFixed(1)??"--"} m</div>
-              </div>
-            </div>
-          </Card>
-        );
-      })}
+            );
+          })}
+        </div>
+      )}
 
-      {/* ── MAPA WINDY ── */}
+      {/* ── MAPA ── */}
       {tab==="mapa" && (
         <div>
-          <div style={{fontSize:10,color:T.inkDim,
-            marginBottom:12,lineHeight:1.5}}>
-            Mapa meteorológico en tiempo real · Puedes mover, hacer zoom y cambiar capas
-            (viento, olas, lluvia). Centrado en la Costa del Sol.
+          <div style={{ fontSize:12, color:T.inkDim, marginBottom:12,
+            lineHeight:1.5 }}>
+            Mapa en tiempo real · Viento, olas y lluvia. Centrado en la Costa del Sol.
           </div>
-          <div style={{borderRadius:12,overflow:"hidden",border:`0.5px solid ${T.rimHi}`,
-            boxShadow:"0 2px 12px rgba(0,0,0,0.08)"}}>
+          <div style={{ borderRadius:12, overflow:"hidden",
+            border:`0.5px solid ${T.rim}` }}>
             <iframe
               src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=kt&zoom=8&overlay=wind&product=ecmwf&level=surface&lat=36.73&lon=-4.08&detailLat=36.73&detailLon=-4.08&marker=true&message=true"
-              width="100%"
-              height="450"
-              frameBorder="0"
-              title="Windy - Mapa meteorológico"
-              style={{display:"block"}}
-            />
+              width="100%" height="420" frameBorder="0"
+              title="Windy" style={{ display:"block" }}/>
           </div>
-          <div style={{fontSize:12,color:T.inkDim,
-            marginTop:8,textAlign:"center"}}>
-            Powered by Windy.com · Datos ECMWF
-          </div>
+          <div style={{ fontSize:11, color:T.inkDim, marginTop:8,
+            textAlign:"center" }}>Powered by Windy.com · ECMWF</div>
         </div>
       )}
     </div>
   );
 }
+
 
 // ── CALCULADORA DE RUTA ───────────────────────────────────────────────────────
 function Calculadora() {
@@ -4896,6 +5126,11 @@ export default function App() {
         select, textarea, button { font-family: inherit }
         @keyframes blink { 0%,100%{opacity:.2} 50%{opacity:1} }
         @keyframes garreo-pulse { from{box-shadow:0 0 0 0 rgba(168,52,40,0.5)} to{box-shadow:0 0 0 14px rgba(168,52,40,0)} }
+        @keyframes wxGlow   { 0%,100%{opacity:.85} 50%{opacity:1} }
+        @keyframes wxRise   { 0%,100%{transform:translateY(2px)} 50%{transform:translateY(-2px)} }
+        @keyframes wxDrift  { 0%,100%{transform:translateX(0)} 50%{transform:translateX(6px)} }
+        @keyframes wxDrift2 { 0%,100%{transform:translateX(0)} 50%{transform:translateX(-5px)} }
+        @keyframes wxRain   { 0%{transform:translateY(-4px);opacity:0} 80%{opacity:1} 100%{transform:translateY(10px);opacity:0} }
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
         @keyframes slideIn { from{transform:translateX(-100%)} to{transform:translateX(0)} }
         @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
