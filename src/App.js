@@ -3395,9 +3395,7 @@ function Clima() {
             })}
           </g>
         </svg>
-        <div style={{ position:"absolute", top:52, left:-8, animation:"wxDrift 8s ease-in-out infinite", opacity:.3 }}>
-          <svg width="120" height="44" viewBox="0 0 120 44"><ellipse cx="60" cy="30" rx="50" ry="16" fill="white"/><ellipse cx="44" cy="20" rx="30" ry="20" fill="white"/><ellipse cx="76" cy="23" rx="26" ry="17" fill="white"/></svg>
-        </div>
+
       </div>
     );
 
