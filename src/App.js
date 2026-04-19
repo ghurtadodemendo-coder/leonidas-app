@@ -3287,171 +3287,197 @@ const LUGARES_GUARDADOS = [
 ];
 
 function Clima() {
-  const [wx, setWx]           = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr]         = useState(null);
-  const [tab, setTab]         = useState("ahora");
-  const [modoUbic, setModoUbic]   = useState("auto");
+  const [wx, setWx]             = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [err, setErr]           = useState(null);
+  const [tab, setTab]           = useState("ahora");
+  const [modoUbic, setModoUbic] = useState("auto");
   const [ubicActual, setUbicActual] = useState({ nombre:"Caleta de Vélez", lat:CALETA.lat, lon:CALETA.lon });
   const [gpsLoading, setGpsLoading] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [busqueda, setBusqueda]     = useState("");
 
-  // ── Weather code → visual state ──────────────────────────────────────────
+  // ── weathercode → estado visual (sol/nubes/lluvia) ────────────────────────
+  // Independiente del viento/olas — solo refleja el cielo real
   function wxState(code) {
-    if (code === 0)                          return "sun";
-    if (code <= 2)                           return "sun_cloud";
-    if (code === 3)                          return "cloud";
-    if (code >= 45 && code <= 48)           return "fog";
-    if (code >= 51 && code <= 67)           return "rain";
-    if (code >= 71 && code <= 77)           return "snow";
-    if (code >= 80 && code <= 82)           return "rain";
-    if (code >= 95)                          return "storm";
+    if (code === 0)                        return "sun";
+    if (code <= 2)                         return "sun_cloud";
+    if (code === 3)                        return "cloud";
+    if (code >= 45 && code <= 48)         return "fog";
+    if (code >= 51 && code <= 67)         return "rain";
+    if (code >= 71 && code <= 77)         return "snow";
+    if (code >= 80 && code <= 82)         return "rain";
+    if (code >= 95)                        return "storm";
     return "cloud";
   }
 
-  function wxLabel(code) {
-    if (code === 0)                          return "Despejado";
-    if (code <= 2)                           return "Parcialmente nublado";
-    if (code === 3)                          return "Nublado";
-    if (code >= 45 && code <= 48)           return "Niebla";
-    if (code >= 51 && code <= 67)           return "Lluvia";
-    if (code >= 71 && code <= 77)           return "Nieve";
-    if (code >= 80 && code <= 82)           return "Chubascos";
-    if (code >= 95)                          return "Tormenta";
+  function wxDesc(code) {
+    if (code === 0)                        return "Despejado";
+    if (code <= 2)                         return "Poco nuboso";
+    if (code === 3)                        return "Nublado";
+    if (code >= 45 && code <= 48)         return "Niebla";
+    if (code >= 51 && code <= 55)         return "Llovizna";
+    if (code >= 61 && code <= 67)         return "Lluvia";
+    if (code >= 71 && code <= 77)         return "Nieve";
+    if (code >= 80 && code <= 82)         return "Chubascos";
+    if (code >= 95)                        return "Tormenta";
     return "Nublado";
   }
 
-  // ── Animated weather icon ─────────────────────────────────────────────────
-  function WxIcon({ state, size=64 }) {
-    const s = size;
-    const half = s/2;
-    const sunR = s*0.28;
-    const cloudW = s*0.76;
-    const cloudH = s*0.42;
+  // ── hero background según estado del cielo ────────────────────────────────
+  function heroBg(state) {
+    if (state === "sun")       return "linear-gradient(155deg,#0d2b4a 0%,#0d4a82 45%,#1565a8 75%,#1976c0 100%)";
+    if (state === "sun_cloud") return "linear-gradient(155deg,#0d2240 0%,#1a3a5c 50%,#24507a 100%)";
+    if (state === "cloud" || state === "fog") return "linear-gradient(155deg,#141e28 0%,#1c2d3e 50%,#243548 100%)";
+    if (state === "rain" || state === "snow") return "linear-gradient(155deg,#0a1520 0%,#0d1f30 50%,#122840 100%)";
+    if (state === "storm")     return "linear-gradient(155deg,#080e14 0%,#0a1520 50%,#0d1c2c 100%)";
+    return "linear-gradient(155deg,#141e28 0%,#1c2d3e 100%)";
+  }
 
+  // ── mini icon for hourly/daily strips ────────────────────────────────────
+  function WxMini({ state, size=22 }) {
+    const s = size;
     if (state === "sun") return (
-      <div style={{ position:"relative", width:s, height:s,
-        animation:"wxRise 4s ease-in-out infinite", flexShrink:0 }}>
-        {/* Rays */}
-        <svg style={{ position:"absolute", top:0, left:0 }}
-          width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
-          <g stroke="#ffb830" strokeWidth={s*0.028} strokeLinecap="round" opacity=".65">
-            {[0,45,90,135,180,225,270,315].map((deg,i) => {
-              const r1 = sunR + s*0.07, r2 = sunR + s*0.15;
-              const rad = deg * Math.PI / 180;
-              return <line key={i}
-                x1={half + r1*Math.cos(rad)} y1={half + r1*Math.sin(rad)}
-                x2={half + r2*Math.cos(rad)} y2={half + r2*Math.sin(rad)}/>;
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="4" fill="#ffe066" opacity=".95"/>
+        <g stroke="#ffb830" strokeWidth="1.5" strokeLinecap="round" opacity=".7">
+          {[0,45,90,135,180,225,270,315].map((deg,i)=>{
+            const r=Math.PI*deg/180;
+            return <line key={i} x1={12+7*Math.cos(r)} y1={12+7*Math.sin(r)} x2={12+9.5*Math.cos(r)} y2={12+9.5*Math.sin(r)}/>;
+          })}
+        </g>
+      </svg>
+    );
+    if (state === "sun_cloud") return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <circle cx="15" cy="9" r="3.5" fill="#ffe066" opacity=".85"/>
+        <path d="M5 17h12a3 3 0 0 0 0-6h-.5a4.5 4.5 0 1 0-8.5 3H5a2 2 0 0 0 0 3z" fill="#7a9bb5" opacity=".8"/>
+      </svg>
+    );
+    if (state === "cloud" || state === "fog") return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <path d="M6 18h10a4 4 0 0 0 0-8h-.5A5 5 0 1 0 6 14.5" fill="#5a7a96" opacity=".85"/>
+        <path d="M4 18h14a3 3 0 0 0 0-6h-.5A4.5 4.5 0 1 0 5 16" fill="#4a6a82" opacity=".9"/>
+      </svg>
+    );
+    if (state === "rain") return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <path d="M4 13h14a3 3 0 0 0 0-6h-.5A4.5 4.5 0 1 0 5 11" fill="#3a5a72" opacity=".9"/>
+        <g stroke="#82b4d0" strokeWidth="1.5" strokeLinecap="round" opacity=".8">
+          <line x1="8" y1="17" x2="7" y2="21"/>
+          <line x1="12" y1="17" x2="11" y2="21"/>
+          <line x1="16" y1="17" x2="15" y2="21"/>
+        </g>
+      </svg>
+    );
+    if (state === "storm") return (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
+        <path d="M4 13h14a3 3 0 0 0 0-6h-.5A4.5 4.5 0 1 0 5 11" fill="#1e2d3d" opacity=".95"/>
+        <path d="M13 12l-4 6h4l-3 5 7-8h-4l3-3z" fill="#ffe566" opacity=".9"/>
+      </svg>
+    );
+    return <svg width={s} height={s} viewBox="0 0 24 24" fill="none"><path d="M4 13h14a3 3 0 0 0 0-6h-.5A4.5 4.5 0 1 0 5 11" fill="#4a6a82"/></svg>;
+  }
+
+  // ── hero weather illustration ─────────────────────────────────────────────
+  function HeroIllustration({ state }) {
+    if (state === "sun") return (
+      <div style={{ position:"absolute", inset:0, pointerEvents:"none" }}>
+        <div style={{ position:"absolute", top:18, right:34,
+          width:72, height:72, borderRadius:"50%",
+          background:"radial-gradient(circle,#fff5a0 20%,#ffe066 50%,#ffb830 80%)",
+          animation:"wxGlow 3s ease-in-out infinite" }}/>
+        <svg style={{ position:"absolute", top:6, right:22 }} width={96} height={96} viewBox="0 0 96 96">
+          <g stroke="#ffcc40" strokeWidth="2" strokeLinecap="round" opacity=".5">
+            {[0,45,90,135,180,225,270,315].map((deg,i)=>{
+              const r=Math.PI*deg/180, r1=42, r2=52;
+              return <line key={i} x1={48+r1*Math.cos(r)} y1={48+r1*Math.sin(r)} x2={48+r2*Math.cos(r)} y2={48+r2*Math.sin(r)}/>;
             })}
           </g>
         </svg>
-        {/* Sun disc */}
-        <div style={{ position:"absolute",
-          top: half-sunR, left: half-sunR,
-          width: sunR*2, height: sunR*2, borderRadius:"50%",
-          background:"radial-gradient(circle,#ffe87a 40%,#ffb830 100%)",
-          boxShadow:`0 0 ${s*0.3}px #ffb83060`,
-          animation:"wxGlow 3s ease-in-out infinite" }}/>
+        <div style={{ position:"absolute", top:52, left:-8, animation:"wxDrift 8s ease-in-out infinite", opacity:.3 }}>
+          <svg width="120" height="44" viewBox="0 0 120 44"><ellipse cx="60" cy="30" rx="50" ry="16" fill="white"/><ellipse cx="44" cy="20" rx="30" ry="20" fill="white"/><ellipse cx="76" cy="23" rx="26" ry="17" fill="white"/></svg>
+        </div>
       </div>
     );
 
     if (state === "sun_cloud") return (
-      <div style={{ position:"relative", width:s, height:s, flexShrink:0 }}>
-        {/* Small sun top-right */}
-        <div style={{ position:"absolute", top:s*0.06, right:s*0.08,
-          width:s*0.38, height:s*0.38, borderRadius:"50%",
+      <div style={{ position:"absolute", inset:0, pointerEvents:"none" }}>
+        <div style={{ position:"absolute", top:22, right:44,
+          width:50, height:50, borderRadius:"50%",
           background:"radial-gradient(circle,#ffe87a,#ffb830)",
-          boxShadow:`0 0 ${s*0.18}px #ffb83050`,
-          animation:"wxGlow 3s ease-in-out infinite" }}/>
-        {/* Cloud bottom-left */}
-        <div style={{ position:"absolute", bottom:s*0.05, left:0,
-          animation:"wxDrift 6s ease-in-out infinite" }}>
-          <svg width={s*0.78} height={s*0.48} viewBox="0 0 56 34">
-            <ellipse cx="28" cy="24" rx="24" ry="11" fill="#4a6080"/>
-            <ellipse cx="20" cy="17" rx="15" ry="13" fill="#3d5570"/>
-            <ellipse cx="36" cy="19" rx="13" ry="11" fill="#3d5570"/>
-          </svg>
+          opacity:.75, animation:"wxGlow 4s ease-in-out infinite" }}/>
+        <div style={{ position:"absolute", top:18, right:16, animation:"wxDrift 7s ease-in-out infinite" }}>
+          <svg width="130" height="52" viewBox="0 0 130 52"><ellipse cx="65" cy="38" rx="55" ry="17" fill="rgba(180,200,230,0.22)"/><ellipse cx="50" cy="28" rx="36" ry="22" fill="rgba(160,185,220,0.24)"/><ellipse cx="82" cy="31" rx="30" ry="18" fill="rgba(160,185,220,0.22)"/></svg>
+        </div>
+        <div style={{ position:"absolute", top:34, left:8, animation:"wxDrift2 9s ease-in-out infinite" }}>
+          <svg width="100" height="40" viewBox="0 0 100 40"><ellipse cx="50" cy="28" rx="42" ry="14" fill="rgba(140,170,210,0.16)"/><ellipse cx="38" cy="20" rx="27" ry="17" fill="rgba(140,170,210,0.18)"/><ellipse cx="66" cy="22" rx="22" ry="14" fill="rgba(140,170,210,0.16)"/></svg>
         </div>
       </div>
     );
 
     if (state === "cloud" || state === "fog") return (
-      <div style={{ position:"relative", width:s, height:s, flexShrink:0 }}>
-        <div style={{ position:"absolute", top:s*0.08, right:s*0.04,
-          animation:"wxDrift2 7s ease-in-out infinite" }}>
-          <svg width={s*0.6} height={s*0.42} viewBox="0 0 44 30">
-            <ellipse cx="22" cy="22" rx="18" ry="9" fill="#2e3d4f"/>
-            <ellipse cx="16" cy="15" rx="12" ry="11" fill="#253347"/>
-            <ellipse cx="30" cy="17" rx="10" ry="9" fill="#253347"/>
-          </svg>
+      <div style={{ position:"absolute", inset:0, pointerEvents:"none" }}>
+        <div style={{ position:"absolute", top:14, right:10, animation:"wxDrift 9s ease-in-out infinite" }}>
+          <svg width="150" height="58" viewBox="0 0 150 58"><ellipse cx="75" cy="42" rx="65" ry="20" fill="rgba(60,80,100,0.5)"/><ellipse cx="55" cy="28" rx="44" ry="26" fill="rgba(45,65,85,0.55)"/><ellipse cx="100" cy="32" rx="38" ry="22" fill="rgba(45,65,85,0.5)"/></svg>
         </div>
-        <div style={{ position:"absolute", bottom:s*0.06, left:s*0.02,
-          animation:"wxDrift 8s ease-in-out infinite" }}>
-          <svg width={s*0.78} height={s*0.46} viewBox="0 0 56 32">
-            <ellipse cx="28" cy="23" rx="23" ry="10" fill="#364858"/>
-            <ellipse cx="20" cy="16" rx="15" ry="12" fill="#2d3f52"/>
-            <ellipse cx="36" cy="18" rx="13" ry="10" fill="#2d3f52"/>
-          </svg>
+        <div style={{ position:"absolute", top:28, left:-6, animation:"wxDrift2 12s ease-in-out infinite" }}>
+          <svg width="120" height="46" viewBox="0 0 120 46"><ellipse cx="60" cy="34" rx="52" ry="16" fill="rgba(50,70,90,0.4)"/><ellipse cx="44" cy="24" rx="34" ry="20" fill="rgba(40,60,80,0.45)"/><ellipse cx="80" cy="27" rx="28" ry="17" fill="rgba(40,60,80,0.4)"/></svg>
         </div>
       </div>
     );
 
     if (state === "rain" || state === "snow") return (
-      <div style={{ position:"relative", width:s, height:s, flexShrink:0 }}>
-        {/* Cloud */}
-        <div style={{ position:"absolute", top:s*0.04, left:s*0.04,
-          animation:"wxDrift 9s ease-in-out infinite" }}>
-          <svg width={s*0.84} height={s*0.44} viewBox="0 0 60 30">
-            <ellipse cx="30" cy="22" rx="26" ry="9" fill="#1e2d3d"/>
-            <ellipse cx="22" cy="14" rx="17" ry="13" fill="#182636"/>
-            <ellipse cx="38" cy="16" rx="14" ry="11" fill="#182636"/>
-          </svg>
+      <div style={{ position:"absolute", inset:0, pointerEvents:"none" }}>
+        <div style={{ position:"absolute", top:10, left:-6, right:-6 }}>
+          <svg width="110%" height="60" viewBox="0 0 440 60" preserveAspectRatio="none"><ellipse cx="220" cy="44" rx="225" ry="22" fill="rgba(25,40,55,0.75)"/><ellipse cx="155" cy="28" rx="145" ry="27" fill="rgba(18,30,44,0.8)"/><ellipse cx="305" cy="32" rx="125" ry="24" fill="rgba(18,30,44,0.75)"/></svg>
         </div>
-        {/* Drops */}
-        <div style={{ position:"absolute", bottom:s*0.04, left:s*0.18,
-          display:"flex", gap:s*0.08 }}>
-          {[0,.25,.5,.75,1].map(delay => (
-            <div key={delay} style={{ width:s*0.03, height:s*0.14,
-              background: state==="snow" ? "#a8d4f5" : "#5b9bd5",
-              borderRadius:s*0.02,
-              animation:`wxRain 1s ease-in infinite`,
-              animationDelay:`${delay}s` }}/>
-          ))}
-        </div>
+        {[0,.2,.4,.6,.8,1.0,1.2,1.4,1.6,1.8,2.0,2.2].map((d,i)=>(
+          <div key={i} style={{ position:"absolute", top:62,
+            left:`${6+i*8}%`,
+            width:state==="snow"?4:2, height:state==="snow"?4:12,
+            background:state==="snow"?"rgba(200,230,255,0.7)":"rgba(120,170,220,0.65)",
+            borderRadius:state==="snow"?"50%":"1px",
+            animation:`wxRain ${state==="snow"?"1.8":"1.1"}s ease-in infinite`,
+            animationDelay:`${d}s` }}/>
+        ))}
       </div>
     );
 
     if (state === "storm") return (
-      <div style={{ position:"relative", width:s, height:s, flexShrink:0 }}>
-        <div style={{ position:"absolute", top:s*0.04, left:s*0.04,
-          animation:"wxDrift 9s ease-in-out infinite" }}>
-          <svg width={s*0.84} height={s*0.44} viewBox="0 0 60 30">
-            <ellipse cx="30" cy="22" rx="26" ry="9" fill="#0e1820"/>
-            <ellipse cx="22" cy="14" rx="17" ry="13" fill="#0b141e"/>
-            <ellipse cx="38" cy="16" rx="14" ry="11" fill="#0b141e"/>
-          </svg>
+      <div style={{ position:"absolute", inset:0, pointerEvents:"none" }}>
+        <div style={{ position:"absolute", top:8, left:-6, right:-6 }}>
+          <svg width="110%" height="64" viewBox="0 0 440 64" preserveAspectRatio="none"><ellipse cx="220" cy="50" rx="225" ry="24" fill="rgba(8,15,22,0.92)"/><ellipse cx="150" cy="30" rx="145" ry="30" fill="rgba(6,12,20,0.95)"/><ellipse cx="295" cy="35" rx="125" ry="26" fill="rgba(6,12,20,0.92)"/></svg>
         </div>
-        {/* Lightning bolt */}
-        <svg style={{ position:"absolute", bottom:s*0.02, left:s*0.35 }}
-          width={s*0.3} height={s*0.42} viewBox="0 0 20 28">
-          <path d="M12 0L4 16h7L8 28l11-16h-7z" fill="#ffe87a" opacity=".9"/>
+        <svg style={{ position:"absolute", top:60, right:"32%",
+          animation:"wxLightning 3s infinite" }}
+          width="28" height="50" viewBox="0 0 28 50">
+          <path d="M18 0L5 28h11L7 50l21-30H17z" fill="#ffe566"/>
         </svg>
+        {[0,.15,.3,.45,.6,.75,.9,1.05,1.2,1.35,1.5,1.65].map((d,i)=>(
+          <div key={i} style={{ position:"absolute", top:66,
+            left:`${4+i*8}%`,
+            width:2, height:13,
+            background:"rgba(110,160,215,0.6)",
+            borderRadius:1,
+            animation:`wxRain 0.9s ease-in infinite`,
+            animationDelay:`${d}s` }}/>
+        ))}
       </div>
     );
-
     return null;
   }
 
-  // ── API fetch ─────────────────────────────────────────────────────────────
+  // ── API ───────────────────────────────────────────────────────────────────
   async function fetchWxAt(lat, lon) {
     setLoading(true); setErr(null); setWx(null);
     try {
-      const url  = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_direction,wave_period&current=wave_height,wave_direction,wave_period&timezone=Europe%2FMadrid&forecast_days=3`;
-      const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,weathercode&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,weathercode&wind_speed_unit=kn&timezone=Europe%2FMadrid&forecast_days=3`;
-      const [mRes, wRes] = await Promise.all([fetch(url), fetch(wUrl)]);
+      const [mRes, wRes] = await Promise.all([
+        fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_direction,wave_period&current=wave_height,wave_direction,wave_period&timezone=Europe%2FMadrid&forecast_days=3`),
+        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,weathercode&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,weathercode&wind_speed_unit=kn&timezone=Europe%2FMadrid&forecast_days=3`),
+      ]);
       const [mData, wData] = await Promise.all([mRes.json(), wRes.json()]);
-      setWx({ marine: mData, wind: wData });
+      setWx({ marine:mData, wind:wData });
     } catch(e) { setErr("No se pudo cargar el tiempo. Verifica la conexión."); }
     finally { setLoading(false); }
   }
@@ -3460,10 +3486,10 @@ function Clima() {
     if (!navigator.geolocation) { setErr("GPS no disponible"); return; }
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(pos => {
-      const loc = { nombre:"Mi posición actual", lat:pos.coords.latitude, lon:pos.coords.longitude };
+      const loc = { nombre:"Mi posición", lat:pos.coords.latitude, lon:pos.coords.longitude };
       setUbicActual(loc); setModoUbic("auto"); setGpsLoading(false);
       fetchWxAt(loc.lat, loc.lon);
-    }, () => { setGpsLoading(false); setErr("No se pudo obtener tu posición GPS."); },
+    }, () => { setGpsLoading(false); setErr("No se pudo obtener el GPS."); },
     { enableHighAccuracy:true, timeout:8000 });
   }
 
@@ -3479,91 +3505,23 @@ function Clima() {
     ? LUGARES_GUARDADOS.filter(l => l.nombre.toLowerCase().includes(busqueda.toLowerCase()))
     : LUGARES_GUARDADOS;
 
-  const renderLocationBar = () => (
-    <div style={{ marginBottom:16 }}>
-      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-        <div style={{ flex:1, background:T.surface, border:`0.5px solid ${T.rim}`,
-          borderRadius:10, padding:"10px 14px", display:"flex", alignItems:"center",
-          justifyContent:"space-between", cursor:"pointer" }}
-          onClick={()=>setShowPicker(!showPicker)}>
-          <div>
-            <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:2 }}>
-              {modoUbic==="auto" ? "Posición GPS" : "Lugar seleccionado"}
-            </div>
-            <div style={{ color:T.ink, fontSize:14, fontWeight:500 }}>{ubicActual.nombre}</div>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
-            <polyline points={showPicker?"18 15 12 9 6 15":"6 9 12 15 18 9"}/>
-          </svg>
-        </div>
-        <button onClick={usarGPS} disabled={gpsLoading} style={{
-          width:42, height:42, borderRadius:10,
-          border:`0.5px solid ${modoUbic==="auto"?T.ink:T.rim}`,
-          background:modoUbic==="auto" ? T.ink : T.surface,
-          color:modoUbic==="auto" ? "#fff" : T.inkDim,
-          cursor:"pointer", flexShrink:0,
-          display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
-          </svg>
-        </button>
-      </div>
-      {showPicker && (
-        <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
-          borderRadius:12, overflow:"hidden" }}>
-          <div style={{ padding:"10px 14px", borderBottom:`0.5px solid ${T.rim}` }}>
-            <input value={busqueda} onChange={e=>setBusqueda(e.target.value)}
-              placeholder="Buscar puerto o lugar…"
-              style={{ width:"100%", background:"transparent", border:"none",
-                color:T.ink, fontSize:14, outline:"none", fontFamily:"inherit" }}/>
-          </div>
-          {lugaresFiltrados.map((l,i)=>(
-            <button key={i} onClick={()=>seleccionarLugar(l)} style={{
-              width:"100%", padding:"11px 14px", border:"none",
-              borderBottom: i<lugaresFiltrados.length-1 ? `0.5px solid ${T.rim}` : "none",
-              background: ubicActual.nombre===l.nombre ? T.brassDim : "transparent",
-              cursor:"pointer", textAlign:"left", display:"flex",
-              alignItems:"center", justifyContent:"space-between", fontFamily:"inherit" }}>
-              <span style={{ color:T.ink, fontSize:13 }}>{l.nombre}</span>
-              {ubicActual.nombre===l.nombre &&
-                <span style={{ color:T.brass, fontSize:12 }}>✓</span>}
-            </button>
-          ))}
-          <button onClick={()=>{ setShowPicker(false); usarGPS(); }} style={{
-            width:"100%", padding:"11px 14px", border:"none",
-            borderTop:`0.5px solid ${T.rim}`, background:"transparent",
-            cursor:"pointer", textAlign:"left", display:"flex",
-            alignItems:"center", gap:10, fontFamily:"inherit" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke={T.brass} strokeWidth="2" strokeLinecap="round">
-              <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
-            </svg>
-            <span style={{ color:T.brass, fontSize:13, fontWeight:500 }}>
-              Usar mi posición GPS
-            </span>
-          </button>
-        </div>
-      )}
-    </div>
-  );
-
+  // ── loading ───────────────────────────────────────────────────────────────
   if (loading) return (
     <div>
       <Hdr title="Clima"/>
-      {renderLocationBar()}
-      <div style={{ background:T.ink, borderRadius:18, padding:"28px 20px",
+      <div style={{ background:T.ink, borderRadius:18, height:200,
         display:"flex", flexDirection:"column", alignItems:"center",
-        justifyContent:"center", gap:16, minHeight:180 }}>
-        <div style={{ display:"flex", gap:6 }}>
-          {[0,1,2].map(j=><div key={j} style={{ width:6,height:6,borderRadius:"50%",
-            background:"rgba(255,255,255,0.4)", animation:"blink 1.2s infinite",
-            animationDelay:`${j*0.2}s` }}/>)}
+        justifyContent:"center", gap:12, marginBottom:16 }}>
+        <div style={{ display:"flex", gap:5 }}>
+          {[0,1,2].map(j=>(
+            <div key={j} style={{ width:6,height:6,borderRadius:"50%",
+              background:"rgba(255,255,255,0.35)",
+              animation:"blink 1.2s infinite",
+              animationDelay:`${j*0.2}s` }}/>
+          ))}
         </div>
-        <div style={{ color:"rgba(255,255,255,0.5)", fontSize:12 }}>
-          Consultando {ubicActual.nombre}…
+        <div style={{ fontSize:12,color:"rgba(255,255,255,0.4)" }}>
+          {ubicActual.nombre}…
         </div>
       </div>
     </div>
@@ -3572,11 +3530,11 @@ function Clima() {
   if (err) return (
     <div>
       <Hdr title="Clima"/>
-      {renderLocationBar()}
-      <Card><div style={{ color:T.warn, fontSize:13 }}>{err}</div></Card>
+      <Card><div style={{ color:T.warn,fontSize:13 }}>{err}</div></Card>
     </div>
   );
 
+  // ── computed values ───────────────────────────────────────────────────────
   const windKn  = Math.round(wx.wind.current.wind_speed_10m);
   const gustKn  = Math.round(wx.wind.current.wind_gusts_10m);
   const windDir = wx.wind.current.wind_direction_10m;
@@ -3585,101 +3543,209 @@ function Clima() {
   const waveM   = wx.marine.current.wave_height;
   const wavePer = wx.marine.current.wave_period;
   const waveDir = wx.marine.current.wave_direction;
-  const sem     = semaforo(windKn, waveM);
-  const semColor = sem.level==="ok" ? T.ok : sem.level==="warn" ? T.warn : T.danger;
-  const iconState = wxState(wCode);
 
+  // semáforo → SOLO viento y olas
+  const sem      = semaforo(windKn, waveM);
+  const semColor = sem.level==="ok" ? T.ok : sem.level==="warn" ? T.warn : T.danger;
+  const semDot   = sem.level==="ok" ? "#4ade80" : sem.level==="warn" ? "#fbbf24" : "#f87171";
+
+  // cielo → weathercode
+  const sky = wxState(wCode);
+  const bg  = heroBg(sky);
+
+  // hourly
   const now = new Date();
   const hours = wx.wind.hourly.time
     .map((t,i) => ({
-      time: t, hour: new Date(t).getHours(),
-      wind: Math.round(wx.wind.hourly.wind_speed_10m[i]),
-      gust: Math.round(wx.wind.hourly.wind_gusts_10m[i]),
-      wave: wx.marine.hourly.wave_height[i],
-      temp: Math.round(wx.wind.hourly.temperature_2m[i]),
-      wcode: wx.wind.hourly.weathercode?.[i] ?? 0,
+      time:t, hour:new Date(t).getHours(),
+      wind:Math.round(wx.wind.hourly.wind_speed_10m[i]),
+      wave:wx.marine.hourly.wave_height[i],
+      temp:Math.round(wx.wind.hourly.temperature_2m[i]),
+      wcode:wx.wind.hourly.weathercode?.[i]??0,
     }))
-    .filter(h => new Date(h.time) >= now)
-    .slice(0, 24);
+    .filter(h=>new Date(h.time)>=now)
+    .slice(0,24);
 
+  // 3-day
   const days = [];
-  for (let d = 0; d < 3; d++) {
-    const dHours = wx.wind.hourly.time
-      .map((t,i) => ({
-        t, wind: Math.round(wx.wind.hourly.wind_speed_10m[i]),
-        wave: wx.marine.hourly.wave_height[i],
-        wcode: wx.wind.hourly.weathercode?.[i] ?? 0,
-        temp: Math.round(wx.wind.hourly.temperature_2m[i]),
+  for (let d=0;d<3;d++) {
+    const dh = wx.wind.hourly.time
+      .map((t,i)=>({
+        t, wind:Math.round(wx.wind.hourly.wind_speed_10m[i]),
+        wave:wx.marine.hourly.wave_height[i],
+        temp:Math.round(wx.wind.hourly.temperature_2m[i]),
+        wcode:wx.wind.hourly.weathercode?.[i]??0,
       }))
-      .filter(h => {
-        const hDate = new Date(h.t);
-        const target = new Date(); target.setDate(target.getDate() + d);
-        return hDate.toDateString() === target.toDateString();
+      .filter(h=>{
+        const hd=new Date(h.t), tg=new Date();
+        tg.setDate(tg.getDate()+d);
+        return hd.toDateString()===tg.toDateString();
       });
-    if (!dHours.length) continue;
-    const maxWind = Math.max(...dHours.map(h=>h.wind));
-    const maxWave = Math.max(...dHours.filter(h=>h.wave!=null).map(h=>h.wave));
-    const midCode = dHours[Math.floor(dHours.length/2)]?.wcode ?? 0;
-    const maxTemp = Math.max(...dHours.map(h=>h.temp));
-    const minTemp = Math.min(...dHours.map(h=>h.temp));
-    const label = d===0?"Hoy":d===1?"Mañana":new Date(dHours[0].t).toLocaleDateString("es-ES",{weekday:"short"});
-    days.push({ label, maxWind, maxWave, midCode, maxTemp, minTemp,
-      sem: semaforo(maxWind, maxWave||0) });
+    if (!dh.length) continue;
+    const maxWind = Math.max(...dh.map(h=>h.wind));
+    const maxWave = Math.max(...dh.filter(h=>h.wave!=null).map(h=>h.wave));
+    const midCode = dh[Math.floor(dh.length/2)]?.wcode??0;
+    const maxTemp = Math.max(...dh.map(h=>h.temp));
+    const minTemp = Math.min(...dh.map(h=>h.temp));
+    const label = d===0?"Hoy":d===1?"Mañana":new Date(dh[0].t).toLocaleDateString("es-ES",{weekday:"short"});
+    days.push({ label,maxWind,maxWave,midCode,maxTemp,minTemp,
+      sem:semaforo(maxWind,maxWave||0) });
   }
 
   return (
     <div>
       <Hdr title="Clima"/>
-      {renderLocationBar()}
 
-      {/* ── HERO MARINO OSCURO ── */}
-      <div style={{ background:T.ink, borderRadius:18, overflow:"hidden",
+      {/* ── HERO ── */}
+      <div style={{ borderRadius:18, overflow:"hidden",
+        position:"relative", height:210, background:bg,
         marginBottom:16 }}>
-        <div style={{ padding:"20px 20px 0" }}>
-          {/* Semáforo náutico */}
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16 }}>
-            <div style={{ width:8, height:8, borderRadius:"50%",
-              background:semColor, boxShadow:`0 0 8px ${semColor}` }}/>
-            <span style={{ fontSize:13, color:"rgba(255,255,255,0.9)",
-              fontWeight:500 }}>{sem.label}</span>
-            <span style={{ fontSize:12, color:"rgba(255,255,255,0.4)",
-              marginLeft:"auto" }}>{wxLabel(wCode)}</span>
-          </div>
 
-          {/* Temperatura + icono */}
-          <div style={{ display:"flex", alignItems:"flex-start",
-            justifyContent:"space-between", marginBottom:20 }}>
-            <div>
-              <div style={{ fontSize:68, fontWeight:200, color:"#fff",
-                lineHeight:1, letterSpacing:-3 }}>{tempC}°</div>
-            </div>
-            <WxIcon state={iconState} size={68}/>
+        {/* Ilustración dinámica del cielo */}
+        <HeroIllustration state={sky}/>
+
+        {/* Olas animadas en la base */}
+        <div style={{ position:"absolute", bottom:0, left:0, right:0,
+          height:46, overflow:"hidden" }}>
+          <div style={{ position:"absolute", bottom:0, width:"200%",
+            animation:"wxWave1 5s linear infinite" }}>
+            <svg viewBox="0 0 800 46" width="100%" height="46"
+              preserveAspectRatio="none">
+              <path d="M0 28Q100 8 200 28Q300 46 400 28Q500 8 600 28Q700 46 800 28L800 46L0 46Z"
+                fill="rgba(255,255,255,0.11)"/>
+            </svg>
+          </div>
+          <div style={{ position:"absolute", bottom:0, width:"200%",
+            animation:"wxWave2 7s linear infinite", opacity:.6 }}>
+            <svg viewBox="0 0 800 46" width="100%" height="46"
+              preserveAspectRatio="none">
+              <path d="M0 32Q100 14 200 32Q300 50 400 32Q500 14 600 32Q700 50 800 32L800 46L0 46Z"
+                fill="rgba(255,255,255,0.07)"/>
+            </svg>
           </div>
         </div>
 
-        {/* Stats row */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr",
-          borderTop:"1px solid rgba(255,255,255,0.08)",
-          padding:"14px 20px 18px", gap:0 }}>
+        {/* Fila top: ubicación + semáforo náutico */}
+        <div style={{ position:"absolute", top:0, left:0, right:0,
+          padding:"14px 16px 0",
+          display:"flex", alignItems:"center",
+          justifyContent:"space-between", gap:8 }}>
+
+          {/* Píldora ubicación — clickable */}
+          <div onClick={()=>setShowPicker(!showPicker)}
+            style={{ display:"flex", alignItems:"center", gap:6,
+              background:"rgba(0,0,0,0.25)", borderRadius:20,
+              padding:"5px 10px 5px 8px", cursor:"pointer",
+              backdropFilter:"blur(4px)", maxWidth:"55%" }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="rgba(255,255,255,0.8)" strokeWidth="2.5"
+              strokeLinecap="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span style={{ fontSize:12, color:"rgba(255,255,255,0.9)",
+              fontWeight:500, overflow:"hidden", textOverflow:"ellipsis",
+              whiteSpace:"nowrap" }}>{ubicActual.nombre}</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+              stroke="rgba(255,255,255,0.55)" strokeWidth="2.5"
+              strokeLinecap="round">
+              <polyline points={showPicker?"18 15 12 9 6 15":"6 9 12 15 18 9"}/>
+            </svg>
+          </div>
+
+          {/* Píldora semáforo — viento y olas */}
+          <div style={{ display:"flex", alignItems:"center", gap:6,
+            background:"rgba(0,0,0,0.25)", borderRadius:20,
+            padding:"5px 10px", backdropFilter:"blur(4px)",
+            flexShrink:0 }}>
+            <div style={{ width:7, height:7, borderRadius:"50%",
+              background:semDot, boxShadow:`0 0 6px ${semDot}` }}/>
+            <span style={{ fontSize:12, color:"rgba(255,255,255,0.9)",
+              fontWeight:500 }}>{sem.label}</span>
+          </div>
+        </div>
+
+        {/* Dropdown picker — dentro del hero */}
+        {showPicker && (
+          <div style={{ position:"absolute", top:52, left:14, right:14,
+            background:"rgba(10,20,32,0.94)", borderRadius:14,
+            overflow:"hidden", zIndex:10,
+            backdropFilter:"blur(12px)",
+            border:"1px solid rgba(255,255,255,0.1)" }}>
+            <div style={{ padding:"9px 14px",
+              borderBottom:"1px solid rgba(255,255,255,0.08)" }}>
+              <input value={busqueda} onChange={e=>setBusqueda(e.target.value)}
+                placeholder="Buscar puerto…"
+                style={{ width:"100%", background:"transparent", border:"none",
+                  color:"rgba(255,255,255,0.9)", fontSize:13,
+                  outline:"none", fontFamily:"inherit" }}/>
+            </div>
+            {lugaresFiltrados.map((l,i)=>(
+              <button key={i} onClick={()=>seleccionarLugar(l)}
+                style={{ width:"100%", padding:"10px 14px", border:"none",
+                  borderBottom:i<lugaresFiltrados.length-1
+                    ?"1px solid rgba(255,255,255,0.06)":"none",
+                  background:ubicActual.nombre===l.nombre
+                    ?"rgba(176,141,87,0.2)":"transparent",
+                  cursor:"pointer", textAlign:"left",
+                  display:"flex", alignItems:"center",
+                  justifyContent:"space-between",
+                  fontFamily:"inherit" }}>
+                <span style={{ color:"rgba(255,255,255,0.85)",
+                  fontSize:13 }}>{l.nombre}</span>
+                {ubicActual.nombre===l.nombre &&
+                  <span style={{ color:T.brass,fontSize:12 }}>✓</span>}
+              </button>
+            ))}
+            <button onClick={()=>{ setShowPicker(false); usarGPS(); }}
+              style={{ width:"100%", padding:"10px 14px", border:"none",
+                borderTop:"1px solid rgba(255,255,255,0.06)",
+                background:"transparent", cursor:"pointer",
+                textAlign:"left", display:"flex",
+                alignItems:"center", gap:8, fontFamily:"inherit" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                stroke={T.brass} strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+              </svg>
+              <span style={{ color:T.brass, fontSize:13,
+                fontWeight:500 }}>Usar mi posición GPS</span>
+            </button>
+          </div>
+        )}
+
+        {/* Temperatura + descripción */}
+        <div style={{ position:"absolute", bottom:52, left:18 }}>
+          <div style={{ fontSize:58, fontWeight:200, color:"#fff",
+            lineHeight:1, letterSpacing:-2 }}>{tempC}°</div>
+          <div style={{ fontSize:12, color:"rgba(255,255,255,0.55)",
+            marginTop:2 }}>{wxDesc(wCode)}</div>
+        </div>
+
+        {/* Stats: viento, ola, rachas */}
+        <div style={{ position:"absolute", bottom:0, left:0, right:0,
+          display:"grid", gridTemplateColumns:"1fr 1fr 1fr",
+          padding:"8px 18px 12px",
+          background:"rgba(0,0,0,0.22)",
+          backdropFilter:"blur(4px)" }}>
           {[
-            { label:"Viento", value:`${windKn}`, unit:"kn",
-              color: windKn>20 ? T.danger : windKn>8 ? T.warn : "rgba(255,255,255,0.9)" },
-            { label:"Ola", value:`${waveM?.toFixed(1)??"--"}`, unit:"m",
-              color: waveM>1.5 ? T.danger : waveM>0.5 ? T.warn : "rgba(255,255,255,0.9)" },
-            { label:"Rachas", value:`${gustKn}`, unit:"kn",
-              color:"rgba(255,255,255,0.9)" },
-          ].map((s,i) => (
-            <div key={i} style={{
-              paddingRight: i<2 ? 12 : 0,
-              paddingLeft: i>0 ? 12 : 0,
-              borderRight: i<2 ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
-              <div style={{ fontSize:10, color:"rgba(255,255,255,0.35)",
-                marginBottom:4 }}>{s.label}</div>
-              <div style={{ fontSize:22, fontWeight:400, color:s.color,
-                lineHeight:1 }}>
+            { label:"VIENTO", value:windKn, unit:"kn",
+              warn:windKn>8, danger:windKn>20 },
+            { label:"OLA",    value:waveM?.toFixed(1)??"--", unit:"m",
+              warn:waveM>0.5, danger:waveM>1.5 },
+            { label:"RACHAS", value:gustKn, unit:"kn",
+              warn:gustKn>12, danger:gustKn>25 },
+          ].map((s,i)=>(
+            <div key={i}>
+              <div style={{ fontSize:9, color:"rgba(255,255,255,0.38)",
+                marginBottom:2, letterSpacing:.5 }}>{s.label}</div>
+              <div style={{ fontSize:17, fontWeight:300, lineHeight:1,
+                color:s.danger?"#f87171":s.warn?"#fbbf24":"#fff" }}>
                 {s.value}
-                <span style={{ fontSize:12,
-                  color:"rgba(255,255,255,0.4)", marginLeft:3 }}>{s.unit}</span>
+                <span style={{ fontSize:11,
+                  color:"rgba(255,255,255,0.4)", marginLeft:3 }}>
+                  {s.unit}
+                </span>
               </div>
             </div>
           ))}
@@ -3691,12 +3757,12 @@ function Clima() {
         borderBottom:`0.5px solid ${T.rim}` }}>
         {[["ahora","Ahora"],["horas","24h"],["dias","3 días"],["mapa","Mapa"]].map(([id,lbl])=>(
           <button key={id} onClick={()=>setTab(id)} style={{
-            flex:1, padding:"10px 4px", border:"none", cursor:"pointer",
-            background:"transparent",
-            color:tab===id ? T.ink : T.inkDim,
-            fontSize:12, fontWeight:tab===id ? 500 : 400,
+            flex:1, padding:"10px 4px", border:"none",
+            cursor:"pointer", background:"transparent",
+            color:tab===id?T.ink:T.inkDim,
+            fontSize:12, fontWeight:tab===id?500:400,
             fontFamily:"inherit",
-            borderBottom:tab===id ? `2px solid ${T.ink}` : "2px solid transparent",
+            borderBottom:tab===id?`2px solid ${T.ink}`:"2px solid transparent",
             marginBottom:-0.5 }}>
             {lbl}
           </button>
@@ -3708,22 +3774,20 @@ function Clima() {
         <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
           borderRadius:12, overflow:"hidden" }}>
           {[
-            ["Viento",          `${windKn} kn · ${degToCompass(windDir)}`,
+            ["Viento",         `${windKn} kn · ${degToCompass(windDir)}`,
               windKn>20?T.danger:windKn>8?T.warn:T.ink],
-            ["Rachas",          `${gustKn} kn`,
+            ["Rachas",         `${gustKn} kn`,
               gustKn>25?T.danger:gustKn>18?T.warn:T.ink],
-            ["Dirección",       degToCompass(windDir)+` (${windDir}°)`, T.ink],
-            ["Altura de ola",   `${waveM?.toFixed(1)??"--"} m`,
+            ["Dirección",      `${degToCompass(windDir)} (${windDir}°)`, T.ink],
+            ["Altura de ola",  `${waveM?.toFixed(1)??"--"} m`,
               waveM>1.5?T.danger:waveM>0.8?T.warn:T.ok],
-            ["Período de ola",  `${wavePer?.toFixed(0)??"--"} s`, T.ink],
-            ["Dirección ola",   degToCompass(waveDir), T.ink],
-            ["Temperatura",     `${tempC} °C`, T.ink],
-          ].map(([k,v,c],i) => (
-            <div key={k} style={{
-              display:"flex", alignItems:"center",
-              justifyContent:"space-between",
-              padding:"13px 18px",
-              borderBottom: i<6 ? `0.5px solid ${T.rim}` : "none" }}>
+            ["Período de ola", `${wavePer?.toFixed(0)??"--"} s`, T.ink],
+            ["Dirección ola",  degToCompass(waveDir), T.ink],
+            ["Temperatura",    `${tempC} °C`, T.ink],
+          ].map(([k,v,c],i)=>(
+            <div key={k} style={{ display:"flex", alignItems:"center",
+              justifyContent:"space-between", padding:"13px 18px",
+              borderBottom:i<6?`0.5px solid ${T.rim}`:"none" }}>
               <span style={{ fontSize:13, color:T.inkDim }}>{k}</span>
               <span style={{ fontSize:13, fontWeight:500, color:c }}>{v}</span>
             </div>
@@ -3736,29 +3800,26 @@ function Clima() {
         <div style={{ overflowX:"auto" }}>
           <div style={{ display:"flex", gap:8, paddingBottom:8,
             minWidth:"max-content" }}>
-            {hours.map((h,i) => {
-              const s = semaforo(h.wind, h.wave||0);
-              const sc = s.level==="ok"?T.ok:s.level==="warn"?T.warn:T.danger;
-              const hs = wxState(h.wcode);
+            {hours.map((h,i)=>{
+              const s=semaforo(h.wind,h.wave||0);
+              const sc=s.level==="ok"?T.ok:s.level==="warn"?T.warn:T.danger;
               return (
                 <div key={i} style={{ background:T.surface,
                   border:`0.5px solid ${T.rim}`, borderRadius:12,
-                  padding:"12px 10px", minWidth:64, textAlign:"center",
-                  flexShrink:0 }}>
-                  <div style={{ fontSize:11, color:T.inkDim,
-                    marginBottom:8 }}>
+                  padding:"11px 10px", minWidth:62,
+                  textAlign:"center", flexShrink:0 }}>
+                  <div style={{ fontSize:11,color:T.inkDim,marginBottom:6 }}>
                     {String(h.hour).padStart(2,"0")}h
                   </div>
-                  {/* Mini icono clima */}
-                  <div style={{ display:"flex", justifyContent:"center",
-                    marginBottom:6, height:24 }}>
-                    <WxIcon state={hs} size={28}/>
+                  <div style={{ display:"flex",justifyContent:"center",
+                    marginBottom:5 }}>
+                    <WxMini state={wxState(h.wcode)} size={22}/>
                   </div>
-                  <div style={{ fontSize:12, fontWeight:500, color:T.ink,
-                    marginBottom:2 }}>{h.temp}°</div>
-                  <div style={{ fontSize:11, color:sc,
+                  <div style={{ fontSize:12,fontWeight:500,
+                    color:T.ink,marginBottom:2 }}>{h.temp}°</div>
+                  <div style={{ fontSize:11,color:sc,
                     fontWeight:500 }}>{h.wind}kn</div>
-                  <div style={{ fontSize:11, color:T.inkDim,
+                  <div style={{ fontSize:11,color:T.inkDim,
                     marginTop:1 }}>{h.wave?.toFixed(1)??"--"}m</div>
                 </div>
               );
@@ -3771,29 +3832,23 @@ function Clima() {
       {tab==="dias" && (
         <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
           borderRadius:12, overflow:"hidden" }}>
-          {days.map((d,i) => {
-            const sc = d.sem.level==="ok"?T.ok:d.sem.level==="warn"?T.warn:T.danger;
+          {days.map((d,i)=>{
+            const sc=d.sem.level==="ok"?T.ok:d.sem.level==="warn"?T.warn:T.danger;
             return (
-              <div key={i} style={{
-                display:"flex", alignItems:"center", gap:14,
-                padding:"14px 18px",
-                borderBottom: i<days.length-1 ? `0.5px solid ${T.rim}` : "none" }}>
-                {/* Icono día */}
-                <WxIcon state={wxState(d.midCode)} size={36}/>
-                {/* Día */}
+              <div key={i} style={{ display:"flex", alignItems:"center",
+                gap:14, padding:"14px 18px",
+                borderBottom:i<days.length-1?`0.5px solid ${T.rim}`:"none" }}>
+                <WxMini state={wxState(d.midCode)} size={28}/>
                 <div style={{ flex:1 }}>
-                  <div style={{ fontSize:14, fontWeight:500,
+                  <div style={{ fontSize:14,fontWeight:500,
                     color:T.ink }}>{d.label}</div>
-                  <div style={{ fontSize:11, color:T.inkDim,
-                    marginTop:2 }}>
-                    {d.minTemp}° – {d.maxTemp}°
-                  </div>
+                  <div style={{ fontSize:11,color:T.inkDim,
+                    marginTop:2 }}>{d.minTemp}° – {d.maxTemp}°</div>
                 </div>
-                {/* Viento + ola */}
                 <div style={{ textAlign:"right" }}>
-                  <div style={{ fontSize:13, fontWeight:500,
+                  <div style={{ fontSize:13,fontWeight:500,
                     color:sc }}>{d.maxWind} kn</div>
-                  <div style={{ fontSize:11, color:T.inkDim,
+                  <div style={{ fontSize:11,color:T.inkDim,
                     marginTop:2 }}>ola {d.maxWave?.toFixed(1)??"--"}m</div>
                 </div>
               </div>
@@ -3805,19 +3860,21 @@ function Clima() {
       {/* ── MAPA ── */}
       {tab==="mapa" && (
         <div>
-          <div style={{ fontSize:12, color:T.inkDim, marginBottom:12,
-            lineHeight:1.5 }}>
-            Mapa en tiempo real · Viento, olas y lluvia. Centrado en la Costa del Sol.
+          <div style={{ fontSize:12,color:T.inkDim,
+            marginBottom:12,lineHeight:1.5 }}>
+            Mapa en tiempo real · Viento, olas y lluvia.
           </div>
-          <div style={{ borderRadius:12, overflow:"hidden",
+          <div style={{ borderRadius:12,overflow:"hidden",
             border:`0.5px solid ${T.rim}` }}>
             <iframe
               src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=kt&zoom=8&overlay=wind&product=ecmwf&level=surface&lat=36.73&lon=-4.08&detailLat=36.73&detailLon=-4.08&marker=true&message=true"
               width="100%" height="420" frameBorder="0"
               title="Windy" style={{ display:"block" }}/>
           </div>
-          <div style={{ fontSize:11, color:T.inkDim, marginTop:8,
-            textAlign:"center" }}>Powered by Windy.com · ECMWF</div>
+          <div style={{ fontSize:11,color:T.inkDim,
+            marginTop:8,textAlign:"center" }}>
+            Powered by Windy.com · ECMWF
+          </div>
         </div>
       )}
     </div>
@@ -5126,6 +5183,13 @@ export default function App() {
         select, textarea, button { font-family: inherit }
         @keyframes blink { 0%,100%{opacity:.2} 50%{opacity:1} }
         @keyframes garreo-pulse { from{box-shadow:0 0 0 0 rgba(168,52,40,0.5)} to{box-shadow:0 0 0 14px rgba(168,52,40,0)} }
+        @keyframes wxGlow      { 0%,100%{opacity:.85;box-shadow:0 0 28px #ffb83060} 50%{opacity:1;box-shadow:0 0 44px #ffb83099} }
+        @keyframes wxDrift     { 0%,100%{transform:translateX(0)} 50%{transform:translateX(10px)} }
+        @keyframes wxDrift2    { 0%,100%{transform:translateX(0)} 50%{transform:translateX(-8px)} }
+        @keyframes wxRain      { 0%{transform:translateY(-6px);opacity:0} 70%{opacity:.9} 100%{transform:translateY(14px);opacity:0} }
+        @keyframes wxLightning { 0%,88%,100%{opacity:0} 90%,95%{opacity:1} }
+        @keyframes wxWave1     { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+        @keyframes wxWave2     { 0%{transform:translateX(-50%)} 100%{transform:translateX(0)} }
         @keyframes wxGlow   { 0%,100%{opacity:.85} 50%{opacity:1} }
         @keyframes wxRise   { 0%,100%{transform:translateY(2px)} 50%{transform:translateY(-2px)} }
         @keyframes wxDrift  { 0%,100%{transform:translateX(0)} 50%{transform:translateX(6px)} }
