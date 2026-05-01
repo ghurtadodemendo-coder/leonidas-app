@@ -26,13 +26,13 @@ async function db(table, method="GET", body=null, query="") {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const T = {
-  bg:       "#F7F6F3",
+  bg:       "#F0F1F3",
   surface:  "#FFFFFF",
-  surfaceUp:"#F2F3F5",
-  rim:      "#E4E6EC",
+  surfaceUp:"#F0F1F3",
+  rim:      "#E8EAED",
   rimHi:    "rgba(11,31,58,0.07)",
   ink:      "#0D1B2A",
-  inkMid:   "#3D5068",
+  inkMid:   "#4A5568",
   inkDim:   "#8A9BB5",
   brass:    "#B08D57",
   brassLt:  "#C9A96E",
@@ -168,8 +168,8 @@ function Hdr({ title, action }) {
   return (
     <div style={{ display:"flex", justifyContent:"space-between",
       alignItems:"center", marginBottom:20 }}>
-      <div style={{ fontSize:22, fontWeight:500, color:T.ink,
-        letterSpacing:-0.3, lineHeight:1 }}>{title}</div>
+      <div style={{ fontSize:24, fontWeight:500, color:"#0D1B2A",
+        letterSpacing:-0.5, lineHeight:1 }}>{title}</div>
       {action}
     </div>
   );
@@ -249,7 +249,7 @@ function Btn({ children, onClick, variant="primary", sm }) {
     transition:"opacity 0.15s",
   };
   const styles = {
-    primary: { background:T.ink, color:"#fff" },
+    primary: { background:"#0B1F3A", color:"#fff", borderRadius:10 },
     ghost:   { background:"transparent", color:T.inkMid,
                border:`0.5px solid ${T.rim}` },
     danger:  { background:"transparent", color:T.danger,
@@ -313,33 +313,28 @@ function DashboardWeather({ setScreen }) {
       try {
         const [mr, wr] = await Promise.all([
           fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${CALETA.lat}&longitude=${CALETA.lon}&current=wave_height&timezone=Europe%2FMadrid`),
-          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${CALETA.lat}&longitude=${CALETA.lon}&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=kn&timezone=Europe%2FMadrid`)
+          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${CALETA.lat}&longitude=${CALETA.lon}&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m,weathercode&wind_speed_unit=kn&timezone=Europe%2FMadrid`)
         ]);
         const [md, wd] = await Promise.all([mr.json(), wr.json()]);
         const wind = Math.round(wd.current.wind_speed_10m);
         const wave = md.current.wave_height;
         const dir  = degToCompass(wd.current.wind_direction_10m);
-        setWx({ wind, wave, dir, sem: semaforo(wind, wave||0) });
+        const temp = Math.round(wd.current.temperature_2m);
+        setWx({ wind, wave, dir, temp, sem: semaforo(wind, wave||0) });
       } catch(e) {}
     }
     load();
   }, []);
 
-  if (!wx) return (
-    <div style={{ height:76, background:T.surfaceUp, borderRadius:14,
-      marginBottom:16, display:"flex", alignItems:"center",
-      justifyContent:"center" }}>
-      <div style={{ fontSize:12, color:T.inkDim }}>Consultando condiciones…</div>
-    </div>
-  );
-
-  const sc = wx.sem.level==="ok" ? T.ok : wx.sem.level==="warn" ? T.warn : T.danger;
+  const sc = !wx ? "#8A9BB5"
+    : wx.sem.level==="ok" ? "#2A7A52"
+    : wx.sem.level==="warn" ? "#B06A18" : "#A83428";
 
   return (
     <div onClick={()=>setScreen("clima")}
-      style={{ marginBottom:16, cursor:"pointer",
-        background:T.surface, border:`0.5px solid ${T.rim}`,
-        borderRadius:14, overflow:"hidden" }}>
+      style={{ borderRadius:14, overflow:"hidden",
+        border:`0.5px solid #E8EAED`, marginBottom:0,
+        cursor:"pointer", background:"#fff" }}>
       <div style={{ height:3, background:sc }}/>
       <div style={{ padding:"14px 18px", display:"flex",
         alignItems:"center", justifyContent:"space-between" }}>
@@ -347,89 +342,76 @@ function DashboardWeather({ setScreen }) {
           <div style={{ width:9, height:9, borderRadius:"50%",
             background:sc, flexShrink:0 }}/>
           <div>
-            <div style={{ fontSize:14, fontWeight:500, color:T.ink,
-              marginBottom:2 }}>{wx.sem.label}</div>
-            <div style={{ fontSize:12, color:T.inkDim }}>
-              {wx.wind} kn del {wx.dir} · Ola {wx.wave?.toFixed(1)??"--"} m
+            <div style={{ fontSize:14, fontWeight:500, color:"#0D1B2A",
+              marginBottom:2 }}>
+              {wx ? wx.sem.label : "Cargando condiciones…"}
             </div>
+            {wx && (
+              <div style={{ fontSize:12, color:"#8A9BB5" }}>
+                {wx.wind} kn del {wx.dir} · Ola {wx.wave?.toFixed(1)??"--"} m · {wx.temp}°
+              </div>
+            )}
           </div>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:16,
-          paddingLeft:16, borderLeft:`0.5px solid ${T.rim}` }}>
-          <div style={{ textAlign:"center" }}>
-            <div style={{ fontSize:20, fontWeight:500, color:T.ink,
-              lineHeight:1 }}>{wx.wind}</div>
-            <div style={{ fontSize:10, color:T.inkDim, marginTop:2 }}>kn</div>
+        {wx && (
+          <div style={{ display:"flex", alignItems:"center", gap:16,
+            paddingLeft:16, borderLeft:`0.5px solid #E8EAED` }}>
+            <div style={{ textAlign:"center" }}>
+              <div style={{ fontSize:20, fontWeight:500, color:"#0D1B2A", lineHeight:1 }}>{wx.wind}</div>
+              <div style={{ fontSize:10, color:"#8A9BB5", marginTop:2 }}>kn</div>
+            </div>
+            <div style={{ textAlign:"center" }}>
+              <div style={{ fontSize:20, fontWeight:500, color:"#0D1B2A", lineHeight:1 }}>{wx.wave?.toFixed(1)??"--"}</div>
+              <div style={{ fontSize:10, color:"#8A9BB5", marginTop:2 }}>m ola</div>
+            </div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+              stroke="#C0C8D4" strokeWidth="2" strokeLinecap="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
           </div>
-          <div style={{ textAlign:"center" }}>
-            <div style={{ fontSize:20, fontWeight:500, color:T.ink,
-              lineHeight:1 }}>{wx.wave?.toFixed(1)??"--"}</div>
-            <div style={{ fontSize:10, color:T.inkDim, marginTop:2 }}>m ola</div>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
 function Dashboard({ setScreen }) {
-  const [stats, setStats] = useState({ horas:"--", millas:"--", ultimoRepo:"--" });
+  const [stats, setStats]           = useState({ horas:"--", ultimoRepo:"--" });
   const [ultimaBitacora, setUltimaBitacora] = useState(null);
-  const [combustibleAlert, setCombustibleAlert] = useState(null);
-  const [mantAlert, setMantAlert]   = useState(null);
-  const [averiasAlert, setAveriasAlert] = useState([]);
-  const [docsAlert, setDocsAlert]   = useState([]);
+  const [alerts, setAlerts]         = useState([]);
 
   useEffect(()=>{
     async function load() {
       try {
-        const [ultimaBit, ultimoRepo, todasBits, ultimasHoras] = await Promise.all([
+        const [ultimaBit, ultimoRepo, ultimasHoras] = await Promise.all([
           db("bitacora","GET",null,"?order=fecha.desc&limit=1"),
           db("combustible","GET",null,"?order=fecha.desc&limit=1"),
-          db("bitacora","GET",null,"?select=millas"),
           db("bitacora","GET",null,"?select=horas_motor_fin&horas_motor_fin=not.is.null&order=fecha.desc&limit=1"),
         ]);
-        const totalMillas = todasBits.reduce((a,c)=>a+(parseFloat(c.millas)||0),0);
-        const horasMotor = ultimasHoras.length
-          ? parseFloat(ultimasHoras[0].horas_motor_fin)
-          : null;
         if (ultimaBit.length) setUltimaBitacora(ultimaBit[0]);
+        const horasMotor = ultimasHoras.length ? parseFloat(ultimasHoras[0].horas_motor_fin) : null;
         setStats({
-          horas: horasMotor !== null
-            ? (horasMotor%1===0 ? String(horasMotor) : horasMotor.toFixed(1))
-            : "--",
-          millas: totalMillas.toFixed(0),
-          ultimoRepo: ultimoRepo.length
-            ? `${ultimoRepo[0].litros} L · ${ultimoRepo[0].fecha}`
-            : "Sin datos",
+          horas: horasMotor !== null ? (horasMotor%1===0 ? String(horasMotor) : horasMotor.toFixed(1)) : "--",
+          ultimoRepo: ultimoRepo.length ? `${ultimoRepo[0].litros} L · ${ultimoRepo[0].fecha}` : "Sin datos",
         });
-      } catch(e){ console.error(e); }
+      } catch(e){}
     }
-    load();
 
     async function checks() {
+      const al = [];
       try {
-        // Combustible
         const bits = await db("bitacora","GET",null,"?order=fecha.desc&limit=1&select=combustible_cargado,fecha");
         if (bits.length && bits[0].combustible_cargado !== null) {
           const pct = parseFloat(bits[0].combustible_cargado);
-          const repos = await db("combustible","GET",null,`?order=fecha.desc&limit=1&fecha=gte.${bits[0].fecha}`);
-          if (!repos.length && pct < 40) setCombustibleAlert(pct);
+          if (pct < 40) al.push({ msg:`Combustible bajo · ${pct}%`, sub:"Repostar antes de salir", c:"#A83428", to:"combustible" });
         }
       } catch(e){}
       try {
-        // Mantenimiento
-        const [tareas, ultimaHoraBit] = await Promise.all([
+        const [tareas, ultimaH] = await Promise.all([
           db("mantenimiento","GET",null,"?select=tipo,horas_intervalo,horas_ultima,intervalo_dias,fecha_ultima"),
           db("bitacora","GET",null,"?select=horas_motor_fin&horas_motor_fin=not.is.null&order=fecha.desc&limit=1"),
         ]);
-        const hAct = ultimaHoraBit.length
-          ? parseFloat(ultimaHoraBit[0].horas_motor_fin)
-          : 774;
+        const hAct = ultimaH.length ? parseFloat(ultimaH[0].horas_motor_fin) : 774;
         let vencidas=0, proximas=0;
         const hoy = new Date();
         tareas.forEach(t=>{
@@ -445,218 +427,202 @@ function Dashboard({ setScreen }) {
           } else if (t.intervalo_dias && !t.fecha_ultima) w=true;
           if (d) vencidas++; else if (w) proximas++;
         });
-        if (vencidas>0) setMantAlert({nivel:"danger",texto:`${vencidas} tarea${vencidas>1?"s":""} vencida${vencidas>1?"s":""}`});
-        else if (proximas>0) setMantAlert({nivel:"warn",texto:`${proximas} revisión${proximas>1?"es":""} próxima${proximas>1?"s":""}`});
+        if (vencidas>0) al.push({ msg:`${vencidas} tarea${vencidas>1?"s":""} vencida${vencidas>1?"s":""}`, sub:"Accede a Motor", c:"#A83428", to:"motor" });
+        else if (proximas>0) al.push({ msg:`${proximas} revisión${proximas>1?"es":""} próxima${proximas>1?"s":""}`, sub:"Revisión recomendada", c:"#B06A18", to:"motor" });
       } catch(e){}
       try {
         const av = await db("averias","GET",null,"?estado=in.(pendiente,en_taller)&order=fecha.desc");
-        setAveriasAlert(av);
+        av.forEach(a=>al.push({ msg:`Avería: ${a.descripcion}`, sub:a.estado==="en_taller"?"En taller":"Pendiente", c:"#A83428", to:"motor" }));
       } catch(e){}
-      try {
-        const docs = await db("documentos","GET",null,"?select=nombre,fecha_vencimiento&fecha_vencimiento=not.is.null");
-        const hoy = new Date();
-        setDocsAlert(docs.filter(d=>{
-          if (!d.fecha_vencimiento) return false;
-          const dias = Math.round((new Date(d.fecha_vencimiento)-hoy)/86400000);
-          return dias>=0 && dias<=30;
-        }));
-      } catch(e){}
+      setAlerts(al);
     }
-    checks();
+    load(); checks();
   },[]);
 
-  const alerts = [
-    combustibleAlert !== null
-      ? { msg:`Combustible bajo · ${combustibleAlert}%`, sub:"Repostar antes de salir", c:T.danger, to:"combustible" }
-      : null,
-    mantAlert?.nivel==="danger"
-      ? { msg:mantAlert.texto, sub:"Accede a Motor para revisar", c:T.danger, to:"motor" }
-      : null,
-    mantAlert?.nivel==="warn"
-      ? { msg:mantAlert.texto, sub:"Revisión próxima recomendada", c:T.warn, to:"motor" }
-      : null,
-    ...averiasAlert.map(a=>({
-      msg:`Avería: ${a.descripcion}`,
-      sub:`${a.fecha} · ${a.estado==="en_taller"?"En taller":"Pendiente"}`,
-      c:T.danger, to:"motor"
-    })),
-    ...docsAlert.map(d=>({
-      msg:`${d.nombre} vence pronto`,
-      sub:`Vencimiento: ${d.fecha_vencimiento}`,
-      c:T.warn, to:"elbarco"
-    })),
-  ].filter(Boolean);
-
-  // SVG icon paths
-  const SVG_BITACORA = (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-      stroke="#B08D57" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-      <line x1="9" y1="8" x2="15" y2="8"/>
-      <line x1="9" y1="12" x2="13" y2="12"/>
-    </svg>
-  );
-  const SVG_MOTOR = (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-      stroke="#B08D57" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-    </svg>
-  );
-  const SVG_REPOSTAJE = (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-      stroke="#B08D57" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 22V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/>
-      <path d="M3 22h10"/>
-      <path d="M13 8h2a2 2 0 0 1 2 2v1a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V7a2 2 0 0 0-.59-1.41L17 2"/>
-      <line x1="7" y1="10" x2="9" y2="10"/>
-    </svg>
-  );
-  const SVG_IA = (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-      stroke="#B08D57" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      <line x1="9" y1="10" x2="9.01" y2="10" strokeWidth="2.5"/>
-      <line x1="12" y1="10" x2="12.01" y2="10" strokeWidth="2.5"/>
-      <line x1="15" y1="10" x2="15.01" y2="10" strokeWidth="2.5"/>
-    </svg>
-  );
-
+  // Quick access buttons — todos navy, icono dorado en caja
   const quickLinks = [
-    { label:"Bitácora",    id:"bitacora",   icon:SVG_BITACORA,  primary:true  },
-    { label:"Motor",       id:"motor",      icon:SVG_MOTOR,     primary:false },
-    { label:"Repostaje",   id:"combustible",icon:SVG_REPOSTAJE, primary:false },
-    { label:"Asistente IA",id:"ia",         icon:SVG_IA,        primary:false },
+    {
+      label:"Bitácora", sub:"Nueva entrada", id:"bitacora",
+      icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#B08D57" strokeWidth="1.6" strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 8h6"/><path d="M9 12h4"/></svg>
+    },
+    {
+      label:"Motor", sub:"Mantenimiento", id:"motor",
+      icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#B08D57" strokeWidth="1.6" strokeLinecap="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+    },
+    {
+      label:"Repostaje", sub:"Combustible", id:"combustible",
+      icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#B08D57" strokeWidth="1.6" strokeLinecap="round"><path d="M3 22V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/><path d="M3 22h10"/><path d="M13 8h2a2 2 0 0 1 2 2v1a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V7a2 2 0 0 0-.59-1.41L17 2"/><line x1="7" y1="10" x2="9" y2="10"/></svg>
+    },
+    {
+      label:"Asistente IA", sub:"Consultar barco", id:"ia",
+      icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#B08D57" strokeWidth="1.6" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="9.01" y2="10" strokeWidth="2.5"/><line x1="12" y1="10" x2="12.01" y2="10" strokeWidth="2.5"/><line x1="15" y1="10" x2="15.01" y2="10" strokeWidth="2.5"/></svg>
+    },
   ];
 
   return (
-    <div>
-      {/* ── HEADER ── */}
-      <div style={{ marginBottom:22 }}>
-        <div style={{ fontSize:14, color:T.inkDim, marginBottom:6 }}>
+    <div style={{ background:"#F0F1F3", minHeight:"100%",
+      margin:"-22px -18px", padding:"0 0 40px" }}>
+
+      {/* ── HERO ── */}
+      <div style={{ background:"#0B1F3A", padding:"32px 28px 28px",
+        position:"relative", overflow:"hidden" }}>
+        {/* Decorative rings */}
+        <div style={{ position:"absolute", top:-60, right:-60, width:220,
+          height:220, borderRadius:"50%",
+          border:"1px solid rgba(255,255,255,0.04)", pointerEvents:"none" }}/>
+        <div style={{ position:"absolute", top:-20, right:-20, width:140,
+          height:140, borderRadius:"50%",
+          border:"1px solid rgba(255,255,255,0.04)", pointerEvents:"none" }}/>
+        <div style={{ fontSize:12, color:"rgba(255,255,255,0.35)",
+          marginBottom:4, letterSpacing:.3 }}>
           Sunseeker Portofino 53 · Caleta de Vélez
         </div>
-        <div style={{ fontSize:34, fontWeight:500, color:T.ink,
-          letterSpacing:-0.8, lineHeight:1 }}>
+        <div style={{ fontSize:38, fontWeight:500, color:"#fff",
+          letterSpacing:-1.5, lineHeight:1, marginBottom:20 }}>
           Leonidas
         </div>
+        {/* Clima pills */}
+        <DashboardWeather setScreen={setScreen}/>
       </div>
 
-      {/* ── CLIMA ── */}
-      <DashboardWeather setScreen={setScreen}/>
-
-      {/* ── KPIs ── */}
-      <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
-        borderRadius:14, overflow:"hidden", marginBottom:16 }}>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr" }}>
-          {[
-            { label:"Motor",           value:stats.horas+" h",    color:T.brass  },
-            { label:"Millas",          value:stats.millas+" mn",  color:T.ink    },
-            { label:"Último repostaje",value:stats.ultimoRepo,    color:T.ink, small:true },
-            { label:"Alertas",         value:String(alerts.length),
-              color:alerts.length>0?T.danger:T.ok },
-          ].map((k,i)=>(
-            <div key={i} style={{
-              padding:"15px 18px",
-              borderRight: i%2===0 ? `0.5px solid ${T.rim}` : "none",
-              borderBottom: i<2 ? `0.5px solid ${T.rim}` : "none" }}>
-              <div style={{ fontSize:11, color:T.inkDim, marginBottom:5 }}>
-                {k.label}
-              </div>
-              <div style={{
-                fontSize: k.small ? 14 : 24,
-                fontWeight:500, color:k.color, letterSpacing:-0.3,
-                lineHeight:1
-              }}>{k.value}</div>
-            </div>
-          ))}
+      {/* ── STATS STRIP ── */}
+      <div style={{ background:"#fff", borderBottom:"0.5px solid #E8EAED",
+        display:"grid", gridTemplateColumns:"1fr 1fr 1fr" }}>
+        <div style={{ padding:"18px 20px",
+          borderRight:"0.5px solid #E8EAED" }}>
+          <div style={{ fontSize:10, fontWeight:500, color:"#8A9BB5",
+            letterSpacing:.5, marginBottom:6 }}>MOTOR</div>
+          <div style={{ fontSize:28, fontWeight:500, color:"#B08D57",
+            letterSpacing:-1, lineHeight:1 }}>
+            {stats.horas}<span style={{ fontSize:16 }}> h</span>
+          </div>
+        </div>
+        <div style={{ padding:"18px 20px",
+          borderRight:"0.5px solid #E8EAED" }}>
+          <div style={{ fontSize:10, fontWeight:500, color:"#8A9BB5",
+            letterSpacing:.5, marginBottom:6 }}>ALERTAS</div>
+          <div style={{ fontSize:28, fontWeight:500,
+            color:alerts.length>0?"#A83428":"#2A7A52",
+            letterSpacing:-1, lineHeight:1 }}>
+            {alerts.length}
+          </div>
+        </div>
+        <div style={{ padding:"18px 20px" }}>
+          <div style={{ fontSize:10, fontWeight:500, color:"#8A9BB5",
+            letterSpacing:.5, marginBottom:6 }}>ÚLTIMO REPOSTAJE</div>
+          <div style={{ fontSize:13, fontWeight:500, color:"#0D1B2A",
+            lineHeight:1.3, marginTop:4 }}>
+            {stats.ultimoRepo}
+          </div>
         </div>
       </div>
 
-      {/* ── ALERTAS ── */}
-      {alerts.length > 0 && (
-        <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:11, fontWeight:500, color:T.inkDim,
-            marginBottom:10 }}>Alertas</div>
-          {alerts.map((a,i)=>(
-            <div key={i} onClick={()=>setScreen(a.to)}
-              style={{ display:"flex", alignItems:"center", gap:12,
-                padding:"11px 0", cursor:"pointer",
-                borderBottom: i<alerts.length-1
-                  ? `0.5px solid ${T.rim}` : "none" }}>
-              <div style={{ width:2, height:36, background:a.c,
-                borderRadius:1, flexShrink:0 }}/>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:14, fontWeight:500, color:T.ink,
-                  marginBottom:2 }}>{a.msg}</div>
-                <div style={{ fontSize:11, color:T.inkDim }}>{a.sub}</div>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </div>
-          ))}
-        </div>
-      )}
+      <div style={{ padding:"20px 20px 0" }}>
 
-      {/* ── ÚLTIMA SALIDA ── */}
-      <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
-        borderRadius:14, overflow:"hidden", marginBottom:16 }}>
-        <div onClick={()=>setScreen("bitacora")}
-          style={{ padding:"14px 18px", display:"flex",
-            alignItems:"center", justifyContent:"space-between",
-            cursor:"pointer" }}>
-          <div>
-            <div style={{ fontSize:11, color:T.inkDim, marginBottom:5 }}>
-              Última salida
-            </div>
+        {/* ── ALERTAS ── */}
+        {alerts.length > 0 && (
+          <div style={{ background:"#fff", borderRadius:14,
+            overflow:"hidden", marginBottom:14 }}>
+            {alerts.map((a,i)=>(
+              <div key={i} onClick={()=>setScreen(a.to)}
+                style={{ display:"flex", alignItems:"center", gap:12,
+                  padding:"14px 16px", cursor:"pointer",
+                  borderBottom:i<alerts.length-1?"0.5px solid #F0F1F3":"none" }}>
+                <div style={{ width:3, height:38, background:a.c,
+                  borderRadius:2, flexShrink:0 }}/>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:14, fontWeight:500,
+                    color:"#0D1B2A", marginBottom:2 }}>{a.msg}</div>
+                  <div style={{ fontSize:12, color:"#8A9BB5" }}>{a.sub}</div>
+                </div>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="#C0C8D4" strokeWidth="2" strokeLinecap="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── ÚLTIMA SALIDA ── */}
+        <div style={{ background:"#fff", borderRadius:14,
+          overflow:"hidden", marginBottom:14 }}>
+          <div onClick={()=>setScreen("bitacora")}
+            style={{ padding:"16px 18px", cursor:"pointer" }}>
+            <div style={{ fontSize:10, fontWeight:500, color:"#8A9BB5",
+              letterSpacing:.5, marginBottom:8 }}>ÚLTIMA SALIDA</div>
             {ultimaBitacora ? (
               <>
-                <div style={{ fontSize:15, fontWeight:500, color:T.ink,
-                  marginBottom:3 }}>
+                <div style={{ fontSize:16, fontWeight:500, color:"#0D1B2A",
+                  marginBottom:4 }}>
                   {ultimaBitacora.salida} → {ultimaBitacora.llegada}
                 </div>
-                <div style={{ fontSize:12, color:T.inkDim }}>
+                <div style={{ fontSize:12, color:"#8A9BB5" }}>
                   {ultimaBitacora.fecha} · {ultimaBitacora.patron}
                   {ultimaBitacora.hora_salida && ultimaBitacora.hora_llegada
-                    ? ` · ${ultimaBitacora.hora_salida}–${ultimaBitacora.hora_llegada}`
-                    : ""}
+                    ? ` · ${ultimaBitacora.hora_salida}–${ultimaBitacora.hora_llegada}` : ""}
                 </div>
+                {/* mini stats */}
+                {(ultimaBitacora.horas_motor_inicio && ultimaBitacora.horas_motor_fin) && (
+                  <div style={{ display:"flex", gap:20, marginTop:12,
+                    paddingTop:12, borderTop:"0.5px solid #F0F1F3" }}>
+                    <div>
+                      <div style={{ fontSize:10, color:"#8A9BB5", marginBottom:2 }}>Duración motor</div>
+                      <div style={{ fontSize:14, fontWeight:500, color:"#0D1B2A" }}>
+                        {(parseFloat(ultimaBitacora.horas_motor_fin)-parseFloat(ultimaBitacora.horas_motor_inicio)).toFixed(1)}h
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:10, color:"#8A9BB5", marginBottom:2 }}>Patrón</div>
+                      <div style={{ fontSize:14, fontWeight:500, color:"#0D1B2A" }}>{ultimaBitacora.patron}</div>
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
-              <div style={{ fontSize:14, color:T.inkDim, fontStyle:"italic" }}>
-                Sin salidas registradas aún
+              <div style={{ fontSize:13, color:"#8A9BB5", fontStyle:"italic" }}>
+                Sin salidas registradas
               </div>
             )}
           </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
         </div>
-      </div>
 
-      {/* ── ACCESO RÁPIDO ── */}
-      <div>
-        <div style={{ fontSize:11, fontWeight:500, color:T.inkDim,
-          marginBottom:10 }}>Acceso rápido</div>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+        {/* ── ACCESO RÁPIDO — todos navy, estilo imagen ── */}
+        <div style={{ fontSize:10, fontWeight:500, color:"#8A9BB5",
+          letterSpacing:.5, marginBottom:10 }}>ACCESO RÁPIDO</div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
           {quickLinks.map(q=>(
-            <button key={q.id} onClick={()=>setScreen(q.id)}
-              style={{ background: q.primary ? T.ink : T.surface,
-                border: q.primary ? "none" : `0.5px solid ${T.rim}`,
-                borderRadius:12, padding:"13px 16px",
-                cursor:"pointer", textAlign:"left",
-                display:"flex", alignItems:"center", gap:10 }}>
-              {q.icon}
-              <span style={{ fontSize:14, fontWeight:500,
-                color: q.primary ? "#fff" : T.ink }}>
-                {q.label}
-              </span>
-            </button>
+            <div key={q.id} onClick={()=>setScreen(q.id)}
+              style={{ background:"#0B1F3A", borderRadius:18,
+                padding:"20px 20px 18px", cursor:"pointer",
+                aspectRatio:"1",
+                display:"flex", flexDirection:"column",
+                justifyContent:"space-between",
+                position:"relative", overflow:"hidden" }}>
+              {/* Decorative ring */}
+              <div style={{ position:"absolute", bottom:-16, right:-16,
+                width:80, height:80, borderRadius:"50%",
+                border:"1px solid rgba(176,141,87,0.12)",
+                pointerEvents:"none" }}/>
+              {/* Icon box */}
+              <div style={{ width:50, height:50,
+                background:"rgba(176,141,87,0.15)",
+                borderRadius:13,
+                display:"flex", alignItems:"center",
+                justifyContent:"center" }}>
+                {q.icon}
+              </div>
+              {/* Label */}
+              <div>
+                <div style={{ fontSize:17, fontWeight:500, color:"#fff",
+                  lineHeight:1, marginBottom:5 }}>{q.label}</div>
+                <div style={{ fontSize:11,
+                  color:"rgba(255,255,255,0.38)" }}>{q.sub}</div>
+              </div>
+            </div>
           ))}
         </div>
+
       </div>
     </div>
   );
@@ -694,7 +660,7 @@ function Ficha() {
           </div>
         ))}
       </Card>
-      <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:10 }}>Documentación vigente</div>
+      <div style={{ fontSize:10, fontWeight:500, color:"#8A9BB5", letterSpacing:.5, marginBottom:10 }}>Documentación vigente</div>
       {[
         { l:"Seguro",       v:BOAT.seguro, vence:BOAT.seguroVence, e:"warn" },
         { l:"ITV Náutica",  v:BOAT.itv,    vence:BOAT.itvVence,    e:"ok"   },
@@ -1288,7 +1254,7 @@ function Mantenimiento() {
         loading ? <Card><div style={{color:T.inkDim,fontSize:14,textAlign:"center",padding:"20px 0"}}>Cargando...</div></Card>
         : tareasPorCat.map(({cat, items})=>(
           <div key={cat} style={{marginBottom:20}}>
-            <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:10}}>{cat}</div>
+            <div style={{fontSize:10, fontWeight:500, color:"#8A9BB5", letterSpacing:.5, marginBottom:10}}>{cat}</div>
             {items.map(t => {
               const est = calcEstado(t);
               const bc = est.nivel==="danger"?T.danger:est.nivel==="warn"?T.warn:T.ok;
@@ -1551,7 +1517,7 @@ function Combustible() {
 
       {nivelActual !== null && (
         <Card style={{marginBottom:16}} pad="14px 18px">
-          <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8}}>Nivel actual estimado</div>
+          <div style={{fontSize:10, fontWeight:500, color:"#8A9BB5", letterSpacing:.5, marginBottom:8}}>Nivel actual estimado</div>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <div style={{flex:1,background:T.surfaceUp,borderRadius:4,height:8,overflow:"hidden"}}>
               <div style={{
@@ -3027,7 +2993,7 @@ function Tripulacion() {
           {/* Inactivos */}
           {inactivos.length > 0 && (
             <div style={{marginTop:24}}>
-              <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:10}}>Dados de baja</div>
+              <div style={{fontSize:10, fontWeight:500, color:"#8A9BB5", letterSpacing:.5, marginBottom:10}}>Dados de baja</div>
               {inactivos.map(t=>(
                 <Card key={t.id} style={{marginBottom:8,opacity:0.6}} pad="12px 16px">
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -4265,7 +4231,7 @@ function Calculadora() {
         {modo==="ruta" && (
           <div>
             <div style={{ padding:"12px 0" }}>
-              <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8 }}>Distancia al destino (mn)</div>
+              <div style={{ fontSize:10, fontWeight:500, color:"#8A9BB5", letterSpacing:.5, marginBottom:8 }}>Distancia al destino (mn)</div>
               <input type="number" value={distancia} onChange={e=>setDistancia(e.target.value)}
                 placeholder="ej. 18"
                 style={{ background:T.surfaceUp, border:`0.5px solid ${T.rimHi}`, borderRadius:10,
@@ -4275,7 +4241,7 @@ function Calculadora() {
           </div>
         )}
         <div style={{ padding:"12px 0" }}>
-          <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8 }}>
+          <div style={{ fontSize:10, fontWeight:500, color:"#8A9BB5", letterSpacing:.5, marginBottom:8 }}>
             {modo==="paseo" ? "Hora de salida" : "Hora de salida prevista"}
           </div>
           <input type="time" value={horaSalida} onChange={e=>setHoraSalida(e.target.value)}
@@ -4284,7 +4250,7 @@ function Calculadora() {
         </div>
         {modo==="ruta" && <><Divider/>
         <div style={{ padding:"12px 0" }}>
-          <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8 }}>Velocidad de crucero (nudos)</div>
+          <div style={{ fontSize:10, fontWeight:500, color:"#8A9BB5", letterSpacing:.5, marginBottom:8 }}>Velocidad de crucero (nudos)</div>
           <input type="number" value={velocidad} onChange={e=>setVelocidad(e.target.value)}
             placeholder="10-15"
             style={{ background:T.surfaceUp, border:`0.5px solid ${T.rimHi}`, borderRadius:10,
@@ -4303,7 +4269,7 @@ function Calculadora() {
           {r.hasGolden ? (
             <div style={{ background:T.brass+"18", border:`1px solid ${T.brass}40`,
               borderRadius:12, padding:"16px 18px", marginBottom:14 }}>
-              <div style={{ fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8 }}>🌅 Ventana dorada</div>
+              <div style={{ fontSize:10, fontWeight:500, color:"#8A9BB5", letterSpacing:.5, marginBottom:8 }}>🌅 Ventana dorada</div>
               <div style={{ fontSize:22,
                 fontWeight:600, color:T.brassLt, lineHeight:1 }}>
                 {r.optReturnStr} - {r.optReturnEndStr}
@@ -4701,7 +4667,7 @@ function Fondeo() {
             /* BOTON ECHAR ANCLA */
             <Card style={{marginBottom:16}} pad="24px 20px">
               <div style={{textAlign:"center",marginBottom:20}}>
-                <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8}}>Sin fondeo activo</div>
+                <div style={{fontSize:10, fontWeight:500, color:"#8A9BB5", letterSpacing:.5, marginBottom:8}}>Sin fondeo activo</div>
                 {pos && (
                   <div style={{color:T.inkDim,fontSize:10}}>
                     {pos.lat.toFixed(5)}, {pos.lon.toFixed(5)} · acc {pos.acc?.toFixed(0)}m
@@ -4722,7 +4688,7 @@ function Fondeo() {
 
           {/* CADENA */}
           <Card style={{marginBottom:16}} pad="14px 18px">
-            <div style={{fontSize:11, fontWeight:500, color:T.inkDim, marginBottom:8}}>Cadena filada</div>
+            <div style={{fontSize:10, fontWeight:500, color:"#8A9BB5", letterSpacing:.5, marginBottom:8}}>Cadena filada</div>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <input type="range" min="10" max="100" step="5" value={cadena}
                 onChange={e=>setCadena(parseInt(e.target.value))}
@@ -4862,34 +4828,32 @@ function Fondeo() {
 
 // ── MOTOR HUB (fusión Mantenimiento + Combustible) ───────────────────────────
 function MotorHub({ setScreen }) {
+  const items = [
+    { id:"mantenimiento", label:"Mantenimiento", sub:"Tareas y revisiones",
+      svg:[
+        "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+      ]},
+  ];
   return (
     <div>
-      <div style={{ fontSize:22, fontWeight:500, color:T.ink,
-        letterSpacing:-0.3, marginBottom:6 }}>Motor</div>
-      <div style={{ fontSize:13, color:T.inkDim, marginBottom:24 }}>
-        Mantenimiento · Averías
-      </div>
-      <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
-        borderRadius:12, overflow:"hidden", marginBottom:20 }}>
-        {[
-          { id:"mantenimiento", label:"Mantenimiento",
-            sub:"Tareas y revisiones programadas" },
-        ].map((item, i) => (
+      <Hdr title="Motor"/>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:20 }}>
+        {items.map(item=>(
           <div key={item.id} onClick={()=>setScreen(item.id)}
-            style={{ display:"flex", alignItems:"center",
-              justifyContent:"space-between",
-              padding:"15px 18px",
-              borderTop: i>0 ? `0.5px solid ${T.rim}` : "none",
-              cursor:"pointer" }}>
-            <div>
-              <div style={{ fontSize:15, fontWeight:500, color:T.ink,
-                marginBottom:2 }}>{item.label}</div>
-              <div style={{ fontSize:12, color:T.inkDim }}>{item.sub}</div>
+            style={{ background:"#0B1F3A", borderRadius:18, padding:"20px 20px 18px",
+              cursor:"pointer", aspectRatio:"1",
+              display:"flex", flexDirection:"column", justifyContent:"space-between",
+              position:"relative", overflow:"hidden" }}>
+            <div style={{ position:"absolute", bottom:-16, right:-16, width:80, height:80,
+              borderRadius:"50%", border:"1px solid rgba(176,141,87,0.12)", pointerEvents:"none" }}/>
+            <div style={{ width:50, height:50, background:"rgba(176,141,87,0.15)",
+              borderRadius:13, display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <Icon d={item.svg} size={26} color="#B08D57" sw={1.6}/>
             </div>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
+            <div>
+              <div style={{ fontSize:17, fontWeight:500, color:"#fff", lineHeight:1, marginBottom:5 }}>{item.label}</div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.38)" }}>{item.sub}</div>
+            </div>
           </div>
         ))}
       </div>
@@ -4899,36 +4863,32 @@ function MotorHub({ setScreen }) {
 
 
 function ABordoHub({ setScreen }) {
+  const items = [
+    { id:"inventario", label:"Inventario", sub:"Repuestos y material",
+      svg:["M8 6h13","M8 12h13","M8 18h13","M3 6h.01","M3 12h.01","M3 18h.01"] },
+    { id:"seguridad", label:"Seguridad", sub:"Equipos y caducidades",
+      svg:["M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"] },
+  ];
   return (
     <div>
-      <div style={{ fontSize:22, fontWeight:500, color:T.ink,
-        letterSpacing:-0.3, marginBottom:6 }}>A bordo</div>
-      <div style={{ fontSize:14, color:T.inkDim, marginBottom:24 }}>
-        Inventario · Seguridad · Habituallamiento
-      </div>
-      <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
-        borderRadius:12, overflow:"hidden", marginBottom:20 }}>
-        {[
-          { id:"inventario", label:"Inventario",
-            sub:"Repuestos y material a bordo" },
-          { id:"seguridad",  label:"Seguridad",
-            sub:"Equipos obligatorios y caducidades" },
-        ].map((item, i) => (
+      <Hdr title="A bordo"/>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:20 }}>
+        {items.map(item=>(
           <div key={item.id} onClick={()=>setScreen(item.id)}
-            style={{ display:"flex", alignItems:"center",
-              justifyContent:"space-between",
-              padding:"15px 18px",
-              borderTop: i>0 ? `0.5px solid ${T.rim}` : "none",
-              cursor:"pointer" }}>
-            <div>
-              <div style={{ fontSize:15, fontWeight:500, color:T.ink,
-                marginBottom:2 }}>{item.label}</div>
-              <div style={{ fontSize:12, color:T.inkDim }}>{item.sub}</div>
+            style={{ background:"#0B1F3A", borderRadius:18, padding:"20px 20px 18px",
+              cursor:"pointer", aspectRatio:"1",
+              display:"flex", flexDirection:"column", justifyContent:"space-between",
+              position:"relative", overflow:"hidden" }}>
+            <div style={{ position:"absolute", bottom:-16, right:-16, width:80, height:80,
+              borderRadius:"50%", border:"1px solid rgba(176,141,87,0.12)", pointerEvents:"none" }}/>
+            <div style={{ width:50, height:50, background:"rgba(176,141,87,0.15)",
+              borderRadius:13, display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <Icon d={item.svg} size={26} color="#B08D57" sw={1.6}/>
             </div>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
+            <div>
+              <div style={{ fontSize:17, fontWeight:500, color:"#fff", lineHeight:1, marginBottom:5 }}>{item.label}</div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.38)" }}>{item.sub}</div>
+            </div>
           </div>
         ))}
       </div>
@@ -4936,38 +4896,37 @@ function ABordoHub({ setScreen }) {
   );
 }
 
-// ── EL BARCO HUB (Ficha + Documentos) ────────────────────────────────────────
+
 function ElBarcoHub({ setScreen }) {
+  const items = [
+    { id:"ficha", label:"Ficha técnica", sub:"Datos del Leonidas",
+      svg:["M2 21c.6.5 1.2 1 2.5 1C7 22 7 20 9.5 20c2.4 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1",
+           "M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76",
+           "M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6","M12 10v3","M12 3v4"] },
+    { id:"documentos", label:"Documentos", sub:"Certificados y archivos",
+      svg:["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z",
+           "M14 2v6h6","M16 13H8","M16 17H8","M10 9H8"] },
+  ];
   return (
     <div>
-      <div style={{ fontSize:22, fontWeight:500, color:T.ink,
-        letterSpacing:-0.3, marginBottom:6 }}>El barco</div>
-      <div style={{ fontSize:14, color:T.inkDim, marginBottom:24 }}>
-        Leonidas · Sunseeker Portofino 53
-      </div>
-      <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
-        borderRadius:12, overflow:"hidden", marginBottom:20 }}>
-        {[
-          { id:"ficha",      label:"Ficha técnica",
-            sub:"Datos, matrícula y especificaciones" },
-          { id:"documentos", label:"Documentos",
-            sub:"Certificados y archivos del barco" },
-        ].map((item, i) => (
+      <Hdr title="El barco"/>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:20 }}>
+        {items.map(item=>(
           <div key={item.id} onClick={()=>setScreen(item.id)}
-            style={{ display:"flex", alignItems:"center",
-              justifyContent:"space-between",
-              padding:"15px 18px",
-              borderTop: i>0 ? `0.5px solid ${T.rim}` : "none",
-              cursor:"pointer" }}>
-            <div>
-              <div style={{ fontSize:15, fontWeight:500, color:T.ink,
-                marginBottom:2 }}>{item.label}</div>
-              <div style={{ fontSize:12, color:T.inkDim }}>{item.sub}</div>
+            style={{ background:"#0B1F3A", borderRadius:18, padding:"20px 20px 18px",
+              cursor:"pointer", aspectRatio:"1",
+              display:"flex", flexDirection:"column", justifyContent:"space-between",
+              position:"relative", overflow:"hidden" }}>
+            <div style={{ position:"absolute", bottom:-16, right:-16, width:80, height:80,
+              borderRadius:"50%", border:"1px solid rgba(176,141,87,0.12)", pointerEvents:"none" }}/>
+            <div style={{ width:50, height:50, background:"rgba(176,141,87,0.15)",
+              borderRadius:13, display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <Icon d={item.svg} size={26} color="#B08D57" sw={1.6}/>
             </div>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke={T.inkDim} strokeWidth="2" strokeLinecap="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
+            <div>
+              <div style={{ fontSize:17, fontWeight:500, color:"#fff", lineHeight:1, marginBottom:5 }}>{item.label}</div>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,0.38)" }}>{item.sub}</div>
+            </div>
           </div>
         ))}
       </div>
@@ -4975,7 +4934,7 @@ function ElBarcoHub({ setScreen }) {
   );
 }
 
-// ── DRAWER NUEVA SALIDA ───────────────────────────────────────────────────────
+
 function DrawerNuevaSalida({ onClose, onSaved, ultimasHoras }) {
   const [form, setForm] = useState({
     fecha: new Date().toISOString().split("T")[0],
@@ -5469,7 +5428,7 @@ export default function App() {
         {/* CONTENT */}
         <div className="app-inner"
           style={{ flex:1, overflowY:"auto", overflowX:"hidden",
-            padding:"22px 18px 100px",
+            padding:"22px 18px 100px", background:"#F0F1F3",
             WebkitOverflowScrolling:"touch" }}>
           <Screen setScreen={navTo}/>
         </div>
