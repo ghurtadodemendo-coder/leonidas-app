@@ -587,38 +587,25 @@ function Dashboard({ setScreen }) {
           </div>
         </div>
 
-        {/* ── ACCESO RÁPIDO — todos navy, estilo imagen ── */}
+        {/* ── ACCESO RÁPIDO ── */}
         <div style={{ fontSize:10, fontWeight:500, color:"#8A9BB5",
           letterSpacing:.5, marginBottom:10 }}>ACCESO RÁPIDO</div>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
           {quickLinks.map(q=>(
             <div key={q.id} onClick={()=>setScreen(q.id)}
-              style={{ background:"#0B1F3A", borderRadius:18,
-                padding:"20px 20px 18px", cursor:"pointer",
-                aspectRatio:"1",
+              style={{ background:"#0B1F3A", borderRadius:16,
+                padding:"14px 8px", cursor:"pointer",
                 display:"flex", flexDirection:"column",
-                justifyContent:"space-between",
-                position:"relative", overflow:"hidden" }}>
-              {/* Decorative ring */}
-              <div style={{ position:"absolute", bottom:-16, right:-16,
-                width:80, height:80, borderRadius:"50%",
-                border:"1px solid rgba(176,141,87,0.12)",
-                pointerEvents:"none" }}/>
-              {/* Icon box */}
-              <div style={{ width:50, height:50,
+                alignItems:"center", gap:12 }}>
+              <div style={{ width:48, height:48,
                 background:"rgba(176,141,87,0.15)",
                 borderRadius:13,
                 display:"flex", alignItems:"center",
                 justifyContent:"center" }}>
                 {q.icon}
               </div>
-              {/* Label */}
-              <div>
-                <div style={{ fontSize:17, fontWeight:500, color:"#fff",
-                  lineHeight:1, marginBottom:5 }}>{q.label}</div>
-                <div style={{ fontSize:11,
-                  color:"rgba(255,255,255,0.38)" }}>{q.sub}</div>
-              </div>
+              <span style={{ fontSize:12, fontWeight:500, color:"#fff",
+                textAlign:"center", lineHeight:1.3 }}>{q.label}</span>
             </div>
           ))}
         </div>
