@@ -387,21 +387,21 @@ function Dashboard({ setScreen }) {
   useEffect(()=>{
     async function load() {
       try {
-        const [ultimaBit, ultimoRepo, todasBits] = await Promise.all([
+        const [ultimaBit, ultimoRepo, todasBits, ultimasHoras] = await Promise.all([
           db("bitacora","GET",null,"?order=fecha.desc&limit=1"),
           db("combustible","GET",null,"?order=fecha.desc&limit=1"),
-          db("bitacora","GET",null,"?select=millas,horas_motor_inicio,horas_motor_fin"),
+          db("bitacora","GET",null,"?select=millas"),
+          db("bitacora","GET",null,"?select=horas_motor_fin&horas_motor_fin=not.is.null&order=fecha.desc&limit=1"),
         ]);
         const totalMillas = todasBits.reduce((a,c)=>a+(parseFloat(c.millas)||0),0);
-        const horasNav    = todasBits.reduce((a,c)=>{
-          const i=parseFloat(c.horas_motor_inicio)||0;
-          const f=parseFloat(c.horas_motor_fin)||0;
-          return a+(f>i?f-i:0);
-        },0);
-        const totalHoras = 774 + horasNav;
+        const horasMotor = ultimasHoras.length
+          ? parseFloat(ultimasHoras[0].horas_motor_fin)
+          : null;
         if (ultimaBit.length) setUltimaBitacora(ultimaBit[0]);
         setStats({
-          horas: totalHoras%1===0 ? String(totalHoras) : totalHoras.toFixed(1),
+          horas: horasMotor !== null
+            ? (horasMotor%1===0 ? String(horasMotor) : horasMotor.toFixed(1))
+            : "--",
           millas: totalMillas.toFixed(0),
           ultimoRepo: ultimoRepo.length
             ? `${ultimoRepo[0].litros} L · ${ultimoRepo[0].fecha}`
@@ -423,14 +423,13 @@ function Dashboard({ setScreen }) {
       } catch(e){}
       try {
         // Mantenimiento
-        const [tareas, hbits] = await Promise.all([
+        const [tareas, ultimaHoraBit] = await Promise.all([
           db("mantenimiento","GET",null,"?select=tipo,horas_intervalo,horas_ultima,intervalo_dias,fecha_ultima"),
-          db("bitacora","GET",null,"?select=horas_motor_inicio,horas_motor_fin"),
+          db("bitacora","GET",null,"?select=horas_motor_fin&horas_motor_fin=not.is.null&order=fecha.desc&limit=1"),
         ]);
-        const hAct = 774 + hbits.reduce((a,b)=>{
-          const i=parseFloat(b.horas_motor_inicio)||0, f=parseFloat(b.horas_motor_fin)||0;
-          return a+(f>i?f-i:0);
-        },0);
+        const hAct = ultimaHoraBit.length
+          ? parseFloat(ultimaHoraBit[0].horas_motor_fin)
+          : 774;
         let vencidas=0, proximas=0;
         const hoy = new Date();
         tareas.forEach(t=>{
@@ -1145,12 +1144,12 @@ function Mantenimiento() {
       ]);
       setTareas(t);
       setAverias(a);
-      const horasNav = bits.reduce((acc,b)=>{
-        const ini = parseFloat(b.horas_motor_inicio)||0;
-        const fin = parseFloat(b.horas_motor_fin)||0;
-        return acc + (fin > ini ? fin - ini : 0);
-      }, 0);
-      setHorasActuales(774 + horasNav);
+      const ultimaH = bits.filter(b=>b.horas_motor_fin).sort((a,b)=>
+        new Date(b.fecha||0)-new Date(a.fecha||0)
+      );
+      setHorasActuales(ultimaH.length
+        ? parseFloat(ultimaH[0].horas_motor_fin)
+        : 774);
     } catch(e){ console.error(e); }
     finally { setLoading(false); }
   }
@@ -3057,7 +3056,7 @@ const SYS = `Eres el asistente náutico de a bordo del "Leonidas", un Sunseeker 
 
 DATOS TÉCNICOS:
 - Motores: 2× MAN D28 MCR, 588 kW (≈800 CV) cada uno
-- Horas motor actuales: 774 h
+- Horas motor: ver datos cargados desde bitácora
 - Eslora: 16.15 m · Manga: 4.42 m · Calado: 1.25 m
 - Zona habilitada: 2ª Categoría
 - Electrónica: Garmin chartplotter, AIS, piloto automático, sistema de sonido
@@ -3105,12 +3104,10 @@ function AsistenteIA() {
         ]);
 
         // Calcular horas motor actuales
-        const allBits = await db("bitacora","GET",null,"?select=horas_motor_inicio,horas_motor_fin");
-        const horasNav = allBits.reduce((a,b) => {
-          const i=parseFloat(b.horas_motor_inicio)||0, f=parseFloat(b.horas_motor_fin)||0;
-          return a+(f>i?f-i:0);
-        }, 0);
-        const horasActuales = (774 + horasNav).toFixed(1);
+        const ultimaHoraBit = await db("bitacora","GET",null,"?select=horas_motor_fin&horas_motor_fin=not.is.null&order=fecha.desc&limit=1");
+        const horasActuales = ultimaHoraBit.length
+          ? parseFloat(ultimaHoraBit[0].horas_motor_fin).toFixed(1)
+          : "desconocidas";
 
         // Calcular estado mantenimiento
         const hoy = new Date();
@@ -3759,6 +3756,7 @@ function Clima() {
     .map((t,i) => ({
       time:t, hour:new Date(t).getHours(),
       wind:Math.round(wx.wind.hourly.wind_speed_10m[i]),
+      dir:wx.wind.hourly.wind_direction_10m?.[i],
       wave:wx.marine.hourly.wave_height[i],
       temp:Math.round(wx.wind.hourly.temperature_2m[i]),
       wcode:wx.wind.hourly.weathercode?.[i]??0,
@@ -3787,8 +3785,9 @@ function Clima() {
     const midCode = dh[Math.floor(dh.length/2)]?.wcode??0;
     const maxTemp = Math.max(...dh.map(h=>h.temp));
     const minTemp = Math.min(...dh.map(h=>h.temp));
+    const midDir  = dh[Math.floor(dh.length/2)]?.dir ?? null;
     const label = d===0?"Hoy":d===1?"Mañana":new Date(dh[0].t).toLocaleDateString("es-ES",{weekday:"short"});
-    days.push({ label,maxWind,maxWave,midCode,maxTemp,minTemp,
+    days.push({ label,maxWind,maxWave,midCode,maxTemp,minTemp,midDir,
       sem:semaforo(maxWind,maxWave||0) });
   }
 
@@ -4018,7 +4017,7 @@ function Clima() {
                   <div style={{ fontSize:12,fontWeight:500,
                     color:T.ink,marginBottom:2 }}>{h.temp}°</div>
                   <div style={{ fontSize:11,color:sc,
-                    fontWeight:500 }}>{h.wind}kn</div>
+                    fontWeight:500 }}>{h.wind}kn {h.dir!=null?degToCompass(h.dir):""}</div>
                   <div style={{ fontSize:11,color:T.inkDim,
                     marginTop:1 }}>{h.wave?.toFixed(1)??"--"}m</div>
                 </div>
@@ -4047,7 +4046,7 @@ function Clima() {
                 </div>
                 <div style={{ textAlign:"right" }}>
                   <div style={{ fontSize:13,fontWeight:500,
-                    color:sc }}>{d.maxWind} kn</div>
+                    color:sc }}>{d.maxWind} kn {d.midDir!=null?degToCompass(d.midDir):""}</div>
                   <div style={{ fontSize:11,color:T.inkDim,
                     marginTop:2 }}>ola {d.maxWave?.toFixed(1)??"--"}m</div>
                 </div>
@@ -4121,7 +4120,7 @@ function Calculadora() {
   async function fetchHours() {
     const [mr, wr] = await Promise.all([
       fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${CALETA.lat}&longitude=${CALETA.lon}&hourly=wave_height&timezone=Europe%2FMadrid&forecast_days=2`),
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${CALETA.lat}&longitude=${CALETA.lon}&hourly=wind_speed_10m,wind_gusts_10m&wind_speed_unit=kn&timezone=Europe%2FMadrid&forecast_days=2`)
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${CALETA.lat}&longitude=${CALETA.lon}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=kn&timezone=Europe%2FMadrid&forecast_days=2`)
     ]);
     const [md, wd] = await Promise.all([mr.json(), wr.json()]);
     return wd.hourly.time.map((t,i) => ({
@@ -4867,16 +4866,14 @@ function MotorHub({ setScreen }) {
     <div>
       <div style={{ fontSize:22, fontWeight:500, color:T.ink,
         letterSpacing:-0.3, marginBottom:6 }}>Motor</div>
-      <div style={{ fontSize:14, color:T.inkDim, marginBottom:24 }}>
-        Mantenimiento · Combustible
+      <div style={{ fontSize:13, color:T.inkDim, marginBottom:24 }}>
+        Mantenimiento · Averías
       </div>
       <div style={{ background:T.surface, border:`0.5px solid ${T.rim}`,
         borderRadius:12, overflow:"hidden", marginBottom:20 }}>
         {[
           { id:"mantenimiento", label:"Mantenimiento",
-            sub:"Tareas, averías y revisiones" },
-          { id:"combustible",   label:"Combustible",
-            sub:"Repostajes y nivel del depósito" },
+            sub:"Tareas y revisiones programadas" },
         ].map((item, i) => (
           <div key={item.id} onClick={()=>setScreen(item.id)}
             style={{ display:"flex", alignItems:"center",
@@ -4900,7 +4897,7 @@ function MotorHub({ setScreen }) {
   );
 }
 
-// ── A BORDO HUB (fusión Inventario + Seguridad) ───────────────────────────────
+
 function ABordoHub({ setScreen }) {
   return (
     <div>
@@ -5198,11 +5195,6 @@ const MENU = [
       { id:"clima", label:"Clima", svg:[
         "M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"
       ]},
-      { id:"fondeo", label:"Fondeo", svg:[
-        "M12 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
-        "M12 8v14",
-        "M5 12H2a10 10 0 0 0 20 0h-3"
-      ]},
     ]
   },
   {
@@ -5231,6 +5223,12 @@ const MENU = [
     items: [
       { id:"motor", label:"Motor", svg:[
         "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+      ]},
+      { id:"combustible", label:"Combustible", svg:[
+        "M3 22V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16",
+        "M3 22h10",
+        "M13 8h2a2 2 0 0 1 2 2v1a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V7a2 2 0 0 0-.59-1.41L17 2",
+        "M7 10h2"
       ]},
       { id:"abordo", label:"A bordo", svg:[
         "M8 6h13",
@@ -5265,7 +5263,6 @@ const MENU = [
 const SCREENS = {
   dashboard:    Dashboard,
   clima:        Clima,
-  fondeo:       Fondeo,
   bitacora:     Bitacora,
   tripulacion:  Tripulacion,
   puertos:      Puertos,
@@ -5280,6 +5277,7 @@ const SCREENS = {
   documentos:   Documentos,
   ia:           AsistenteIA,
 };
+
 
 function SidebarContent({ screen, onNav, onClose, showClose }) {
   return (
